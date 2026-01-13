@@ -1,0 +1,186 @@
+// Prisma Client: genera el cliente TypeScript que usarás en el código (PrismaClient)
+generator client {
+  provider = "prisma-client-js"
+}
+
+// Datasource: define a qué motor de BD se conecta Prisma
+datasource db {
+  provider = "postgresql"
+}
+
+// Enum de roles (para autorización / permisos)
+enum UserRole {
+  ADMIN
+  DOCTOR
+  SECRETARY
+}
+
+// Enum de estado del usuario (para bloquear acceso, pendientes, etc.)
+enum UserStatus {
+  ACTIVE
+  SUSPENDED
+  PENDING
+}
+
+// Enum del estado de un usuario en una clínica
+enum ClinicMembershipStatus {
+  ACTIVE
+  INACTIVE
+}
+
+model User {
+  // ID principal, generado como cuid() (string único, amigable para frontend)
+  id            String      @id @default(cuid())
+
+  // Email como username principal, único en la BD
+  email         String      @unique
+
+  // Campos típicos que usa Auth.js/NextAuth (no son obligatorios para auth propia)
+  // name: nombre visible (por ejemplo si tuvieras OAuth o datos básicos)
+  name          String?
+  // image: foto/avatar del usuario
+  image         String?
+  // emailVerified: fecha/hora en que se verificó el correo (si implementas verificación)
+  emailVerified DateTime?
+
+  // Tu auth real por credenciales
+  // passwordHash: hash de contraseña (bcrypt/argon2). Es optional porque:
+  // - podrías tener usuarios creados por OAuth sin contraseña
+  // - o flujos futuros como magic links
+  passwordHash  String?
+
+  // Rol del usuario (por defecto ADMIN mientras estás en MVP)
+  role          UserRole    @default(ADMIN)
+
+  // Estado del usuario (por defecto ACTIVE)
+  status        UserStatus  @default(ACTIVE)
+
+  // Auditoría mínima
+  createdAt     DateTime    @default(now())     // cuándo se creó el registro
+  updatedAt     DateTime    @updatedAt          // se actualiza solo en cada update
+  lastLoginAt   DateTime?                       // útil para auditoría/seguridad
+
+  // Relación 1 a 1 con los datos personales (separación auth vs perfil)
+  // UserProfile tiene userId UNIQUE, por eso aquí es "profile?" (0 o 1 perfil)
+  profile       UserProfile?
+
+  // Relaciones usadas por Auth.js/NextAuth si guardas sesiones en base de datos
+  // - sessions: permite múltiples sesiones simultáneas (mismo usuario en varios dispositivos)
+  // - accounts: para vincular proveedores OAuth (Google, Apple, etc.)
+  sessions      Session[]
+  accounts      Account[]
+  clinicMemberships ClinicMembership[]
+}
+
+model UserProfile {
+  // ID del perfil
+  id        String   @id @default(cuid())
+
+  // FK hacia User. UNIQUE => asegura 1 perfil por usuario (relación 1:1)
+  userId    String   @unique
+
+  // Datos personales (no auth)
+  firstName String
+  lastName  String
+  phone     String?
+
+  // RUT opcional y único si lo usas (ojo: en la vida real puede requerir normalización)
+  rut       String?  @unique
+
+  // Auditoría
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relación: este perfil pertenece a un User
+  // onDelete: Cascade => si borras el User, se borra automáticamente el profile
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// --- Modelos estándar del Prisma Adapter de Auth.js/NextAuth ------------------
+// Útiles si quieres que Auth.js administre sesiones/OAuth/verificación.
+
+model Account {
+  // ID interno del vínculo
+  id                String  @id @default(cuid())
+
+  // FK al usuario dueño de esta cuenta externa
+  userId            String
+
+  // Campos propios de OAuth / providers
+  type              String              // tipo de cuenta (ej: "oauth")
+  provider          String              // ej: "google"
+  providerAccountId String              // id del usuario en el provider
+
+  // Tokens que algunos providers entregan (opcionales)
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+
+  // Relación al User
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Evita duplicados: un mismo providerAccountId no puede repetirse para ese provider
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  // ID interno de la sesión
+  id           String   @id @default(cuid())
+
+  // Token de sesión (lo que se guarda en cookie/cliente como referencia)
+  sessionToken String   @unique
+
+  // FK al usuario
+  userId       String
+
+  // Fecha/hora de expiración
+  expires      DateTime
+
+  // Relación al User
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  // identifier suele ser email u otro identificador del usuario
+  identifier String
+
+  // token único (para verificación de email o magic links)
+  token      String   @unique
+
+  // cuándo expira el token
+  expires    DateTime
+
+  // combinación única (regla típica de Auth.js)
+  @@unique([identifier, token])
+}
+
+model Clinic {
+  id        String   @id @default(cuid())
+  name      String
+  city      String
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  memberships ClinicMembership[]
+}
+
+model ClinicMembership {
+  id        String                 @id @default(cuid())
+  userId    String
+  clinicId  String
+  status    ClinicMembershipStatus @default(ACTIVE)
+  createdAt DateTime               @default(now())
+  updatedAt DateTime               @updatedAt
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  clinic Clinic @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, clinicId])
+  @@index([userId, status])
+}
+

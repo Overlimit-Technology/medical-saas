@@ -1,0 +1,16 @@
+services:
+  db:
+    image: postgres:17
+    container_name: medigest-postgres
+    restart: unless-stopped
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: delunoalnueve
+      POSTGRES_DB: medigest
+    volumes:
+      - medigest_pgdata:/var/lib/postgresql/data
+
+volumes:
+  medigest_pgdata:
