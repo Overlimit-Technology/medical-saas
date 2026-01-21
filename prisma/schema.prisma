@@ -184,3 +184,25 @@ model ClinicMembership {
   @@index([userId, status])
 }
 
+model AuditLog {
+  // Registro de auditoría: eventos relevantes del sistema
+  id         String   @id @default(cuid())
+  // Fecha y hora en que ocurrió el evento
+  occurredAt DateTime @default(now())
+  // Qué ocurrió (nombre o descripción breve del evento)
+  event      String
+  // Responsable/autor del evento (usuario o sistema) (Se usara el correo sacado de la sesión)
+  author     String
+  // Detalle opcional del evento
+  detail     String?
+}
+
+model Treatment {
+  // Tratamientos disponibles en la clínica y su precio
+  id    String  @id @default(cuid())
+  // Nombre del tratamiento
+  name  String
+  // Precio del tratamiento
+  price Decimal @db.Decimal(10, 2)
+}
+
