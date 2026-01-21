@@ -1,5 +1,6 @@
 import { PrismaClient } from "@prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
+import dotenv from "dotenv";
 import { Pool } from "pg";
 
 /**
@@ -7,6 +8,10 @@ import { Pool } from "pg";
  * Para Postgres local usaremos @prisma/adapter-pg + pg.Pool.
  * Esto funciona en Next.js (Node runtime) y en scripts (seed).
  */
+
+// Load env for scripts (seed) and local dev.
+dotenv.config({ path: ".env.local" });
+dotenv.config();
 
 const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined;

@@ -46,6 +46,11 @@ SESSION_SECRET="tu-secreto-super-seguro-aqui-minimo-32-caracteres"
 NODE_ENV="development"
 ```
 
+Notas para cambiar la BD mas adelante (online):
+- Local: define `DATABASE_URL` en `.env.local` (no se versiona).
+- Produccion: define `DATABASE_URL` como variable de entorno en el hosting
+  (o usa `.env.production` si tu plataforma lo soporta).
+
 ### 4. Configurar la base de datos
 
 ```bash
