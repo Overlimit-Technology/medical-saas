@@ -1,15 +1,6 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
-/**
- * Signed cookie format:
- *   "<payloadB64>.<sigB64>"
- * sig = HMAC-SHA256(payloadB64, SESSION_SECRET)
- * payload includes: exp (epoch seconds)
- *
- * Runs on Edge runtime => WebCrypto (crypto.subtle).
- */
-
 function base64urlToUint8Array(b64url: string) {
   const b64 = b64url.replaceAll("-", "+").replaceAll("_", "/");
   const pad = b64.length % 4 === 0 ? "" : "=".repeat(4 - (b64.length % 4));
@@ -44,8 +35,6 @@ type SignedPayload = {
   exp?: unknown;
   userId?: unknown;
   role?: unknown;
-
-  // clinic context (mg_clinic)
   clinicId?: unknown;
   setAt?: unknown;
 };
@@ -99,6 +88,8 @@ function isValidClinicPayload(
   );
 }
 
+const PROTECTED_PREFIXES = ["/dashboard", "/agenda", "/patients", "/doctors", "/boxes"];
+
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
@@ -109,7 +100,6 @@ export async function middleware(req: NextRequest) {
   const sessionPayload = await readSignedCookiePayload(sessionCookie, secret);
   const hasValidSession = isValidSessionPayload(sessionPayload);
 
-  // Read clinic context (mg_clinic) only if session exists
   const clinicCookie = req.cookies.get("mg_clinic")?.value;
   const clinicPayload = hasValidSession
     ? await readSignedCookiePayload(clinicCookie, secret)
@@ -119,7 +109,6 @@ export async function middleware(req: NextRequest) {
     ? isValidClinicPayload(clinicPayload, sessionPayload.userId)
     : false;
 
-  // 1) Logged-in users should not see login pages
   if (pathname === "/" || pathname === "/login") {
     if (hasValidSession) {
       const url = req.nextUrl.clone();
@@ -129,7 +118,6 @@ export async function middleware(req: NextRequest) {
     return NextResponse.next();
   }
 
-  // 2) Clinic selector requires session
   if (pathname === "/select-clinic") {
     if (!hasValidSession) {
       const url = req.nextUrl.clone();
@@ -144,8 +132,7 @@ export async function middleware(req: NextRequest) {
     return NextResponse.next();
   }
 
-  // 3) Dashboard requires session + selected clinic
-  if (pathname.startsWith("/dashboard")) {
+  if (PROTECTED_PREFIXES.some((prefix) => pathname.startsWith(prefix))) {
     if (!hasValidSession) {
       const url = req.nextUrl.clone();
       url.pathname = "/";
@@ -163,5 +150,5 @@ export async function middleware(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/", "/login", "/select-clinic", "/dashboard/:path*"],
+  matcher: ["/", "/login", "/select-clinic", "/dashboard/:path*", "/agenda/:path*", "/patients/:path*", "/doctors/:path*", "/boxes/:path*"],
 };

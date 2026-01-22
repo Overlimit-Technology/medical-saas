@@ -102,31 +102,76 @@ Después de ejecutar `npm run db:seed`, puedes usar estas credenciales:
 | DOCTOR | doctor@medigest.cl | Doctor123! |
 | SECRETARY | secretaria@medigest.cl | Secre123! |
 
-## ✅ Estado actual del proyecto
+## Estado actual del proyecto
 
-### Requerimientos implementados
+### Requerimientos ERS Sprint 1 
 
-#### 1. **Autenticación** ✅
-- Login con email y contraseña
-- Validación de credenciales con bcrypt
-- Sesión segura mediante cookies firmadas (`mg_session`)
-- Verificación de estado de usuario (ACTIVE)
-- Logout con limpieza de cookies
-- Endpoint `/api/auth/me` para verificar sesión actual
+#### PAC-001 (CRUD pacientes)
+Estado: **completo (backend + UI base)**  
+- Crear/editar/listar pacientes con validacion de RUN unico.
+- No permite eliminar si tiene citas futuras.
+- UI base con listado y formulario.
+Pendiente fino:
+- Falta pantalla de detalle/historial completo como mockup (y UX de confirmacion al eliminar).
 
-#### 2. **Selección de clínica** ✅
-- Sistema multi-tenant con soporte para múltiples clínicas
-- Selección de clínica activa mediante cookie firmada (`mg_clinic`)
-- Validación de membresía activa del usuario en la clínica
-- Listado de clínicas disponibles para el usuario autenticado
-- Redirección automática según estado de sesión y clínica
+#### CIT-001 a CIT-005 (citas, agenda, conflictos, filtros)
+Estado: **parcial**
+- CIT-001 Crear cita: **completo** (API + formulario).
+- CIT-002 Editar cita: **parcial** (API + drag & drop para mover en agenda).
+- CIT-003 Anular/Eliminar cita: **parcial** (API de cancelacion con auditoria; falta UI/confirmacion).
+- CIT-004 Visualizar agenda: **parcial** (vista semanal; faltan dia/mes y filtros visuales por rol).
+- CIT-005 Buscar/filtrar: **parcial** (API soporta filtros; UI aun no).
 
-#### 3. **Protección de rutas** ✅
-- Middleware que protege rutas según autenticación y contexto de clínica
-- Redirecciones automáticas:
-  - Sin sesión → `/login`
-  - Con sesión pero sin clínica → `/select-clinic`
-  - Con sesión y clínica → `/dashboard`
+#### ENT-001 / ENT-002 (CRUD doctores y boxes)
+Estado: **parcial**
+- Doctores: **completo en API + UI base** (crear/listar con RUT unico).
+- Boxes: **completo en API + UI base**.
+Pendiente fino:
+- UI para asociar doctores a multiples sedes.
+- Confirmaciones de eliminacion y visualizacion de "desactivado" cuando hay citas futuras.
+
+### Requerimientos implementados (infra base)
+
+#### 1. **Autenticacion**
+- Login con email y contrasena.
+- Validacion de credenciales con bcrypt.
+- Sesion segura mediante cookies firmadas (`mg_session`).
+- Verificacion de estado de usuario (ACTIVE).
+- Logout con limpieza de cookies.
+- Endpoint `/api/auth/me` para verificar sesion actual.
+
+#### 2. **Seleccion de clinica**
+- Multi-tenant con soporte para multiples clinicas.
+- Seleccion de clinica activa mediante cookie firmada (`mg_clinic`).
+- Validacion de membresia activa del usuario en la clinica.
+- Listado de clinicas disponibles para el usuario autenticado.
+- Redireccion automatica segun estado de sesion y clinica.
+
+#### 3. **Proteccion de rutas**
+- Middleware que protege rutas segun autenticacion y contexto de clinica.
+- Redirecciones automaticas:
+  - Sin sesion -> `/login`
+  - Con sesion pero sin clinica -> `/select-clinic`
+  - Con sesion y clinica -> `/dashboard`
+
+### Funcionalidades nuevas agregadas
+
+- Modelos nuevos en Prisma: `Patient`, `DoctorProfile`, `Box`, `Appointment`.
+- Servicios de dominio en servidor para CRUD y reglas: pacientes, doctores, boxes, citas.
+- Validacion de conflictos de agenda (doctor/box/paciente).
+- Auditoria basica para cancelacion de citas (`AuditLog`).
+- UI base de panel con sidebar + paginas de pacientes, doctores, boxes y agenda semanal con drag & drop.
+
+### Rutas/API nuevas
+
+- `GET/POST /api/patients`
+- `GET/PATCH/DELETE /api/patients/[id]`
+- `GET/POST /api/doctors`
+- `PATCH/DELETE /api/doctors/[id]`
+- `GET/POST /api/boxes`
+- `PATCH/DELETE /api/boxes/[id]`
+- `GET/POST /api/appointments`
+- `PATCH/DELETE /api/appointments/[id]`
 
 ### Arquitectura
 
@@ -138,15 +183,12 @@ El proyecto sigue una arquitectura en capas:
 - **Servidor** (`src/server/`): Servicios de negocio y lógica server-side
 - **API** (`src/app/api/`): Route handlers de Next.js
 
-### Próximos pasos
+### Pr?ximos pasos
 
-- Sistema de permisos basado en roles
-- Request Context centralizado
-- Reglas de ownership (ABAC)
-- UI diferenciada por rol (menús, navegación)
-- CRUD de citas, pacientes, equipo de trabajo
-- Dashboard con métricas
-- Módulos adicionales (CRM, finanzas, mensajería)
+- UI de detalle de paciente (historial y validacion/confirmacion de eliminacion).
+- Agenda con vistas dia/mes y filtros visibles por rol.
+- Flujo de edicion/cancelacion con confirmaciones en UI.
+- Asociar doctores a multiples sedes desde UI.
 
 ## 📁 Estructura del proyecto
 
@@ -182,3 +224,10 @@ medigest/
 
 Privado - Todos los derechos reservados
 
+
+DAtos de prueba 
+ADMIN admin@medigest.cl / Admin123!
+DOCTOR doctor@medigest.cl / Doctor123!
+SECRETARY secretaria@medigest.cl / Secre123!
+DOCTOR A doctor.multi.a@medigest.cl / Doctor123!
+DOCTOR B doctor.multi.b@medigest.cl / Doctor123!##
