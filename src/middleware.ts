@@ -88,7 +88,7 @@ function isValidClinicPayload(
   );
 }
 
-const PROTECTED_PREFIXES = ["/dashboard", "/agenda", "/patients", "/doctors", "/boxes"];
+const PROTECTED_PREFIXES = ["/dashboard", "/agenda", "/patients", "/doctors", "/boxes", "/appointments"];
 
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
@@ -150,5 +150,15 @@ export async function middleware(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/", "/login", "/select-clinic", "/dashboard/:path*", "/agenda/:path*", "/patients/:path*", "/doctors/:path*", "/boxes/:path*"],
+  matcher: [
+    "/",
+    "/login",
+    "/select-clinic",
+    "/dashboard/:path*",
+    "/agenda/:path*",
+    "/patients/:path*",
+    "/doctors/:path*",
+    "/boxes/:path*",
+    "/appointments/:path*",
+  ],
 };

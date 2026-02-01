@@ -2,10 +2,26 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { requireClinicSession, requireRole } from "@/server/auth/requireSession";
 import { BoxesService } from "@/server/boxes/BoxesService";
+import { prisma } from "@/lib/prisma";
 
 const boxSchema = z.object({
   name: z.string().min(1),
 });
+
+export async function GET(_req: Request, { params }: { params: { id: string } }) {
+  try {
+    const session = await requireClinicSession();
+    const item = await prisma.box.findFirst({
+      where: { id: params.id, clinicId: session.clinicId },
+    });
+    if (!item) {
+      return NextResponse.json({ ok: false, error: "Not found" }, { status: 404 });
+    }
+    return NextResponse.json({ ok: true, item });
+  } catch (error) {
+    return NextResponse.json({ ok: false, error: "Failed to load box" }, { status: 400 });
+  }
+}
 
 export async function PATCH(req: Request, { params }: { params: { id: string } }) {
   try {

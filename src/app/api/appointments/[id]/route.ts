@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { requireClinicSession, requireRole } from "@/server/auth/requireSession";
 import { AppointmentsService } from "@/server/appointments/AppointmentsService";
+import { prisma } from "@/lib/prisma";
 
 const appointmentUpdateSchema = z.object({
   patientId: z.string().min(1).optional(),
@@ -18,6 +19,32 @@ function parseDate(value?: string) {
   if (!value) return null;
   const date = new Date(value);
   return Number.isNaN(date.valueOf()) ? null : date;
+}
+
+export async function GET(_req: Request, { params }: { params: { id: string } }) {
+  try {
+    const session = await requireClinicSession();
+    const item = await prisma.appointment.findFirst({
+      where: {
+        id: params.id,
+        clinicId: session.clinicId,
+        doctorId: session.role === "DOCTOR" ? session.userId : undefined,
+      },
+      include: {
+        patient: true,
+        doctor: { include: { profile: true } },
+        box: true,
+      },
+    });
+
+    if (!item) {
+      return NextResponse.json({ ok: false, error: "Not found" }, { status: 404 });
+    }
+
+    return NextResponse.json({ ok: true, item });
+  } catch (error) {
+    return NextResponse.json({ ok: false, error: "Failed to load appointment" }, { status: 400 });
+  }
 }
 
 export async function PATCH(req: Request, { params }: { params: { id: string } }) {

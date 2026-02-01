@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 
 const NAV_ITEMS = [
   { href: "/dashboard", label: "Vista General" },
@@ -13,12 +13,10 @@ const NAV_ITEMS = [
 
 export default function Sidebar() {
   const pathname = usePathname();
-  const router = useRouter();
 
   const handleChangeClinic = async () => {
-    await fetch("/api/clinics/clear", { method: "POST" });
-    router.push("/select-clinic");
-    router.refresh();
+    await fetch("/api/clinics/clear", { method: "POST", credentials: "include" });
+    window.location.assign("/select-clinic");
   };
 
   return (
