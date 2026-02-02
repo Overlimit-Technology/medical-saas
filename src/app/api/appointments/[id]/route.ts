@@ -21,6 +21,7 @@ function parseDate(value?: string) {
   return Number.isNaN(date.valueOf()) ? null : date;
 }
 
+// GET /api/appointments/:id -> detalle; si es doctor, solo sus citas.
 export async function GET(_req: Request, { params }: { params: { id: string } }) {
   try {
     const session = await requireClinicSession();
@@ -47,10 +48,11 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
   }
 }
 
+// PATCH /api/appointments/:id -> actualiza; doctor solo sus propias citas.
 export async function PATCH(req: Request, { params }: { params: { id: string } }) {
   try {
     const session = await requireClinicSession();
-    requireRole(session.role, ["ADMIN", "SECRETARY"]);
+    requireRole(session.role, ["ADMIN", "SECRETARY", "DOCTOR"]);
 
     const body = await req.json();
     const parsed = appointmentUpdateSchema.safeParse(body);
@@ -66,6 +68,18 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
       return NextResponse.json({ ok: false, error: "Invalid time range" }, { status: 400 });
     }
 
+    // Doctores solo pueden modificar sus propias citas
+    if (session.role === "DOCTOR") {
+      const current = await prisma.appointment.findFirst({
+        where: { id: params.id, clinicId: session.clinicId, doctorId: session.userId },
+        select: { id: true },
+      });
+      if (!current) {
+        return NextResponse.json({ ok: false, error: "Forbidden" }, { status: 403 });
+      }
+      data.doctorId = session.userId; // evitar reasignar a otro doctor
+    }
+
     const item = await AppointmentsService.update(params.id, session.clinicId, {
       ...data,
       createdBy: session.userId,
@@ -79,13 +93,25 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
   }
 }
 
+// DELETE /api/appointments/:id -> cancela cita; doctor solo sus propias citas.
 export async function DELETE(req: Request, { params }: { params: { id: string } }) {
   try {
     const session = await requireClinicSession();
-    requireRole(session.role, ["ADMIN", "SECRETARY"]);
+    requireRole(session.role, ["ADMIN", "SECRETARY", "DOCTOR"]);
 
     const body = await req.json().catch(() => null);
     const reason = typeof body?.reason === "string" ? body.reason : undefined;
+
+    // Doctores solo pueden cancelar sus propias citas
+    if (session.role === "DOCTOR") {
+      const current = await prisma.appointment.findFirst({
+        where: { id: params.id, clinicId: session.clinicId, doctorId: session.userId },
+        select: { id: true },
+      });
+      if (!current) {
+        return NextResponse.json({ ok: false, error: "Forbidden" }, { status: 403 });
+      }
+    }
 
     const item = await AppointmentsService.cancel(params.id, session.clinicId, session.userId, reason);
     return NextResponse.json({ ok: true, item });

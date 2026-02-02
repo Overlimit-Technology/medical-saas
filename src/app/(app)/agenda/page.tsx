@@ -27,7 +27,9 @@ const END_HOUR = 23;
 const SLOT_MINUTES = 15;
 const SLOT_HEIGHT = 32;
 const SERVICE_OPTIONS = ["Consulta general", "Control", "Telemedicina", "Procedimiento"];
+const NOTE_MAX_LENGTH = 250;
 
+// Retorna el lunes correspondiente a la fecha indicada (hora 00:00).
 function startOfWeek(date: Date) {
   const d = new Date(date);
   const day = d.getDay();
@@ -37,6 +39,7 @@ function startOfWeek(date: Date) {
   return d;
 }
 
+// Formatea una fecha a yyyy-mm-dd para campos <input type="date" />.
 function formatDateValue(date: Date) {
   const year = date.getFullYear();
   const month = `${date.getMonth() + 1}`.padStart(2, "0");
@@ -44,12 +47,14 @@ function formatDateValue(date: Date) {
   return `${year}-${month}-${day}`;
 }
 
+// Formatea fecha a hh:mm en 24h para inputs de hora.
 function formatTimeValue(date: Date) {
   const hours = `${date.getHours()}`.padStart(2, "0");
   const minutes = `${date.getMinutes()}`.padStart(2, "0");
   return `${hours}:${minutes}`;
 }
 
+// Obtiene etiqueta horaria local en formato 24h para mostrar en la UI.
 function formatTimeLabel(date: Date) {
   return date.toLocaleTimeString("es-CL", {
     hour: "2-digit",
@@ -58,6 +63,7 @@ function formatTimeLabel(date: Date) {
   });
 }
 
+// Convierte minutos en texto legible (ej. 90 -> "1 h 30 min").
 function minutesToLabel(minutes: number) {
   if (minutes < 60) return `${minutes} min`;
   const hours = Math.floor(minutes / 60);
@@ -65,6 +71,7 @@ function minutesToLabel(minutes: number) {
   return rest === 0 ? `${hours} h` : `${hours} h ${rest} min`;
 }
 
+// Página principal con la agenda semanal interactiva.
 export default function AgendaPage() {
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [patients, setPatients] = useState<Patient[]>([]);
@@ -114,6 +121,7 @@ export default function AgendaPage() {
     return Array.from({ length: totalSlots }).map((_, index) => index);
   }, []);
 
+  // Obtiene citas de la semana visible y filtra las canceladas.
   const loadAgenda = async () => {
     const from = new Date(weekStart);
     const to = new Date(weekStart);
@@ -128,6 +136,7 @@ export default function AgendaPage() {
     }
   };
 
+  // Carga listas de pacientes, doctores y boxes para los selects.
   const loadLookups = async () => {
     const [patientsRes, doctorsRes, boxesRes] = await Promise.all([
       fetch("/api/patients"),
@@ -155,6 +164,7 @@ export default function AgendaPage() {
     return () => window.clearInterval(id);
   }, []);
 
+  // Convierte índice de día y slot en objeto Date exacto.
   const slotToDate = useCallback(
     (dayIndex: number, slotIndex: number) => {
       const base = new Date(weekStart);
@@ -165,10 +175,12 @@ export default function AgendaPage() {
     [weekStart]
   );
 
+  // Calcula el índice de slot a partir de una fecha/hora dada.
   const toSlotIndex = (date: Date) => {
     return (date.getHours() - START_HOUR) * (60 / SLOT_MINUTES) + Math.floor(date.getMinutes() / SLOT_MINUTES);
   };
 
+  // Limpia estado del modal y selection al cerrarlo.
   const resetModal = () => {
     setIsModalOpen(false);
     setEditingId(null);
@@ -179,6 +191,7 @@ export default function AgendaPage() {
     setDeleteConfirm(false);
   };
 
+  // Prepara el formulario para crear cita en el rango seleccionado.
   const openModalForRange = useCallback(
     (dayIndex: number, startSlot: number, endSlot: number) => {
       const normalizedStart = Math.min(startSlot, endSlot);
@@ -200,6 +213,7 @@ export default function AgendaPage() {
     [slotToDate]
   );
 
+  // Maneja drag-and-drop para mover una cita a otro slot validando choques.
   const handleDrop = async (event: React.DragEvent<HTMLDivElement>) => {
     event.preventDefault();
     const appointmentId = event.dataTransfer.getData("text/plain");
@@ -231,6 +245,7 @@ export default function AgendaPage() {
     loadAgenda();
   };
 
+  // Comienza selección de rango al hacer pointer-down en una celda.
   const handlePointerDown = (dayIndex: number, slot: number, event?: React.PointerEvent) => {
     event?.preventDefault();
     setIsSelecting(true);
@@ -239,11 +254,13 @@ export default function AgendaPage() {
     setErrorMessage(null);
   };
 
+  // Extiende selección mientras se arrastra dentro del mismo día.
   const handlePointerEnter = (dayIndex: number, slot: number) => {
     if (!isSelecting || !selection || dayIndex !== selection.dayIndex) return;
     setSelection({ ...selection, endSlot: slot });
   };
 
+  // Finaliza selección y abre modal si hay rango válido.
   const finalizeSelection = useCallback(() => {
     if (!isSelecting || !selection) return;
     setIsSelecting(false);
@@ -264,6 +281,7 @@ export default function AgendaPage() {
     };
   }, [finalizeSelection]);
 
+  // Carga datos de la cita en el formulario para edición.
   const openEditModal = (item: Appointment) => {
     const startAt = new Date(item.startAt);
     const endAt = new Date(item.endAt);
@@ -280,17 +298,19 @@ export default function AgendaPage() {
       date: formatDateValue(startAt),
       start: formatTimeValue(startAt),
       end: formatTimeValue(endAt),
-      notes: item.notes ?? "",
+      notes: (item.notes ?? "").slice(0, NOTE_MAX_LENGTH),
     }));
     setIsModalOpen(true);
     setErrorMessage(null);
   };
 
+  // Muestra detalles rápidos al hacer clic en una cita.
   const handleAppointmentClick = (item: Appointment) => {
     setDetailAppointment(item);
     setErrorMessage(null);
   };
 
+  // Valida y crea/actualiza una cita según haya id de edición.
   const createOrUpdateAppointment = async (event: React.FormEvent) => {
     event.preventDefault();
     if (!form.date || !form.start || !form.end) return;
@@ -322,14 +342,15 @@ export default function AgendaPage() {
       setErrorMessage("Ya existe una cita que se superpone en ese horario.");
       return;
     }
-
+    // Funcion o servicio para crear o actualizar la cita
+    const cleanNotes = form.notes.slice(0, NOTE_MAX_LENGTH).trim();
     const payload = {
       patientId: form.patientId,
       doctorId: form.doctorId,
       boxId: form.boxId,
       startAt: startAt.toISOString(),
       endAt: endAt.toISOString(),
-      notes: form.notes?.trim() ? form.notes.trim() : null,
+      notes: cleanNotes ? cleanNotes : null,
     };
     const res = await fetch(editingId ? `/api/appointments/${editingId}` : "/api/appointments", {
       method: editingId ? "PATCH" : "POST",
@@ -345,6 +366,7 @@ export default function AgendaPage() {
     resetModal();
   };
 
+  // Elimina la cita seleccionada tras confirmación.
   const handleDeleteAppointment = async () => {
     if (!editingId) return;
     setDeleting(true);
@@ -558,7 +580,7 @@ export default function AgendaPage() {
                   }`}
                 >
                   <p className="w-full truncate font-semibold leading-tight">
-                    {item.notes?.trim() || `${item.patient.firstName} ${item.patient.lastName}`}
+                    {`${item.patient.firstName} ${item.patient.lastName}`}
                   </p>
                 </div>
               </div>
@@ -717,12 +739,20 @@ export default function AgendaPage() {
                   className="rounded-xl border border-slate-200 px-3 py-2 text-sm"
                 />
               </div>
-              <textarea
-                placeholder="Descripción"
-                value={form.notes}
-                onChange={(event) => setForm({ ...form, notes: event.target.value })}
-                className="min-h-[90px] rounded-xl border border-slate-200 px-3 py-2 text-sm"
-              />
+              <div className="relative">
+                <textarea
+                  placeholder="Descripción"
+                  value={form.notes}
+                  maxLength={NOTE_MAX_LENGTH}
+                  onChange={(event) =>
+                    setForm({ ...form, notes: event.target.value.slice(0, NOTE_MAX_LENGTH) })
+                  }
+                  className="min-h-[90px] w-full rounded-xl border border-slate-200 px-3 py-2 pr-16 text-sm"
+                />
+                <span className="pointer-events-none absolute bottom-2 right-3 text-xs text-slate-400">
+                  {form.notes.length}/{NOTE_MAX_LENGTH}
+                </span>
+              </div>
               {errorMessage && (
                 <div className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-600">
                   {errorMessage}

@@ -280,6 +280,7 @@ model Appointment {
   doctor        User    @relation("AppointmentDoctor", fields: [doctorId], references: [id], onDelete: Restrict)
   box           Box     @relation(fields: [boxId], references: [id], onDelete: Restrict)
   createdByUser User?   @relation("AppointmentCreatedBy", fields: [createdBy], references: [id], onDelete: SetNull)
+  clinicalVisits ClinicalVisit[]
 
   @@index([clinicId, startAt])
   @@index([doctorId, startAt])
@@ -307,4 +308,22 @@ model Treatment {
   name  String
   // Precio del tratamiento
   price Decimal @db.Decimal(10, 2)
+}
+
+model ClinicalVisit {
+  id            String   @id @default(cuid())
+  clinicId      String
+  patientId     String
+  doctorId      String
+  appointmentId String?
+  startedAt     DateTime @default(now())
+  createdAt     DateTime @default(now())
+
+  clinic      Clinic       @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+  patient     Patient      @relation(fields: [patientId], references: [id], onDelete: Restrict)
+  doctor      User         @relation(fields: [doctorId], references: [id], onDelete: Restrict)
+  appointment Appointment? @relation(fields: [appointmentId], references: [id], onDelete: SetNull)
+
+  @@index([clinicId, doctorId, startedAt])
+  @@index([clinicId, patientId, startedAt])
 }

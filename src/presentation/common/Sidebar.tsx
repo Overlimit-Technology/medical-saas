@@ -1,11 +1,13 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 
 const NAV_ITEMS = [
   { href: "/dashboard", label: "Vista General" },
   { href: "/agenda", label: "Agenda" },
+  { href: "/clinical-visits", label: "Cita clínica", roles: ["DOCTOR"] },
   { href: "/patients", label: "Pacientes" },
   { href: "/doctors", label: "Doctores" },
   { href: "/boxes", label: "Boxes" },
@@ -13,6 +15,21 @@ const NAV_ITEMS = [
 
 export default function Sidebar() {
   const pathname = usePathname();
+  const [role, setRole] = useState<string | null>(null);
+
+  // Carga rol de sesión para mostrar solo las opciones permitidas.
+  useEffect(() => {
+    const loadRole = async () => {
+      try {
+        const res = await fetch("/api/auth/me", { credentials: "include" });
+        const data = await res.json();
+        if (data.ok && data.session?.role) setRole(data.session.role);
+      } catch {
+        setRole(null);
+      }
+    };
+    loadRole();
+  }, []);
 
   const handleChangeClinic = async () => {
     await fetch("/api/clinics/clear", { method: "POST", credentials: "include" });
@@ -34,7 +51,11 @@ export default function Sidebar() {
       <div className="mt-8">
         <p className="text-xs uppercase tracking-wide text-slate-400">Navegacion</p>
         <nav className="mt-4 flex flex-col gap-1">
-          {NAV_ITEMS.map((item) => {
+          {NAV_ITEMS.filter((item) => {
+            if (!item.roles) return true;
+            if (role === null) return false; // evita parpadeo hasta conocer el rol
+            return item.roles.includes(role);
+          }).map((item) => {
             const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
             return (
               <Link
