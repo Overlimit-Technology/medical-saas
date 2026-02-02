@@ -90,6 +90,17 @@ function isValidClinicPayload(
 
 const PROTECTED_PREFIXES = ["/dashboard", "/agenda", "/patients", "/doctors", "/boxes", "/appointments"];
 
+function roleHomePath(role: unknown) {
+  switch (role) {
+    case "ADMIN":
+      return "/dashboard/admin";
+    case "SECRETARY":
+      return "/dashboard/secretary";
+    default:
+      return "/dashboard";
+  }
+}
+
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
@@ -109,10 +120,12 @@ export async function middleware(req: NextRequest) {
     ? isValidClinicPayload(clinicPayload, sessionPayload.userId)
     : false;
 
+  const roleHome = roleHomePath(sessionPayload?.role);
+
   if (pathname === "/" || pathname === "/login") {
     if (hasValidSession) {
       const url = req.nextUrl.clone();
-      url.pathname = hasValidClinic ? "/dashboard" : "/select-clinic";
+      url.pathname = hasValidClinic ? roleHome : "/select-clinic";
       return NextResponse.redirect(url);
     }
     return NextResponse.next();
@@ -126,7 +139,7 @@ export async function middleware(req: NextRequest) {
     }
     if (hasValidClinic) {
       const url = req.nextUrl.clone();
-      url.pathname = "/dashboard";
+      url.pathname = roleHome;
       return NextResponse.redirect(url);
     }
     return NextResponse.next();
@@ -141,6 +154,26 @@ export async function middleware(req: NextRequest) {
     if (!hasValidClinic) {
       const url = req.nextUrl.clone();
       url.pathname = "/select-clinic";
+      return NextResponse.redirect(url);
+    }
+
+    if (pathname === "/dashboard" || pathname === "/dashboard/") {
+      if (roleHome !== "/dashboard") {
+        const url = req.nextUrl.clone();
+        url.pathname = roleHome;
+        return NextResponse.redirect(url);
+      }
+    }
+
+    if (pathname.startsWith("/dashboard/admin") && sessionPayload?.role !== "ADMIN") {
+      const url = req.nextUrl.clone();
+      url.pathname = roleHome;
+      return NextResponse.redirect(url);
+    }
+
+    if (pathname.startsWith("/dashboard/secretary") && sessionPayload?.role !== "SECRETARY") {
+      const url = req.nextUrl.clone();
+      url.pathname = roleHome;
       return NextResponse.redirect(url);
     }
     return NextResponse.next();

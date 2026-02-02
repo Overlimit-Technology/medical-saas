@@ -35,7 +35,7 @@ export default function Sidebar() {
         <p className="text-xs uppercase tracking-wide text-slate-400">Navegacion</p>
         <nav className="mt-4 flex flex-col gap-1">
           {NAV_ITEMS.map((item) => {
-            const active = pathname === item.href;
+            const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
             return (
               <Link
                 key={item.href}
