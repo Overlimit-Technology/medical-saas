@@ -102,6 +102,7 @@ Después de ejecutar `npm run db:seed`, puedes usar estas credenciales:
 | DOCTOR | doctor@medigest.cl | Doctor123! |
 | SECRETARY | secretaria@medigest.cl | Secre123! |
 
+
 ## Estado actual del proyecto
 
 ### Requerimientos ERS Sprint 1 
@@ -128,6 +129,8 @@ Estado: **parcial**
 - Boxes: **completo en API + UI base**.
 Pendiente fino:
 - UI para asociar doctores a multiples sedes.
+- Guardado/asignacion de boxes por sede (solo admin).
+- Escenarios de asignacion de medicos por sede: doctor asociado a 3 sedes; doctor asociado a 2 sedes; doctor asociado a 1 sede.
 - Confirmaciones de eliminacion y visualizacion de "desactivado" cuando hay citas futuras.
 
 ### Requerimientos implementados (infra base)
@@ -226,8 +229,20 @@ Privado - Todos los derechos reservados
 
 
 DAtos de prueba 
+
 ADMIN admin@medigest.cl / Admin123!
+
 DOCTOR doctor@medigest.cl / Doctor123!
+
 SECRETARY secretaria@medigest.cl / Secre123!
-DOCTOR A doctor.multi.a@medigest.cl / Doctor123!
-DOCTOR B doctor.multi.b@medigest.cl / Doctor123!##
+
+DOCTOR A doctor.A.multi.a@medigest.cl / Doctor123!
+
+DOCTOR B doctor.B.multi.b@medigest.cl / Doctor123!
+
+
+
+Doctores de prueba (cantidad de sedes):
+- DOCTOR (doctor@medigest.cl): 3 sede
+- DOCTOR A (doctor.A.multi.a@medigest.cl): 2 sedes
+- DOCTOR B (doctor.B.multi.b@medigest.cl): 1 sedes
