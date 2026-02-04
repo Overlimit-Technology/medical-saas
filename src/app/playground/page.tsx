@@ -44,7 +44,7 @@ export default function PlaygroundPage() {
       } else {
         setResult({
           success: false,
-          message: data.error || data.message || "Error al enviar el correo",
+          message: data.error || data.message || "Error al enviar el correo :(",
         });
       }
     } catch (error) {
