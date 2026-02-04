@@ -1,0 +1,192 @@
+import { prisma } from "@/lib/prisma";
+import { AuditService } from "@/server/audit/AuditService";
+
+const CONFLICT_STATUSES = ["SCHEDULED", "CONFIRMED"] as const;
+
+export type AppointmentInput = {
+  clinicId: string;
+  patientId: string;
+  doctorId: string;
+  boxId: string;
+  startAt: Date;
+  endAt: Date;
+  status?: string;
+  paymentStatus?: string;
+  notes?: string | null;
+  createdBy?: string | null;
+};
+
+export class AppointmentsService {
+  static async list(params: {
+    clinicId: string;
+    from?: Date | null;
+    to?: Date | null;
+    doctorId?: string | null;
+    patientId?: string | null;
+    status?: string | null;
+    q?: string | null;
+  }) {
+    const where: any = { clinicId: params.clinicId };
+
+    if (params.from || params.to) {
+      where.startAt = {};
+      if (params.from) where.startAt.gte = params.from;
+      if (params.to) where.startAt.lte = params.to;
+    }
+
+    if (params.doctorId) where.doctorId = params.doctorId;
+    if (params.patientId) where.patientId = params.patientId;
+    if (params.status) where.status = params.status;
+
+    if (params.q) {
+      where.OR = [
+        { patient: { firstName: { contains: params.q, mode: "insensitive" } } },
+        { patient: { lastName: { contains: params.q, mode: "insensitive" } } },
+        { doctor: { profile: { firstName: { contains: params.q, mode: "insensitive" } } } },
+        { doctor: { profile: { lastName: { contains: params.q, mode: "insensitive" } } } },
+      ];
+    }
+
+    return prisma.appointment.findMany({
+      where,
+      include: {
+        patient: true,
+        doctor: { include: { profile: true } },
+        box: true,
+      },
+      orderBy: { startAt: "asc" },
+    });
+  }
+
+  static async create(input: AppointmentInput) {
+    await this.ensureRelated(input.clinicId, input.patientId, input.doctorId, input.boxId);
+    await this.assertNoConflicts(input);
+
+    return prisma.appointment.create({
+      data: {
+        clinicId: input.clinicId,
+        patientId: input.patientId,
+        doctorId: input.doctorId,
+        boxId: input.boxId,
+        startAt: input.startAt,
+        endAt: input.endAt,
+        status: (input.status as any) ?? "SCHEDULED",
+        paymentStatus: (input.paymentStatus as any) ?? "PENDING",
+        notes: input.notes ?? null,
+        createdBy: input.createdBy ?? null,
+      },
+      include: {
+        patient: true,
+        doctor: { include: { profile: true } },
+        box: true,
+      },
+    });
+  }
+
+  static async update(id: string, clinicId: string, input: Partial<AppointmentInput>) {
+    const current = await prisma.appointment.findFirst({
+      where: { id, clinicId },
+    });
+    if (!current) {
+      throw new Error("Appointment not found");
+    }
+
+    const next = {
+      clinicId: current.clinicId,
+      patientId: input.patientId ?? current.patientId,
+      doctorId: input.doctorId ?? current.doctorId,
+      boxId: input.boxId ?? current.boxId,
+      startAt: input.startAt ?? current.startAt,
+      endAt: input.endAt ?? current.endAt,
+    };
+
+    await this.ensureRelated(next.clinicId, next.patientId, next.doctorId, next.boxId);
+    await this.assertNoConflicts({
+      ...next,
+      createdBy: input.createdBy ?? current.createdBy,
+      status: input.status ?? current.status,
+      paymentStatus: input.paymentStatus ?? current.paymentStatus,
+      notes: input.notes ?? current.notes,
+      excludeId: id,
+    } as AppointmentInput & { excludeId: string });
+
+    return prisma.appointment.update({
+      where: { id },
+      data: {
+        patientId: input.patientId ?? undefined,
+        doctorId: input.doctorId ?? undefined,
+        boxId: input.boxId ?? undefined,
+        startAt: input.startAt ?? undefined,
+        endAt: input.endAt ?? undefined,
+        status: (input.status as any) ?? undefined,
+        paymentStatus: (input.paymentStatus as any) ?? undefined,
+        notes: input.notes ?? undefined,
+      },
+      include: {
+        patient: true,
+        doctor: { include: { profile: true } },
+        box: true,
+      },
+    });
+  }
+
+  static async cancel(id: string, clinicId: string, author: string, detail?: string) {
+    const current = await prisma.appointment.findFirst({ where: { id, clinicId } });
+    if (!current) {
+      throw new Error("Appointment not found");
+    }
+
+    const item = await prisma.appointment.update({
+      where: { id },
+      data: { status: "CANCELLED" },
+      include: {
+        patient: true,
+        doctor: { include: { profile: true } },
+        box: true,
+      },
+    });
+
+    await AuditService.log("appointment.cancel", author, detail);
+    return item;
+  }
+
+  private static async assertNoConflicts(input: AppointmentInput & { excludeId?: string }) {
+    const conflict = await prisma.appointment.findFirst({
+      where: {
+        clinicId: input.clinicId,
+        id: input.excludeId ? { not: input.excludeId } : undefined,
+        status: { in: [...CONFLICT_STATUSES] },
+        startAt: { lt: input.endAt },
+        endAt: { gt: input.startAt },
+        OR: [
+          { doctorId: input.doctorId },
+          { boxId: input.boxId },
+          { patientId: input.patientId },
+        ],
+      },
+      select: { id: true },
+    });
+
+    if (conflict) {
+      throw new Error("Appointment conflict");
+    }
+  }
+
+  private static async ensureRelated(clinicId: string, patientId: string, doctorId: string, boxId: string) {
+    const [patient, doctor, box] = await Promise.all([
+      prisma.patient.findFirst({ where: { id: patientId, clinicId } }),
+      prisma.user.findFirst({
+        where: {
+          id: doctorId,
+          role: "DOCTOR",
+          clinicMemberships: { some: { clinicId, status: "ACTIVE" } },
+        },
+      }),
+      prisma.box.findFirst({ where: { id: boxId, clinicId, isActive: true } }),
+    ]);
+
+    if (!patient) throw new Error("Patient not found in clinic");
+    if (!doctor) throw new Error("Doctor not found in clinic");
+    if (!box) throw new Error("Box not found in clinic");
+  }
+}

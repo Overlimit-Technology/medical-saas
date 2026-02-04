@@ -31,7 +31,14 @@ export async function POST(req: Request) {
     exp: session.exp, // aligned to mg_session
   });
 
-  const res = NextResponse.json({ ok: true, redirectTo: "/dashboard" }, { status: 200 });
+  const roleHome =
+    session.role === "ADMIN"
+      ? "/dashboard/admin"
+      : session.role === "SECRETARY"
+        ? "/dashboard/secretary"
+        : "/dashboard";
+
+  const res = NextResponse.json({ ok: true, redirectTo: roleHome }, { status: 200 });
 
   res.cookies.set("mg_clinic", token, {
     httpOnly: true,

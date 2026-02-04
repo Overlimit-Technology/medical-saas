@@ -28,12 +28,26 @@ enum ClinicMembershipStatus {
   INACTIVE
 }
 
+enum AppointmentStatus {
+  SCHEDULED
+  CONFIRMED
+  CANCELLED
+  COMPLETED
+  NO_SHOW
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  WAIVED
+}
+
 model User {
   // ID principal, generado como cuid() (string único, amigable para frontend)
-  id            String      @id @default(cuid())
+  id String @id @default(cuid())
 
   // Email como username principal, único en la BD
-  email         String      @unique
+  email String @unique
 
   // Campos típicos que usa Auth.js/NextAuth (no son obligatorios para auth propia)
   // name: nombre visible (por ejemplo si tuvieras OAuth o datos básicos)
@@ -47,37 +61,40 @@ model User {
   // passwordHash: hash de contraseña (bcrypt/argon2). Es optional porque:
   // - podrías tener usuarios creados por OAuth sin contraseña
   // - o flujos futuros como magic links
-  passwordHash  String?
+  passwordHash String?
 
   // Rol del usuario (por defecto ADMIN mientras estás en MVP)
-  role          UserRole    @default(ADMIN)
+  role UserRole @default(ADMIN)
 
   // Estado del usuario (por defecto ACTIVE)
-  status        UserStatus  @default(ACTIVE)
+  status UserStatus @default(ACTIVE)
 
   // Auditoría mínima
-  createdAt     DateTime    @default(now())     // cuándo se creó el registro
-  updatedAt     DateTime    @updatedAt          // se actualiza solo en cada update
-  lastLoginAt   DateTime?                       // útil para auditoría/seguridad
+  createdAt   DateTime  @default(now()) // cuándo se creó el registro
+  updatedAt   DateTime  @updatedAt // se actualiza solo en cada update
+  lastLoginAt DateTime? // útil para auditoría/seguridad
 
   // Relación 1 a 1 con los datos personales (separación auth vs perfil)
   // UserProfile tiene userId UNIQUE, por eso aquí es "profile?" (0 o 1 perfil)
-  profile       UserProfile?
+  profile UserProfile?
 
   // Relaciones usadas por Auth.js/NextAuth si guardas sesiones en base de datos
   // - sessions: permite múltiples sesiones simultáneas (mismo usuario en varios dispositivos)
   // - accounts: para vincular proveedores OAuth (Google, Apple, etc.)
-  sessions      Session[]
-  accounts      Account[]
-  clinicMemberships ClinicMembership[]
+  sessions             Session[]
+  accounts             Account[]
+  clinicMemberships    ClinicMembership[]
+  doctorProfile        DoctorProfile?
+  appointmentsAsDoctor Appointment[]      @relation("AppointmentDoctor")
+  appointmentsCreated  Appointment[]      @relation("AppointmentCreatedBy")
 }
 
 model UserProfile {
   // ID del perfil
-  id        String   @id @default(cuid())
+  id String @id @default(cuid())
 
   // FK hacia User. UNIQUE => asegura 1 perfil por usuario (relación 1:1)
-  userId    String   @unique
+  userId String @unique
 
   // Datos personales (no auth)
   firstName String
@@ -85,7 +102,7 @@ model UserProfile {
   phone     String?
 
   // RUT opcional y único si lo usas (ojo: en la vida real puede requerir normalización)
-  rut       String?  @unique
+  rut String? @unique
 
   // Auditoría
   createdAt DateTime @default(now())
@@ -93,7 +110,7 @@ model UserProfile {
 
   // Relación: este perfil pertenece a un User
   // onDelete: Cascade => si borras el User, se borra automáticamente el profile
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 // --- Modelos estándar del Prisma Adapter de Auth.js/NextAuth ------------------
@@ -101,24 +118,24 @@ model UserProfile {
 
 model Account {
   // ID interno del vínculo
-  id                String  @id @default(cuid())
+  id String @id @default(cuid())
 
   // FK al usuario dueño de esta cuenta externa
-  userId            String
+  userId String
 
   // Campos propios de OAuth / providers
-  type              String              // tipo de cuenta (ej: "oauth")
-  provider          String              // ej: "google"
-  providerAccountId String              // id del usuario en el provider
+  type              String // tipo de cuenta (ej: "oauth")
+  provider          String // ej: "google"
+  providerAccountId String // id del usuario en el provider
 
   // Tokens que algunos providers entregan (opcionales)
-  refresh_token     String?
-  access_token      String?
-  expires_at        Int?
-  token_type        String?
-  scope             String?
-  id_token          String?
-  session_state     String?
+  refresh_token String?
+  access_token  String?
+  expires_at    Int?
+  token_type    String?
+  scope         String?
+  id_token      String?
+  session_state String?
 
   // Relación al User
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -129,16 +146,16 @@ model Account {
 
 model Session {
   // ID interno de la sesión
-  id           String   @id @default(cuid())
+  id String @id @default(cuid())
 
   // Token de sesión (lo que se guarda en cookie/cliente como referencia)
-  sessionToken String   @unique
+  sessionToken String @unique
 
   // FK al usuario
-  userId       String
+  userId String
 
   // Fecha/hora de expiración
-  expires      DateTime
+  expires DateTime
 
   // Relación al User
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -149,10 +166,10 @@ model VerificationToken {
   identifier String
 
   // token único (para verificación de email o magic links)
-  token      String   @unique
+  token String @unique
 
   // cuándo expira el token
-  expires    DateTime
+  expires DateTime
 
   // combinación única (regla típica de Auth.js)
   @@unique([identifier, token])
@@ -166,7 +183,10 @@ model Clinic {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  memberships ClinicMembership[]
+  memberships  ClinicMembership[]
+  patients     Patient[]
+  boxes        Box[]
+  appointments Appointment[]
 }
 
 model ClinicMembership {
@@ -182,6 +202,90 @@ model ClinicMembership {
 
   @@unique([userId, clinicId])
   @@index([userId, status])
+}
+
+model Patient {
+  id                    String    @id @default(cuid())
+  clinicId              String
+  firstName             String
+  lastName              String
+  secondLastName        String?
+  run                   String
+  runNormalized         String    @unique
+  email                 String?
+  phone                 String?
+  birthDate             DateTime?
+  gender                String?
+  address               String?
+  city                  String?
+  emergencyContactName  String?
+  emergencyContactPhone String?
+  isActive              Boolean   @default(true)
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  clinic       Clinic        @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+  appointments Appointment[]
+
+  @@index([clinicId, isActive])
+  @@index([clinicId, lastName])
+}
+
+model DoctorProfile {
+  id            String   @id @default(cuid())
+  userId        String   @unique
+  rut           String
+  rutNormalized String   @unique
+  specialty     String?
+  bio           String?
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Box {
+  id        String   @id @default(cuid())
+  clinicId  String
+  name      String
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  clinic       Clinic        @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+  appointments Appointment[]
+
+  @@unique([clinicId, name])
+  @@index([clinicId, isActive])
+}
+
+model Appointment {
+  id            String            @id @default(cuid())
+  clinicId      String
+  patientId     String
+  doctorId      String
+  boxId         String
+  startAt       DateTime
+  endAt         DateTime
+  status        AppointmentStatus @default(SCHEDULED)
+  paymentStatus PaymentStatus     @default(PENDING)
+  notes         String?
+  createdBy     String?
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+
+  clinic        Clinic  @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+  patient       Patient @relation(fields: [patientId], references: [id], onDelete: Restrict)
+  doctor        User    @relation("AppointmentDoctor", fields: [doctorId], references: [id], onDelete: Restrict)
+  box           Box     @relation(fields: [boxId], references: [id], onDelete: Restrict)
+  createdByUser User?   @relation("AppointmentCreatedBy", fields: [createdBy], references: [id], onDelete: SetNull)
+  clinicalVisits ClinicalVisit[]
+
+  @@index([clinicId, startAt])
+  @@index([doctorId, startAt])
+  @@index([boxId, startAt])
+  @@index([patientId, startAt])
 }
 
 model AuditLog {
@@ -206,3 +310,20 @@ model Treatment {
   price Decimal @db.Decimal(10, 2)
 }
 
+model ClinicalVisit {
+  id            String   @id @default(cuid())
+  clinicId      String
+  patientId     String
+  doctorId      String
+  appointmentId String?
+  startedAt     DateTime @default(now())
+  createdAt     DateTime @default(now())
+
+  clinic      Clinic       @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+  patient     Patient      @relation(fields: [patientId], references: [id], onDelete: Restrict)
+  doctor      User         @relation(fields: [doctorId], references: [id], onDelete: Restrict)
+  appointment Appointment? @relation(fields: [appointmentId], references: [id], onDelete: SetNull)
+
+  @@index([clinicId, doctorId, startedAt])
+  @@index([clinicId, patientId, startedAt])
+}
