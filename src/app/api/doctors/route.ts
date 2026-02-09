@@ -1,11 +1,12 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { prisma } from "@/lib/prisma";
+import { generatePassword } from "@/lib/password";
 import { requireClinicSession, requireRole } from "@/server/auth/requireSession";
 import { DoctorsService } from "@/server/doctors/DoctorsService";
 
 const doctorCreateSchema = z.object({
   email: z.string().email(),
-  password: z.string().min(6).optional(),
   firstName: z.string().min(1),
   lastName: z.string().min(1),
   phone: z.string().optional().nullable(),
@@ -13,6 +14,35 @@ const doctorCreateSchema = z.object({
   specialty: z.string().optional().nullable(),
   clinicIds: z.array(z.string()).optional(),
 });
+
+async function sendWelcomeEmail(origin: string, payload: { to: string; name: string; email: string; password: string }) {
+  const subject = "Tu cuenta ha sido creada";
+  const text = [
+    `Hola ${payload.name},`,
+    "",
+    "Tu cuenta fue creada por el administrador.",
+    `Usuario: ${payload.email}`,
+    `Contrasena temporal: ${payload.password}`,
+    "",
+    "Por seguridad, cambia tu contrasena al iniciar sesion.",
+  ].join("\n");
+
+  const res = await fetch(new URL("/api/email/send", origin), {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      to: payload.to,
+      subject,
+      text,
+    }),
+  });
+
+  if (!res.ok) {
+    const data = await res.json().catch(() => null);
+    const detail = data?.error ?? data?.message ?? "No se pudo enviar el correo de bienvenida.";
+    throw new Error(detail);
+  }
+}
 
 export async function GET() {
   try {
@@ -41,9 +71,11 @@ export async function POST(req: Request) {
       return NextResponse.json({ ok: false, error: "Invalid payload" }, { status: 400 });
     }
 
+    const generatedPassword = generatePassword();
+
     const item = await DoctorsService.create({
       email: parsed.data.email,
-      password: parsed.data.password,
+      password: generatedPassword,
       firstName: parsed.data.firstName,
       lastName: parsed.data.lastName,
       phone: parsed.data.phone,
@@ -51,6 +83,19 @@ export async function POST(req: Request) {
       specialty: parsed.data.specialty,
       clinicIds: parsed.data.clinicIds ?? [session.clinicId],
     });
+
+    try {
+      const origin = new URL(req.url).origin;
+      await sendWelcomeEmail(origin, {
+        to: item.email,
+        name: parsed.data.firstName,
+        email: item.email,
+        password: generatedPassword,
+      });
+    } catch (error) {
+      await prisma.user.delete({ where: { id: item.id } }).catch(() => null);
+      throw error;
+    }
 
     return NextResponse.json({ ok: true, item }, { status: 201 });
   } catch (error) {

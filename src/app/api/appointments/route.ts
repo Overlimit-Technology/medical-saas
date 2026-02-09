@@ -49,21 +49,16 @@ export async function GET(req: Request) {
   }
 }
 
-// Crea una cita. Admin/Secretaria pueden asignar cualquier doctor; un doctor solo para sí mismo.
+// Crea una cita. Admin/Secretaria pueden asignar cualquier doctor.
 export async function POST(req: Request) {
   try {
     const session = await requireClinicSession();
-    requireRole(session.role, ["ADMIN", "SECRETARY", "DOCTOR"]);
+    requireRole(session.role, ["ADMIN", "SECRETARY"]);
 
     const body = await req.json();
     const parsed = appointmentCreateSchema.safeParse(body);
     if (!parsed.success) {
       return NextResponse.json({ ok: false, error: "Invalid payload" }, { status: 400 });
-    }
-
-    // Si el usuario es doctor, solo puede crear citas para sí mismo
-    if (session.role === "DOCTOR" && parsed.data.doctorId !== session.userId) {
-      return NextResponse.json({ ok: false, error: "Forbidden" }, { status: 403 });
     }
 
     const startAt = parseDate(parsed.data.startAt);
@@ -75,7 +70,7 @@ export async function POST(req: Request) {
     const item = await AppointmentsService.create({
       clinicId: session.clinicId,
       patientId: parsed.data.patientId,
-      doctorId: session.role === "DOCTOR" ? session.userId : parsed.data.doctorId,
+      doctorId: parsed.data.doctorId,
       boxId: parsed.data.boxId,
       startAt,
       endAt,

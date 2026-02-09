@@ -1,4 +1,15 @@
-export default function DashboardPage() {
+import { prisma } from "@/lib/prisma";
+import { requireClinicSession } from "@/server/auth/requireSession";
+
+export const dynamic = "force-dynamic";
+
+async function getBoxCount() {
+  const session = await requireClinicSession();
+  return prisma.box.count({ where: { clinicId: session.clinicId, isActive: true } });
+}
+
+export default async function DashboardPage() {
+  const boxCount = await getBoxCount();
   return (
     <div className="space-y-6">
       <div>
@@ -19,7 +30,7 @@ export default function DashboardPage() {
         </div>
         <div className="rounded-2xl bg-white p-5 shadow-sm border border-slate-100">
           <p className="text-xs text-slate-500">Boxes activos</p>
-          <p className="mt-2 text-2xl font-semibold">6</p>
+          <p className="mt-2 text-2xl font-semibold">{boxCount}</p>
           <p className="mt-1 text-xs text-slate-400">Disponible ahora</p>
         </div>
       </div>

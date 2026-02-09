@@ -71,6 +71,27 @@ async function upsertUser(params: {
   return user;
 }
 
+async function migrateEmailIfNeeded(legacyEmail: string, newEmail: string) {
+  if (legacyEmail === newEmail) return;
+
+  const existingNew = await prisma.user.findUnique({
+    where: { email: newEmail },
+    select: { id: true },
+  });
+  if (existingNew) return;
+
+  const existingLegacy = await prisma.user.findUnique({
+    where: { email: legacyEmail },
+    select: { id: true },
+  });
+  if (!existingLegacy) return;
+
+  await prisma.user.update({
+    where: { id: existingLegacy.id },
+    data: { email: newEmail },
+  });
+}
+
 async function main() {
   console.log("▶ Running prisma/seed.ts ...");
 
@@ -101,8 +122,11 @@ async function main() {
     phone: "+56933333333",
   });
 
+  await migrateEmailIfNeeded("doctor.multi.a@medigest.cl", "doctor.A.multi.a@medigest.cl");
+  await migrateEmailIfNeeded("doctor.multi.b@medigest.cl", "doctor.B.multi.b@medigest.cl");
+
   const doctorMultiA = await upsertUser({
-    email: "doctor.multi.a@medigest.cl",
+    email: "doctor.A.multi.a@medigest.cl",
     password: "Doctor123!",
     role: "DOCTOR",
     firstName: "Dr.",
@@ -111,7 +135,7 @@ async function main() {
   });
 
   const doctorMultiB = await upsertUser({
-    email: "doctor.multi.b@medigest.cl",
+    email: "doctor.B.multi.b@medigest.cl",
     password: "Doctor123!",
     role: "DOCTOR",
     firstName: "Dra.",
@@ -126,8 +150,8 @@ async function main() {
   console.log("ADMIN      admin@medigest.cl           / Admin123!");
   console.log("DOCTOR     doctor@medigest.cl          / Doctor123!");
   console.log("SECRETARY  secretaria@medigest.cl      / Secre123!");
-  console.log("DOCTOR A   doctor.multi.a@medigest.cl  / Doctor123!");
-  console.log("DOCTOR B   doctor.multi.b@medigest.cl  / Doctor123!");
+  console.log("DOCTOR A   doctor.A.multi.a@medigest.cl  / Doctor123!");
+  console.log("DOCTOR B   doctor.B.multi.b@medigest.cl  / Doctor123!");
 }
 
 main()

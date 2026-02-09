@@ -88,7 +88,7 @@ export class AppointmentsService {
       where: { id, clinicId },
     });
     if (!current) {
-      throw new Error("Appointment not found");
+      throw new Error("Cita no encontrada.");
     }
 
     const next = {
@@ -133,7 +133,7 @@ export class AppointmentsService {
   static async cancel(id: string, clinicId: string, author: string, detail?: string) {
     const current = await prisma.appointment.findFirst({ where: { id, clinicId } });
     if (!current) {
-      throw new Error("Appointment not found");
+      throw new Error("Cita no encontrada.");
     }
 
     const item = await prisma.appointment.update({
@@ -168,7 +168,7 @@ export class AppointmentsService {
     });
 
     if (conflict) {
-      throw new Error("Appointment conflict");
+      throw new Error("Conflicto de cita.");
     }
   }
 
@@ -185,8 +185,8 @@ export class AppointmentsService {
       prisma.box.findFirst({ where: { id: boxId, clinicId, isActive: true } }),
     ]);
 
-    if (!patient) throw new Error("Patient not found in clinic");
-    if (!doctor) throw new Error("Doctor not found in clinic");
-    if (!box) throw new Error("Box not found in clinic");
+    if (!patient) throw new Error("Paciente no encontrado en la clínica.");
+    if (!doctor) throw new Error("Doctor no encontrado en la clínica.");
+    if (!box) throw new Error("Box no encontrado en la clínica.");
   }
 }

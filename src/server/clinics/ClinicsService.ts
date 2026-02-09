@@ -37,7 +37,7 @@ export class ClinicsService {
     });
 
     if (!ok) {
-      throw new Error("Clinic is not available for this user");
+      throw new Error("La clínica no está disponible para este usuario.");
     }
   }
 }
