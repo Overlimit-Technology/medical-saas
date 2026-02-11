@@ -78,7 +78,7 @@ export class PatientsService {
       select: { id: true },
     });
     if (exists) {
-      throw new Error("RUN already exists");
+      throw new Error("El RUN ya está registrado.");
     }
 
     return prisma.patient.create({
@@ -104,7 +104,7 @@ export class PatientsService {
   static async update(id: string, clinicId: string, input: Partial<PatientInput>) {
     const current = await prisma.patient.findFirst({ where: { id, clinicId } });
     if (!current) {
-      throw new Error("Patient not found");
+      throw new Error("Paciente no encontrado.");
     }
 
     const data: any = {
@@ -121,7 +121,7 @@ export class PatientsService {
         select: { id: true },
       });
       if (exists) {
-        throw new Error("RUN already exists");
+        throw new Error("El RUN ya está registrado. Ingresa un RUN diferente.");
       }
       data.runNormalized = runNormalized;
     }
@@ -135,7 +135,7 @@ export class PatientsService {
   static async remove(id: string, clinicId: string) {
     const current = await prisma.patient.findFirst({ where: { id, clinicId } });
     if (!current) {
-      throw new Error("Patient not found");
+      throw new Error("Paciente no encontrado.");
     }
 
     const now = new Date();
@@ -149,7 +149,7 @@ export class PatientsService {
     });
 
     if (hasFuture > 0) {
-      throw new Error("Patient has future appointments");
+      throw new Error("El paciente tiene citas futuras.");
     }
 
     await prisma.patient.delete({ where: { id } });

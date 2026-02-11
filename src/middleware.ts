@@ -176,6 +176,26 @@ export async function middleware(req: NextRequest) {
       url.pathname = roleHome;
       return NextResponse.redirect(url);
     }
+    if (pathname.startsWith("/boxes") && sessionPayload?.role !== "ADMIN") {
+      const url = req.nextUrl.clone();
+      url.pathname = roleHome;
+      return NextResponse.redirect(url);
+    }
+    if (pathname.startsWith("/patients") && sessionPayload?.role === "DOCTOR") {
+      const url = req.nextUrl.clone();
+      url.pathname = "/agenda";
+      return NextResponse.redirect(url);
+    }
+    if (pathname.startsWith("/doctors") && sessionPayload?.role === "DOCTOR") {
+      const url = req.nextUrl.clone();
+      url.pathname = "/agenda";
+      return NextResponse.redirect(url);
+    }
+    if (pathname.startsWith("/clinical-visits") && sessionPayload?.role !== "DOCTOR") {
+      const url = req.nextUrl.clone();
+      url.pathname = roleHome;
+      return NextResponse.redirect(url);
+    }
     return NextResponse.next();
   }
 

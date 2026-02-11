@@ -94,6 +94,7 @@ export default function PatientsPage() {
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [apiError, setApiError] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Patient | null>(null);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
   const [totalCount, setTotalCount] = useState(0);
 
   const loadPatients = async (q?: string) => {
@@ -198,20 +199,21 @@ export default function PatientsPage() {
 
   const handleDelete = async () => {
     if (!deleteTarget) return;
-    setApiError(null);
+    setDeleteError(null);
     try {
       const res = await fetch(`/api/patients/${deleteTarget.id}`, { method: "DELETE" });
       const data = await res.json();
       if (!data.ok) {
-        setApiError(data.error ?? "No se pudo eliminar el paciente.");
+        setDeleteError(data.error ?? "No se pudo eliminar el paciente.");
         return;
       }
       if (selected?.id === deleteTarget.id) setSelected(null);
       setDeleteTarget(null);
+      setDeleteError(null);
       setSuccessMessage("Paciente eliminado.");
       await loadPatients(query);
     } catch {
-      setApiError("No se pudo eliminar el paciente.");
+      setDeleteError("No se pudo eliminar el paciente.");
     }
   };
 
@@ -309,7 +311,10 @@ export default function PatientsPage() {
                       </button>
                       <button
                         className="rounded-full border border-rose-200 px-3 py-1 text-xs text-rose-600 transition hover:border-rose-300"
-                        onClick={() => setDeleteTarget(patient)}
+                        onClick={() => {
+                          setDeleteTarget(patient);
+                          setDeleteError(null);
+                        }}
                         aria-label={`Eliminar ${patient.firstName}`}
                       >
                         🗑
@@ -431,7 +436,10 @@ export default function PatientsPage() {
         <div className="fixed inset-0 z-40 flex items-center justify-center p-4">
           <div
             className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"
-            onClick={() => setDeleteTarget(null)}
+            onClick={() => {
+              setDeleteTarget(null);
+              setDeleteError(null);
+            }}
           />
           <div className="relative w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl shadow-slate-900/20">
             <h3 className="text-lg font-semibold text-slate-900">Eliminar paciente</h3>
@@ -439,9 +447,17 @@ export default function PatientsPage() {
               ¿Estás seguro de eliminar al paciente {deleteTarget.firstName} {deleteTarget.lastName}?
               Esta acción no se puede deshacer.
             </p>
+            {deleteError && (
+              <div className="mt-4 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-600">
+                {deleteError}
+              </div>
+            )}
             <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:justify-end">
               <button
-                onClick={() => setDeleteTarget(null)}
+                onClick={() => {
+                  setDeleteTarget(null);
+                  setDeleteError(null);
+                }}
                 className="rounded-full border border-slate-200 px-4 py-2 text-sm font-medium text-slate-600 transition hover:border-slate-300"
               >
                 Cancelar

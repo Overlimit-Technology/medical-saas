@@ -73,6 +73,10 @@ function minutesToLabel(minutes: number) {
 
 // Página principal con la agenda semanal interactiva.
 export default function AgendaPage() {
+  const [role, setRole] = useState<string | null>(null);
+  const [roleLoading, setRoleLoading] = useState(true);
+  const isDoctor = role === "DOCTOR";
+  const canEdit = role !== "DOCTOR";
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [patients, setPatients] = useState<Patient[]>([]);
   const [doctors, setDoctors] = useState<Doctor[]>([]);
@@ -106,6 +110,21 @@ export default function AgendaPage() {
     end: "09:30",
     notes: "",
   });
+
+  useEffect(() => {
+    const loadRole = async () => {
+      try {
+        const res = await fetch("/api/auth/me", { credentials: "include" });
+        const data = await res.json();
+        setRole(data.ok ? data.session?.role ?? null : null);
+      } catch {
+        setRole(null);
+      } finally {
+        setRoleLoading(false);
+      }
+    };
+    loadRole();
+  }, []);
 
   const days = useMemo(() => {
     return Array.from({ length: 7 }).map((_, index) => {
@@ -194,6 +213,7 @@ export default function AgendaPage() {
   // Prepara el formulario para crear cita en el rango seleccionado.
   const openModalForRange = useCallback(
     (dayIndex: number, startSlot: number, endSlot: number) => {
+      if (!canEdit) return;
       const normalizedStart = Math.min(startSlot, endSlot);
       const normalizedEnd = Math.max(startSlot, endSlot) + 1;
       const startAt = slotToDate(dayIndex, normalizedStart);
@@ -210,12 +230,13 @@ export default function AgendaPage() {
       setIsModalOpen(true);
       setErrorMessage(null);
     },
-    [slotToDate]
+    [canEdit, slotToDate]
   );
 
   // Maneja drag-and-drop para mover una cita a otro slot validando choques.
   const handleDrop = async (event: React.DragEvent<HTMLDivElement>) => {
     event.preventDefault();
+    if (!canEdit) return;
     const appointmentId = event.dataTransfer.getData("text/plain");
     const slot = Number(event.currentTarget.dataset.slot ?? "0");
     const dayIndex = Number(event.currentTarget.dataset.day ?? "0");
@@ -231,11 +252,19 @@ export default function AgendaPage() {
     if (newStart.getTime() < Date.now()) return;
     const hasOverlap = appointments.some((item) => {
       if (item.id === appointmentId) return false;
+      const sharesResource =
+        item.doctorId === appt.doctorId ||
+        item.boxId === appt.boxId ||
+        item.patientId === appt.patientId;
+      if (!sharesResource) return false;
       const existingStart = new Date(item.startAt).getTime();
       const existingEnd = new Date(item.endAt).getTime();
       return newStart.getTime() < existingEnd && newEnd.getTime() > existingStart;
     });
-    if (hasOverlap) return;
+    if (hasOverlap) {
+      setErrorMessage("Ya existe una cita que se superpone para ese doctor, box o paciente.");
+      return;
+    }
 
     await fetch(`/api/appointments/${appointmentId}`, {
       method: "PATCH",
@@ -248,6 +277,7 @@ export default function AgendaPage() {
   // Comienza selección de rango al hacer pointer-down en una celda.
   const handlePointerDown = (dayIndex: number, slot: number, event?: React.PointerEvent) => {
     event?.preventDefault();
+    if (!canEdit) return;
     setIsSelecting(true);
     setSelection({ dayIndex, startSlot: slot, endSlot: slot });
     setEditingId(null);
@@ -263,9 +293,10 @@ export default function AgendaPage() {
   // Finaliza selección y abre modal si hay rango válido.
   const finalizeSelection = useCallback(() => {
     if (!isSelecting || !selection) return;
+    if (!canEdit) return;
     setIsSelecting(false);
     openModalForRange(selection.dayIndex, selection.startSlot, selection.endSlot);
-  }, [isSelecting, openModalForRange, selection]);
+  }, [canEdit, isSelecting, openModalForRange, selection]);
 
   useEffect(() => {
     const handlePointerUp = () => finalizeSelection();
@@ -283,6 +314,7 @@ export default function AgendaPage() {
 
   // Carga datos de la cita en el formulario para edición.
   const openEditModal = (item: Appointment) => {
+    if (!canEdit) return;
     const startAt = new Date(item.startAt);
     const endAt = new Date(item.endAt);
     setEditingId(item.id);
@@ -313,6 +345,7 @@ export default function AgendaPage() {
   // Valida y crea/actualiza una cita según haya id de edición.
   const createOrUpdateAppointment = async (event: React.FormEvent) => {
     event.preventDefault();
+    if (!canEdit) return;
     if (!form.date || !form.start || !form.end) return;
     const startAt = new Date(`${form.date}T${form.start}:00`);
     const endAt = new Date(`${form.date}T${form.end}:00`);
@@ -334,12 +367,17 @@ export default function AgendaPage() {
     }
     const hasOverlap = appointments.some((item) => {
       if (editingId && item.id === editingId) return false;
+      const sharesResource =
+        item.doctorId === form.doctorId ||
+        item.boxId === form.boxId ||
+        item.patientId === form.patientId;
+      if (!sharesResource) return false;
       const existingStart = new Date(item.startAt).getTime();
       const existingEnd = new Date(item.endAt).getTime();
       return startAt.getTime() < existingEnd && endAt.getTime() > existingStart;
     });
     if (hasOverlap) {
-      setErrorMessage("Ya existe una cita que se superpone en ese horario.");
+      setErrorMessage("Ya existe una cita que se superpone para ese doctor, box o paciente.");
       return;
     }
     // Funcion o servicio para crear o actualizar la cita
@@ -369,6 +407,7 @@ export default function AgendaPage() {
   // Elimina la cita seleccionada tras confirmación.
   const handleDeleteAppointment = async () => {
     if (!editingId) return;
+    if (!canEdit) return;
     setDeleting(true);
     setErrorMessage(null);
     const res = await fetch(`/api/appointments/${editingId}`, {
@@ -392,13 +431,26 @@ export default function AgendaPage() {
   const isWithinHours = now.getHours() >= START_HOUR && now.getHours() < END_HOUR;
   const nowSlot = Math.max(0, Math.min(slots.length - 1, toSlotIndex(now)));
 
+  if (roleLoading) {
+    return (
+      <div className="rounded-2xl border border-slate-100 bg-white p-6 text-sm text-slate-500 shadow-sm">
+        Cargando permisos...
+      </div>
+    );
+  }
+
   return (
     <div className="grid grid-cols-1 gap-6 xl:grid-cols-[2.2fr_1fr]">
       <div className="rounded-2xl border border-slate-100 bg-white p-6 shadow-sm">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <p className="text-sm text-slate-500">Agenda</p>
-            <h1 className="text-xl font-semibold text-slate-900">Calendario interactivo</h1>
+            <h1 className="text-xl font-semibold text-slate-900"> Calendario </h1>
+            {isDoctor && (
+              <span className="mt-2 inline-flex rounded-full bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-700">
+                Solo lectura
+              </span>
+            )}
           </div>
           <div className="flex items-center gap-2 text-sm">
             <button
@@ -567,15 +619,21 @@ export default function AgendaPage() {
                 className="z-10"
               >
                 <div
-                  draggable
+                  draggable={canEdit}
                   onDragStart={(event) => {
+                    if (!canEdit) return;
                     event.dataTransfer.setData("text/plain", item.id);
                     setDraggingId(item.id);
                   }}
-                  onDragEnd={() => setDraggingId(null)}
+                  onDragEnd={() => {
+                    if (!canEdit) return;
+                    setDraggingId(null);
+                  }}
                   onClick={() => handleAppointmentClick(item)}
                   onPointerDown={(event) => event.stopPropagation()}
-                  className={`group flex h-full min-h-[24px] select-none items-center overflow-hidden rounded-lg border border-sky-200 bg-gradient-to-br from-sky-500 to-sky-600 px-2 text-[11px] text-white shadow-lg shadow-sky-500/30 transition hover:-translate-y-0.5 hover:shadow-sky-500/40 cursor-grab active:cursor-grabbing ${
+                  className={`group flex h-full min-h-[24px] select-none items-center overflow-hidden rounded-lg border border-sky-200 bg-gradient-to-br from-sky-500 to-sky-600 px-2 text-[11px] text-white shadow-lg shadow-sky-500/30 transition hover:-translate-y-0.5 hover:shadow-sky-500/40 ${
+                    canEdit ? "cursor-grab active:cursor-grabbing" : "cursor-pointer"
+                  } ${
                     draggingId && draggingId !== item.id ? "pointer-events-none" : ""
                   }`}
                 >
@@ -593,19 +651,33 @@ export default function AgendaPage() {
         <div className="flex items-center justify-between">
           <h2 className="text-lg font-semibold">Tips rápidos</h2>
           <span className="rounded-full bg-sky-50 px-3 py-1 text-xs font-semibold text-sky-600">
-            Arrastra para crear
+            {canEdit ? "Arrastra para crear" : "Solo lectura"}
           </span>
         </div>
         <div className="mt-4 space-y-3 text-sm text-slate-600">
-          <div className="rounded-xl border border-slate-100 bg-slate-50 p-3">
-            Selecciona un bloque de tiempo y suelta para agendar una nueva cita en segundos.
-          </div>
-          <div className="rounded-xl border border-slate-100 bg-slate-50 p-3">
-            Haz clic sobre una cita existente para verla o editarla rápidamente.
-          </div>
-          <div className="rounded-xl border border-slate-100 bg-slate-50 p-3">
-            Los horarios se ajustan automáticamente a intervalos de 15 minutos.
-          </div>
+          {canEdit ? (
+            <>
+              <div className="rounded-xl border border-slate-100 bg-slate-50 p-3">
+                Selecciona un bloque de tiempo y suelta para agendar una nueva cita en segundos.
+              </div>
+              <div className="rounded-xl border border-slate-100 bg-slate-50 p-3">
+                Haz clic sobre una cita existente para verla o editarla rapidamente.
+              </div>
+              <div className="rounded-xl border border-slate-100 bg-slate-50 p-3">
+                Los horarios se ajustan automaticamente a intervalos de 15 minutos.
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="rounded-xl border border-slate-100 bg-slate-50 p-3">
+                Puedes visualizar tus citas asignadas y sus detalles.
+              </div>
+              <div className="rounded-xl border border-slate-100 bg-slate-50 p-3">
+                Para crear o editar citas, contacta a Secretaria o Administracion.
+              </div>
+            </>
+          )}
+
         </div>
       </div>
 
@@ -830,19 +902,21 @@ export default function AgendaPage() {
               </div>
             </div>
 
-            <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:justify-end">
-              <button
-                type="button"
-                onClick={() => {
-                  const item = detailAppointment;
-                  resetModal();
-                  openEditModal(item);
-                }}
-                className="rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-800"
-              >
-                Editar
-              </button>
-            </div>
+            {canEdit && (
+              <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:justify-end">
+                <button
+                  type="button"
+                  onClick={() => {
+                    const item = detailAppointment;
+                    resetModal();
+                    openEditModal(item);
+                  }}
+                  className="rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-800"
+                >
+                  Editar
+                </button>
+              </div>
+            )}
           </div>
         </div>
       )}

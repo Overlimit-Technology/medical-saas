@@ -48,7 +48,7 @@ model User {
 
   // Email como username principal, único en la BD
   email String @unique
-
+  
   // Campos típicos que usa Auth.js/NextAuth (no son obligatorios para auth propia)
   // name: nombre visible (por ejemplo si tuvieras OAuth o datos básicos)
   name          String?
@@ -87,6 +87,7 @@ model User {
   doctorProfile        DoctorProfile?
   appointmentsAsDoctor Appointment[]      @relation("AppointmentDoctor")
   appointmentsCreated  Appointment[]      @relation("AppointmentCreatedBy")
+  clinicalVisits       ClinicalVisit[]
 }
 
 model UserProfile {
@@ -183,10 +184,11 @@ model Clinic {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  memberships  ClinicMembership[]
-  patients     Patient[]
-  boxes        Box[]
-  appointments Appointment[]
+  memberships    ClinicMembership[]
+  patients       Patient[]
+  boxes          Box[]
+  appointments   Appointment[]
+  clinicalVisits ClinicalVisit[]
 }
 
 model ClinicMembership {
@@ -224,8 +226,9 @@ model Patient {
   createdAt             DateTime  @default(now())
   updatedAt             DateTime  @updatedAt
 
-  clinic       Clinic        @relation(fields: [clinicId], references: [id], onDelete: Cascade)
-  appointments Appointment[]
+  clinic         Clinic          @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+  appointments   Appointment[]
+  clinicalVisits ClinicalVisit[]
 
   @@index([clinicId, isActive])
   @@index([clinicId, lastName])
@@ -275,11 +278,11 @@ model Appointment {
   createdAt     DateTime          @default(now())
   updatedAt     DateTime          @updatedAt
 
-  clinic        Clinic  @relation(fields: [clinicId], references: [id], onDelete: Cascade)
-  patient       Patient @relation(fields: [patientId], references: [id], onDelete: Restrict)
-  doctor        User    @relation("AppointmentDoctor", fields: [doctorId], references: [id], onDelete: Restrict)
-  box           Box     @relation(fields: [boxId], references: [id], onDelete: Restrict)
-  createdByUser User?   @relation("AppointmentCreatedBy", fields: [createdBy], references: [id], onDelete: SetNull)
+  clinic         Clinic          @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+  patient        Patient         @relation(fields: [patientId], references: [id], onDelete: Restrict)
+  doctor         User            @relation("AppointmentDoctor", fields: [doctorId], references: [id], onDelete: Restrict)
+  box            Box             @relation(fields: [boxId], references: [id], onDelete: Restrict)
+  createdByUser  User?           @relation("AppointmentCreatedBy", fields: [createdBy], references: [id], onDelete: SetNull)
   clinicalVisits ClinicalVisit[]
 
   @@index([clinicId, startAt])

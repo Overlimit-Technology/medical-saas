@@ -4,7 +4,7 @@ import { hashPassword } from "@/lib/password";
 
 export type DoctorInput = {
   email: string;
-  password?: string;
+  password: string;
   firstName: string;
   lastName: string;
   phone?: string | null;
@@ -57,10 +57,10 @@ export class DoctorsService {
       select: { id: true },
     });
     if (existingRut) {
-      throw new Error("RUT already exists");
+      throw new Error("El RUT ya está registrado.");
     }
 
-    const passwordHash = input.password ? await hashPassword(input.password) : null;
+    const passwordHash = await hashPassword(input.password);
 
     return prisma.user.create({
       data: {
@@ -107,7 +107,7 @@ export class DoctorsService {
         select: { id: true },
       });
       if (exists) {
-        throw new Error("RUT already exists");
+        throw new Error("El RUT ya está registrado.");
       }
 
       await prisma.doctorProfile.update({

@@ -74,7 +74,7 @@ export class ClinicalVisitsService {
 
   private static async ensurePatient(clinicId: string, patientId: string) {
     const patient = await prisma.patient.findFirst({ where: { id: patientId, clinicId, isActive: true } });
-    if (!patient) throw new Error("Patient not found in clinic");
+    if (!patient) throw new Error("Paciente no encontrado en la clínica.");
   }
 
   private static async ensureDoctor(clinicId: string, doctorId: string) {
@@ -85,7 +85,7 @@ export class ClinicalVisitsService {
         clinicMemberships: { some: { clinicId, status: "ACTIVE" } },
       },
     });
-    if (!doctor) throw new Error("Doctor not found in clinic");
+    if (!doctor) throw new Error("Doctor no encontrado en la clínica.");
   }
 
   private static async ensureAppointment(
@@ -105,7 +105,7 @@ export class ClinicalVisitsService {
       select: { id: true },
     });
     if (!appointment) {
-      throw new Error("Appointment not found for doctor/patient in clinic");
+      throw new Error("Cita no encontrada para doctor/paciente en la clínica.");
     }
   }
 }

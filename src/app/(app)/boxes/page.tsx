@@ -10,6 +10,23 @@ type Box = {
 export default function BoxesPage() {
   const [items, setItems] = useState<Box[]>([]);
   const [name, setName] = useState("");
+  const [role, setRole] = useState<string | null>(null);
+  const [roleLoading, setRoleLoading] = useState(true);
+
+  useEffect(() => {
+    const loadRole = async () => {
+      try {
+        const res = await fetch("/api/auth/me", { credentials: "include" });
+        const data = await res.json();
+        setRole(data.ok ? data.session?.role ?? null : null);
+      } catch {
+        setRole(null);
+      } finally {
+        setRoleLoading(false);
+      }
+    };
+    loadRole();
+  }, []);
 
   const load = async () => {
     const res = await fetch("/api/boxes");
@@ -18,8 +35,31 @@ export default function BoxesPage() {
   };
 
   useEffect(() => {
+    if (roleLoading) return;
+    if (role !== "ADMIN") {
+      window.location.assign("/dashboard");
+    }
+  }, [role, roleLoading]);
+
+  useEffect(() => {
     load();
   }, []);
+
+  if (roleLoading) {
+    return (
+      <div className="rounded-2xl border border-slate-100 bg-white p-6 text-sm text-slate-500 shadow-sm">
+        Cargando permisos...
+      </div>
+    );
+  }
+
+  if (role !== "ADMIN") {
+    return (
+      <div className="rounded-2xl border border-amber-200 bg-amber-50 p-6 text-sm text-amber-800 shadow-sm">
+        No tienes acceso a esta sección. Redirigiendo...
+      </div>
+    );
+  }
 
   const submit = async (event: React.FormEvent) => {
     event.preventDefault();

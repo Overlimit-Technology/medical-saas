@@ -19,7 +19,7 @@ export class BoxesService {
   static async update(id: string, clinicId: string, name: string) {
     const current = await prisma.box.findFirst({ where: { id, clinicId } });
     if (!current) {
-      throw new Error("Box not found");
+      throw new Error("Box no encontrado.");
     }
 
     return prisma.box.update({
@@ -31,7 +31,7 @@ export class BoxesService {
   static async remove(id: string, clinicId: string) {
     const current = await prisma.box.findFirst({ where: { id, clinicId } });
     if (!current) {
-      throw new Error("Box not found");
+      throw new Error("Box no encontrado.");
     }
 
     const now = new Date();

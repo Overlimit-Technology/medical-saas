@@ -12,13 +12,13 @@ export async function requireClinicSession(): Promise<SessionContext> {
   const sessionCookie = cookies().get("mg_session")?.value;
   const session = await readMgSession(sessionCookie);
   if (!session) {
-    throw new Error("Unauthorized");
+    throw new Error("No autorizado.");
   }
 
   const clinicCookie = cookies().get("mg_clinic")?.value;
   const clinic = await readMgClinic(clinicCookie);
   if (!clinic || clinic.userId !== session.userId) {
-    throw new Error("ClinicNotSelected");
+    throw new Error("Clínica no seleccionada.");
   }
 
   return {
@@ -30,6 +30,6 @@ export async function requireClinicSession(): Promise<SessionContext> {
 
 export function requireRole(role: string, allowed: string[]) {
   if (!allowed.includes(role)) {
-    throw new Error("Forbidden");
+    throw new Error("Acceso denegado.");
   }
 }
