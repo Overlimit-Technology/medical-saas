@@ -63,6 +63,9 @@ model User {
   // - o flujos futuros como magic links
   passwordHash String?
 
+  // Fuerza cambio de contraseÃ±a al primer inicio de sesiÃ³n
+  mustChangePassword Boolean @default(false)
+
   // Rol del usuario (por defecto ADMIN mientras estás en MVP)
   role UserRole @default(ADMIN)
 

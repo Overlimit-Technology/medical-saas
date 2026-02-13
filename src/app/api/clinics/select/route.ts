@@ -13,6 +13,9 @@ export async function POST(req: Request) {
   if (!session) {
     return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
   }
+  if (session.mustChangePassword) {
+    return NextResponse.json({ ok: false, error: "Debes cambiar tu contrasena." }, { status: 403 });
+  }
 
   const body = (await req.json().catch(() => null)) as { clinicId?: unknown } | null;
   const clinicId = typeof body?.clinicId === "string" ? body.clinicId : null;

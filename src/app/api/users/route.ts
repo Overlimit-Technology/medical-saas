@@ -15,6 +15,7 @@ const userCreateSchema = z.object({
   rut: z.string().min(1),
   specialty: z.string().optional().nullable(),
   clinicId: z.string().optional(),
+  clinicIds: z.array(z.string().min(1)).optional(),
 });
 
 async function ensureRutAvailable(rut: string) {
@@ -104,8 +105,15 @@ export async function POST(req: Request) {
       return NextResponse.json({ ok: false, error: "Invalid payload" }, { status: 400 });
     }
 
-    const clinicId = parsed.data.clinicId ?? session.clinicId;
-    await ClinicsService.selectActiveClinic(session.userId, clinicId);
+    const selectedClinics = parsed.data.clinicIds?.length
+      ? parsed.data.clinicIds
+      : parsed.data.clinicId
+        ? [parsed.data.clinicId]
+        : [session.clinicId];
+    const clinicIds = Array.from(new Set(selectedClinics));
+    await Promise.all(
+      clinicIds.map((clinicId) => ClinicsService.selectActiveClinic(session.userId, clinicId))
+    );
     await ensureRutAvailable(parsed.data.rut);
 
     const generatedPassword = generatePassword();
@@ -120,7 +128,7 @@ export async function POST(req: Request) {
         phone: null,
         rut: parsed.data.rut,
         specialty: parsed.data.specialty ?? null,
-        clinicIds: [clinicId],
+        clinicIds,
       });
     } else {
       const passwordHash = await hashPassword(generatedPassword);
@@ -128,6 +136,7 @@ export async function POST(req: Request) {
         data: {
           email: parsed.data.email,
           passwordHash,
+          mustChangePassword: true,
           role: "SECRETARY",
           status: "ACTIVE",
           profile: {
@@ -139,7 +148,7 @@ export async function POST(req: Request) {
             },
           },
           clinicMemberships: {
-            create: [{ clinicId, status: "ACTIVE" }],
+            create: clinicIds.map((clinicId) => ({ clinicId, status: "ACTIVE" })),
           },
         },
         select: { id: true, email: true },

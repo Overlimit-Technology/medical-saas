@@ -8,17 +8,25 @@ export type SessionContext = {
   clinicId: string;
 };
 
-export async function requireClinicSession(): Promise<SessionContext> {
+export async function requireAuthSession() {
   const sessionCookie = cookies().get("mg_session")?.value;
   const session = await readMgSession(sessionCookie);
   if (!session) {
     throw new Error("No autorizado.");
   }
+  return session;
+}
+
+export async function requireClinicSession(): Promise<SessionContext> {
+  const session = await requireAuthSession();
+  if (session.mustChangePassword) {
+    throw new Error("Debes cambiar tu contrasena.");
+  }
 
   const clinicCookie = cookies().get("mg_clinic")?.value;
   const clinic = await readMgClinic(clinicCookie);
   if (!clinic || clinic.userId !== session.userId) {
-    throw new Error("Clínica no seleccionada.");
+    throw new Error("Clinica no seleccionada.");
   }
 
   return {

@@ -27,7 +27,7 @@ export default function DoctorsPage() {
     firstName: "",
     lastName: "",
     rut: "",
-    clinicId: "",
+    clinicIds: [] as string[],
   });
 
   const loadUsers = async () => {
@@ -48,7 +48,7 @@ export default function DoctorsPage() {
     if (preferredClinicId) {
       setForm((current) => ({
         ...current,
-        clinicId: current.clinicId || preferredClinicId,
+        clinicIds: current.clinicIds.length > 0 ? current.clinicIds : [preferredClinicId],
       }));
     }
   };
@@ -66,7 +66,7 @@ export default function DoctorsPage() {
       firstName: form.firstName,
       lastName: form.lastName,
       rut: form.rut,
-      clinicId: form.clinicId || undefined,
+      clinicIds: form.clinicIds.length > 0 ? form.clinicIds : undefined,
     };
 
     const res = await fetch("/api/users", {
@@ -82,10 +82,22 @@ export default function DoctorsPage() {
         firstName: "",
         lastName: "",
         rut: "",
-        clinicId: form.clinicId,
+        clinicIds: form.clinicIds,
       });
       loadUsers();
     }
+  };
+
+  const toggleClinic = (clinicId: string) => {
+    setForm((current) => {
+      const isSelected = current.clinicIds.includes(clinicId);
+      return {
+        ...current,
+        clinicIds: isSelected
+          ? current.clinicIds.filter((id) => id !== clinicId)
+          : [...current.clinicIds, clinicId],
+      };
+    });
   };
 
   return (
@@ -118,29 +130,47 @@ export default function DoctorsPage() {
           La contrasena se genera automaticamente y se envia al correo.
         </p>
         <form onSubmit={submit} className="mt-4 grid gap-3">
-          <div className="grid grid-cols-2 gap-3">
-            <select
-              value={form.role}
-              onChange={(event) =>
-                setForm({ ...form, role: event.target.value as UserRole })
-              }
-              className="rounded-xl border border-slate-200 px-3 py-2 text-sm"
-            >
-              <option value="DOCTOR">Doctor</option>
-              <option value="SECRETARY">Secretaria</option>
-            </select>
-            <select
-              value={form.clinicId}
-              onChange={(event) => setForm({ ...form, clinicId: event.target.value })}
-              className="rounded-xl border border-slate-200 px-3 py-2 text-sm"
-            >
-              {clinics.length === 0 && <option value="">Sede</option>}
-              {clinics.map((clinic) => (
-                <option key={clinic.id} value={clinic.id}>
-                  {clinic.name} - {clinic.city}
-                </option>
-              ))}
-            </select>
+          <select
+            value={form.role}
+            onChange={(event) =>
+              setForm({ ...form, role: event.target.value as UserRole })
+            }
+            className="rounded-xl border border-slate-200 px-3 py-2 text-sm"
+          >
+            <option value="DOCTOR">Doctor</option>
+            <option value="SECRETARY">Secretaria</option>
+          </select>
+          <div className="rounded-xl border border-slate-200 bg-slate-50/60 p-3">
+            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+              Sedes
+            </p>
+            <p className="mt-1 text-xs text-slate-400">
+              Selecciona una o mas sedes para este usuario.
+            </p>
+            <div className="mt-3 grid gap-2">
+              {clinics.length === 0 && (
+                <p className="text-xs text-slate-400">Sin sedes disponibles.</p>
+              )}
+              {clinics.map((clinic) => {
+                const checked = form.clinicIds.includes(clinic.id);
+                return (
+                  <label
+                    key={clinic.id}
+                    className="flex items-center justify-between rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700"
+                  >
+                    <span>
+                      {clinic.name} - {clinic.city}
+                    </span>
+                    <input
+                      type="checkbox"
+                      checked={checked}
+                      onChange={() => toggleClinic(clinic.id)}
+                      className="h-4 w-4 accent-slate-900"
+                    />
+                  </label>
+                );
+              })}
+            </div>
           </div>
           <input
             value={form.email}

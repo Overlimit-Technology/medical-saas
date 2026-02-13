@@ -4,6 +4,7 @@ type SessionPayload = {
   userId: string;
   role: string;
   exp: number; // epoch seconds
+  mustChangePassword?: boolean;
 };
 
 function base64url(input: Buffer | string) {

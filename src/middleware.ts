@@ -37,6 +37,7 @@ type SignedPayload = {
   role?: unknown;
   clinicId?: unknown;
   setAt?: unknown;
+  mustChangePassword?: unknown;
 };
 
 async function readSignedCookiePayload(
@@ -121,9 +122,24 @@ export async function middleware(req: NextRequest) {
     : false;
 
   const roleHome = roleHomePath(sessionPayload?.role);
+  const mustChangePassword = hasValidSession && sessionPayload?.mustChangePassword === true;
 
   if (pathname === "/" || pathname === "/login") {
     if (hasValidSession) {
+      const url = req.nextUrl.clone();
+      url.pathname = mustChangePassword ? "/change-password" : hasValidClinic ? roleHome : "/select-clinic";
+      return NextResponse.redirect(url);
+    }
+    return NextResponse.next();
+  }
+
+  if (pathname === "/change-password") {
+    if (!hasValidSession) {
+      const url = req.nextUrl.clone();
+      url.pathname = "/";
+      return NextResponse.redirect(url);
+    }
+    if (!mustChangePassword) {
       const url = req.nextUrl.clone();
       url.pathname = hasValidClinic ? roleHome : "/select-clinic";
       return NextResponse.redirect(url);
@@ -135,6 +151,11 @@ export async function middleware(req: NextRequest) {
     if (!hasValidSession) {
       const url = req.nextUrl.clone();
       url.pathname = "/";
+      return NextResponse.redirect(url);
+    }
+    if (mustChangePassword) {
+      const url = req.nextUrl.clone();
+      url.pathname = "/change-password";
       return NextResponse.redirect(url);
     }
     if (hasValidClinic) {
@@ -149,6 +170,11 @@ export async function middleware(req: NextRequest) {
     if (!hasValidSession) {
       const url = req.nextUrl.clone();
       url.pathname = "/";
+      return NextResponse.redirect(url);
+    }
+    if (mustChangePassword) {
+      const url = req.nextUrl.clone();
+      url.pathname = "/change-password";
       return NextResponse.redirect(url);
     }
     if (!hasValidClinic) {
@@ -206,6 +232,7 @@ export const config = {
   matcher: [
     "/",
     "/login",
+    "/change-password",
     "/select-clinic",
     "/dashboard/:path*",
     "/agenda/:path*",

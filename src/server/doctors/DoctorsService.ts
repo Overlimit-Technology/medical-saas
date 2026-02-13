@@ -66,6 +66,7 @@ export class DoctorsService {
       data: {
         email: input.email,
         passwordHash,
+        mustChangePassword: true,
         role: "DOCTOR",
         status: "ACTIVE",
         profile: {

@@ -5,6 +5,7 @@ export type MgSessionPayload = {
   userId: string
   role: string
   exp: number // unix seconds
+  mustChangePassword?: boolean
 }
 
 export async function readMgSession(cookieValue: string | undefined): Promise<MgSessionPayload | null> {

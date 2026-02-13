@@ -31,6 +31,7 @@ async function upsertUser(params: {
     update: {
       role: params.role,
       status: params.status ?? "ACTIVE",
+      mustChangePassword: false,
       passwordHash,
       name: params.name ?? `${params.firstName} ${params.lastName}`,
       profile: {
@@ -55,6 +56,7 @@ async function upsertUser(params: {
       passwordHash,
       role: params.role,
       status: params.status ?? "ACTIVE",
+      mustChangePassword: false,
       name: params.name ?? `${params.firstName} ${params.lastName}`,
       profile: {
         create: {
