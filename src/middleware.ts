@@ -89,7 +89,7 @@ function isValidClinicPayload(
   );
 }
 
-const PROTECTED_PREFIXES = ["/dashboard", "/agenda", "/patients", "/doctors", "/boxes", "/appointments"];
+const PROTECTED_PREFIXES = ["/dashboard", "/agenda", "/crm", "/patients", "/doctors", "/boxes", "/appointments"];
 
 function roleHomePath(role: unknown) {
   switch (role) {
@@ -207,14 +207,21 @@ export async function middleware(req: NextRequest) {
       url.pathname = roleHome;
       return NextResponse.redirect(url);
     }
-    if (pathname.startsWith("/patients") && sessionPayload?.role === "DOCTOR") {
+    const canAccessCrmOption =
+      sessionPayload?.role === "ADMIN" || sessionPayload?.role === "SECRETARY";
+    if (pathname.startsWith("/crm") && !canAccessCrmOption) {
       const url = req.nextUrl.clone();
-      url.pathname = "/agenda";
+      url.pathname = sessionPayload?.role === "DOCTOR" ? "/agenda" : roleHome;
       return NextResponse.redirect(url);
     }
-    if (pathname.startsWith("/doctors") && sessionPayload?.role === "DOCTOR") {
+    if (pathname.startsWith("/patients") && !canAccessCrmOption) {
       const url = req.nextUrl.clone();
-      url.pathname = "/agenda";
+      url.pathname = sessionPayload?.role === "DOCTOR" ? "/agenda" : roleHome;
+      return NextResponse.redirect(url);
+    }
+    if (pathname.startsWith("/doctors") && !canAccessCrmOption) {
+      const url = req.nextUrl.clone();
+      url.pathname = sessionPayload?.role === "DOCTOR" ? "/agenda" : roleHome;
       return NextResponse.redirect(url);
     }
     if (pathname.startsWith("/clinical-visits") && sessionPayload?.role !== "DOCTOR") {
@@ -236,6 +243,7 @@ export const config = {
     "/select-clinic",
     "/dashboard/:path*",
     "/agenda/:path*",
+    "/crm/:path*",
     "/patients/:path*",
     "/doctors/:path*",
     "/boxes/:path*",

@@ -8,6 +8,7 @@ const NAV_ITEMS = [
   { href: "/dashboard", label: "Vista General" },
   { href: "/agenda", label: "Agenda", roles: ["ADMIN", "SECRETARY", "DOCTOR"] },
   { href: "/clinical-visits", label: "Cita clínica", roles: ["DOCTOR"] },
+  { href: "/crm", label: "CRM", roles: ["ADMIN", "SECRETARY"] },
   { href: "/patients", label: "Pacientes", roles: ["ADMIN", "SECRETARY"] },
   { href: "/doctors", label: "Usuario", roles: ["ADMIN", "SECRETARY"] },
   { href: "/boxes", label: "Boxes", roles: ["ADMIN"] },

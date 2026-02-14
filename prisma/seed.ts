@@ -94,6 +94,15 @@ async function migrateEmailIfNeeded(legacyEmail: string, newEmail: string) {
   });
 }
 
+async function upsertTreatment(name: string, price: number) {
+  return prisma.treatment.upsert({
+    where: { name },
+    update: { price },
+    create: { name, price },
+    select: { id: true, name: true, price: true },
+  });
+}
+
 async function main() {
   console.log("▶ Running prisma/seed.ts ...");
 
@@ -145,8 +154,13 @@ async function main() {
     phone: "+56955555555",
   });
 
+  const treatmentA = await upsertTreatment("Desparunizamiento Sesion 1", 25000);
+  const treatmentB = await upsertTreatment("Desparunizamiento Sesion 2", 25000);
+
   console.log("✅ Seed listo. Usuarios creados/actualizados:");
   console.table([admin, doctor, secretary, doctorMultiA, doctorMultiB]);
+  console.log("Tratamientos base:");
+  console.table([treatmentA, treatmentB]);
 
   console.log("\nCredenciales:");
   console.log("ADMIN      admin@medigest.cl           / Admin123!");

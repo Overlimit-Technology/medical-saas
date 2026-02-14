@@ -232,6 +232,7 @@ model Patient {
   clinic         Clinic          @relation(fields: [clinicId], references: [id], onDelete: Cascade)
   appointments   Appointment[]
   clinicalVisits ClinicalVisit[]
+  patientTreatments PatientTreatment[]
 
   @@index([clinicId, isActive])
   @@index([clinicId, lastName])
@@ -311,9 +312,42 @@ model Treatment {
   // Tratamientos disponibles en la clínica y su precio
   id    String  @id @default(cuid())
   // Nombre del tratamiento
-  name  String
+  name  String  @unique
   // Precio del tratamiento
   price Decimal @db.Decimal(10, 2)
+  patientTreatments PatientTreatment[]
+}
+
+model PatientTreatment {
+  id          String    @id @default(cuid())
+  patientId   String
+  treatmentId String
+  performedAt DateTime  @default(now())
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  patient   Patient         @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  treatment Treatment       @relation(fields: [treatmentId], references: [id], onDelete: Restrict)
+  payments  PaymentHistory[]
+
+  @@index([patientId, performedAt])
+  @@index([treatmentId])
+}
+
+model PaymentHistory {
+  id                 String        @id @default(cuid())
+  patientTreatmentId String
+  recordedAt         DateTime      @default(now())
+  status             PaymentStatus @default(PENDING)
+  amount             Decimal       @db.Decimal(10, 2)
+  notes              String?
+  createdAt          DateTime      @default(now())
+  updatedAt          DateTime      @updatedAt
+
+  patientTreatment PatientTreatment @relation(fields: [patientTreatmentId], references: [id], onDelete: Cascade)
+
+  @@index([patientTreatmentId, recordedAt])
+  @@index([status])
 }
 
 model ClinicalVisit {
