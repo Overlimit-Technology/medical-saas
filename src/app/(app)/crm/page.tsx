@@ -124,7 +124,7 @@ export default function CrmPage() {
         }));
       }
     } catch {
-      setError("No se pudo cargar el modulo CRM.");
+      setError("No se pudo cargar el modulo Gestion de contactos y cobros.");
     } finally {
       setLoading(false);
     }
@@ -216,7 +216,7 @@ export default function CrmPage() {
   if (loading) {
     return (
       <div className="rounded-2xl border border-slate-100 bg-white p-6 text-sm text-slate-500 shadow-sm">
-        Cargando CRM...
+        Cargando Gestion de contactos y cobros...
       </div>
     );
   }
@@ -226,11 +226,11 @@ export default function CrmPage() {
       <div className="rounded-2xl border border-slate-100 bg-white p-6 shadow-sm">
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
-            <p className="text-sm text-slate-500">CRM-001</p>
+            <p className="text-sm text-slate-500">Gestion de contactos y cobros</p>
             <h1 className="text-2xl font-semibold text-slate-900">Gestion de contactos y cobros</h1>
             {selectedPatient && (
               <p className="mt-2 text-sm text-slate-600">
-                Cobros / pagos del paciente <span className="font-semibold">{fullName(selectedPatient)}</span> - RUN{" "}
+                Cobros y pagos del paciente <span className="font-semibold">{fullName(selectedPatient)}</span> - RUN{" "}
                 <span className="font-semibold">{selectedPatient.run}</span>
               </p>
             )}
