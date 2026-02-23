@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { DeleteIconButton } from "@/presentation/common/DeleteIconButton";
 
 type UserRole = "DOCTOR" | "SECRETARY";
 
@@ -29,11 +30,23 @@ export default function DoctorsPage() {
     rut: "",
     clinicIds: [] as string[],
   });
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [apiError, setApiError] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   const loadUsers = async () => {
-    const res = await fetch("/api/users");
-    const data = await res.json();
-    if (data.ok) setItems(data.items);
+    setApiError(null);
+    try {
+      const res = await fetch("/api/users");
+      const data = await res.json();
+      if (data.ok) {
+        setItems(data.items ?? []);
+        return;
+      }
+      setApiError(data.error ?? "No se pudieron cargar los usuarios.");
+    } catch {
+      setApiError("No se pudieron cargar los usuarios.");
+    }
   };
 
   const loadClinics = async () => {
@@ -58,8 +71,15 @@ export default function DoctorsPage() {
     loadClinics();
   }, []);
 
+  useEffect(() => {
+    if (!successMessage) return;
+    const timeout = window.setTimeout(() => setSuccessMessage(null), 2500);
+    return () => window.clearTimeout(timeout);
+  }, [successMessage]);
+
   const submit = async (event: React.FormEvent) => {
     event.preventDefault();
+    setApiError(null);
     const payload = {
       email: form.email,
       role: form.role,
@@ -69,13 +89,17 @@ export default function DoctorsPage() {
       clinicIds: form.clinicIds.length > 0 ? form.clinicIds : undefined,
     };
 
-    const res = await fetch("/api/users", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    });
-    const data = await res.json();
-    if (data.ok) {
+    try {
+      const res = await fetch("/api/users", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json();
+      if (!data.ok) {
+        setApiError(data.error ?? "No se pudo crear el usuario.");
+        return;
+      }
       setForm({
         email: "",
         role: "DOCTOR",
@@ -84,7 +108,42 @@ export default function DoctorsPage() {
         rut: "",
         clinicIds: form.clinicIds,
       });
-      loadUsers();
+      setSuccessMessage("Usuario creado.");
+      await loadUsers();
+    } catch {
+      setApiError("No se pudo crear el usuario.");
+    }
+  };
+
+  const handleDelete = async (user: User) => {
+    const displayName = `${user.profile?.firstName ?? ""} ${user.profile?.lastName ?? ""}`.trim();
+    const label = displayName || user.email;
+    const confirmed = window.confirm(
+      `Confirma eliminar al usuario "${label}". Esta accion no se puede deshacer.`
+    );
+    if (!confirmed) return;
+
+    setDeletingId(user.id);
+    setApiError(null);
+
+    try {
+      const res = await fetch(`/api/users/${user.id}`, { method: "DELETE" });
+      const data = await res.json();
+      if (!data.ok) {
+        setApiError(data.error ?? "No se pudo eliminar el usuario.");
+        return;
+      }
+
+      setSuccessMessage(
+        data.softDeleted
+          ? "Usuario desactivado porque tiene citas futuras."
+          : "Usuario eliminado."
+      );
+      await loadUsers();
+    } catch {
+      setApiError("No se pudo eliminar el usuario.");
+    } finally {
+      setDeletingId(null);
     }
   };
 
@@ -105,13 +164,26 @@ export default function DoctorsPage() {
       <div className="rounded-2xl border border-slate-100 bg-white p-6 shadow-sm">
         <h1 className="text-xl font-semibold text-slate-900">Usuarios</h1>
         <p className="text-sm text-slate-500">Asignados a la sede actual.</p>
+        {apiError && (
+          <div className="mt-3 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-600">
+            {apiError}
+          </div>
+        )}
 
         <div className="mt-6 space-y-3">
           {items.map((user) => (
             <div key={user.id} className="rounded-xl border border-slate-100 p-4">
-              <p className="text-sm font-semibold text-slate-900">
-                {user.profile?.firstName} {user.profile?.lastName}
-              </p>
+              <div className="flex items-start justify-between gap-3">
+                <p className="text-sm font-semibold text-slate-900">
+                  {user.profile?.firstName} {user.profile?.lastName}
+                </p>
+                <DeleteIconButton
+                  ariaLabel={`Eliminar ${user.profile?.firstName ?? "usuario"}`}
+                  disabled={Boolean(deletingId)}
+                  className={deletingId === user.id ? "animate-pulse" : ""}
+                  onClick={() => handleDelete(user)}
+                />
+              </div>
               <p className="text-xs text-slate-500">{user.email}</p>
               <p className="text-xs text-slate-500">
                 {user.role === "DOCTOR" ? "Doctor" : "Secretaria"}
@@ -203,6 +275,12 @@ export default function DoctorsPage() {
           </button>
         </form>
       </div>
+
+      {successMessage && (
+        <div className="fixed bottom-6 right-6 rounded-2xl bg-emerald-500 px-4 py-3 text-sm font-medium text-white shadow-lg shadow-emerald-500/30">
+          {successMessage}
+        </div>
+      )}
     </div>
   );
 }

@@ -78,6 +78,7 @@ export async function GET() {
     const items = await prisma.user.findMany({
       where: {
         role: { in: ["DOCTOR", "SECRETARY"] },
+        status: "ACTIVE",
         clinicMemberships: {
           some: { clinicId: session.clinicId, status: "ACTIVE" },
         },

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { DeleteIconButton } from "@/presentation/common/DeleteIconButton";
 
 type Treatment = {
   id: string;
@@ -61,6 +62,7 @@ export default function TreatmentsPage() {
   const [roleLoading, setRoleLoading] = useState(true);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
   const [apiError, setApiError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
@@ -200,6 +202,35 @@ export default function TreatmentsPage() {
     }
   };
 
+  const handleDelete = async (item: Treatment) => {
+    const confirmed = window.confirm(
+      `Confirma eliminar el tratamiento "${item.name}". Esta accion no se puede deshacer.`
+    );
+    if (!confirmed) return;
+
+    setDeletingId(item.id);
+    setApiError(null);
+
+    try {
+      const res = await fetch(`/api/treatments/${item.id}`, { method: "DELETE" });
+      const data = await res.json();
+      if (!data.ok) {
+        setApiError(data.error ?? "No se pudo eliminar el tratamiento.");
+        return;
+      }
+
+      if (selectedId === item.id) {
+        setSelectedId(null);
+      }
+      setSuccessMessage("Tratamiento eliminado.");
+      await loadTreatments();
+    } catch {
+      setApiError("No se pudo eliminar el tratamiento.");
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
   if (roleLoading) {
     return (
       <div className="rounded-2xl border border-slate-100 bg-white p-6 text-sm text-slate-500 shadow-sm">
@@ -273,13 +304,22 @@ export default function TreatmentsPage() {
                     <td className="px-4 py-3 font-medium text-slate-900">{item.name}</td>
                     <td className="px-4 py-3 text-slate-500">{formatPrice(item.price)}</td>
                     <td className="px-4 py-3 text-right">
-                      <button
-                        type="button"
-                        className="rounded-full border border-slate-200 px-3 py-1 text-xs text-slate-600 transition hover:border-slate-300"
-                        onClick={() => setSelectedId(item.id)}
-                      >
-                        Editar
-                      </button>
+                      <div className="flex items-center justify-end gap-2">
+                        <button
+                          type="button"
+                          disabled={Boolean(deletingId)}
+                          className="rounded-full border border-slate-200 px-3 py-1 text-xs text-slate-600 transition hover:border-slate-300 disabled:cursor-not-allowed disabled:opacity-60"
+                          onClick={() => setSelectedId(item.id)}
+                        >
+                          Editar
+                        </button>
+                        <DeleteIconButton
+                          ariaLabel={`Eliminar ${item.name}`}
+                          disabled={Boolean(deletingId)}
+                          onClick={() => handleDelete(item)}
+                          className={deletingId === item.id ? "animate-pulse" : ""}
+                        />
+                      </div>
                     </td>
                   </tr>
                 );
@@ -355,7 +395,7 @@ export default function TreatmentsPage() {
 
           <button
             type="submit"
-            disabled={saving}
+            disabled={saving || Boolean(deletingId)}
             className="rounded-full bg-slate-900 px-4 py-2 text-sm font-medium text-white transition disabled:cursor-not-allowed disabled:bg-slate-400"
           >
             {saving ? "Guardando..." : selectedTreatment ? "Guardar cambios" : "Crear tratamiento"}

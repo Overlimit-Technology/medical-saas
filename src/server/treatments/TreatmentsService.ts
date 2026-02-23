@@ -191,4 +191,30 @@ export class TreatmentsService {
       throw error;
     }
   }
+
+  static async remove(id: string) {
+    const current = await prisma.treatment.findUnique({
+      where: { id },
+      select: { id: true },
+    });
+    if (!current) {
+      throw new Error("Tratamiento no encontrado.");
+    }
+
+    try {
+      await prisma.treatment.delete({
+        where: { id },
+      });
+    } catch (error) {
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === "P2003"
+      ) {
+        throw new Error(
+          "No se puede eliminar el tratamiento porque tiene atenciones o pagos asociados."
+        );
+      }
+      throw error;
+    }
+  }
 }

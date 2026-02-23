@@ -27,3 +27,22 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
     return NextResponse.json({ ok: false, error: message }, { status });
   }
 }
+
+export async function DELETE(_req: Request, { params }: { params: { id: string } }) {
+  try {
+    const session = await requireClinicSession();
+    requireRole(session.role, ["ADMIN", "DOCTOR"]);
+
+    await TreatmentsService.remove(params.id);
+    return NextResponse.json({ ok: true });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Failed to delete treatment";
+    const normalizedMessage = message.toLowerCase();
+    const status = normalizedMessage.includes("no encontrado")
+      ? 404
+      : normalizedMessage.includes("no se puede eliminar")
+        ? 409
+        : 400;
+    return NextResponse.json({ ok: false, error: message }, { status });
+  }
+}

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { DeleteIconButton } from "@/presentation/common/DeleteIconButton";
 
 type Patient = {
   id: string;
@@ -72,13 +73,13 @@ function validateForm(form: FormState) {
   if (!form.run.trim()) {
     errors.run = "RUN obligatorio.";
   } else if (!isValidRun(form.run)) {
-    errors.run = "RUN inválido. Ej: 12.345.678-5";
+    errors.run = "RUN invÃ¡lido. Ej: 12.345.678-5";
   }
   if (form.email && !emailRegex.test(form.email)) {
-    errors.email = "Correo inválido.";
+    errors.email = "Correo invÃ¡lido.";
   }
   if (form.phone && !phoneRegex.test(form.phone)) {
-    errors.phone = "Teléfono inválido. Ej: +56 9 1234 5678";
+    errors.phone = "TelÃ©fono invÃ¡lido. Ej: +56 9 1234 5678";
   }
   return errors;
 }
@@ -285,7 +286,7 @@ export default function PatientsPage() {
               {!loading && items.length === 0 && !query.trim() && (
                 <tr>
                   <td className="px-4 py-6 text-slate-400" colSpan={4}>
-                    No hay pacientes registrados. ¡Crea el primero!
+                    No hay pacientes registrados. Â¡Crea el primero!
                   </td>
                 </tr>
               )}
@@ -322,16 +323,13 @@ export default function PatientsPage() {
                       >
                         Editar
                       </button>
-                      <button
-                        className="rounded-full border border-rose-200 px-3 py-1 text-xs text-rose-600 transition hover:border-rose-300"
+                      <DeleteIconButton
+                        ariaLabel={`Eliminar ${patient.firstName}`}
                         onClick={() => {
                           setDeleteTarget(patient);
                           setDeleteError(null);
                         }}
-                        aria-label={`Eliminar ${patient.firstName}`}
-                      >
-                        🗑
-                      </button>
+                      />
                     </div>
                   </td>
                 </tr>
@@ -417,7 +415,7 @@ export default function PatientsPage() {
             <input
               value={form.phone}
               onChange={(event) => handleFieldChange("phone", event.target.value)}
-              placeholder="Teléfono"
+              placeholder="TelÃ©fono"
               className={`w-full rounded-xl border px-3 py-2 text-sm ${
                 errors.phone ? "border-rose-300" : "border-slate-200"
               }`}
@@ -457,8 +455,8 @@ export default function PatientsPage() {
           <div className="relative w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl shadow-slate-900/20">
             <h3 className="text-lg font-semibold text-slate-900">Eliminar paciente</h3>
             <p className="mt-2 text-sm text-slate-600">
-              ¿Estás seguro de eliminar al paciente {deleteTarget.firstName} {deleteTarget.lastName}?
-              Esta acción no se puede deshacer.
+              Â¿EstÃ¡s seguro de eliminar al paciente {deleteTarget.firstName} {deleteTarget.lastName}?
+              Esta acciÃ³n no se puede deshacer.
             </p>
             {deleteError && (
               <div className="mt-4 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-600">
@@ -488,3 +486,4 @@ export default function PatientsPage() {
     </div>
   );
 }
+

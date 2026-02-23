@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { DeleteIconButton } from "@/presentation/common/DeleteIconButton";
 
 type Appointment = {
   id: string;
@@ -879,13 +880,11 @@ export default function AgendaPage() {
               )}
               <div className="flex flex-col justify-end gap-3 sm:flex-row">
                 {editingId && (
-                  <button
-                    type="button"
+                  <DeleteIconButton
+                    ariaLabel="Eliminar cita"
                     onClick={() => setDeleteConfirm(true)}
-                    className="rounded-full border border-rose-200 px-5 py-2 text-sm font-medium text-rose-600 transition hover:border-rose-300"
-                  >
-                    Eliminar cita
-                  </button>
+                    className="h-10 w-10"
+                  />
                 )}
                 <button
                   type="button"
