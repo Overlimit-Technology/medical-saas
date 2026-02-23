@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { requireClinicSession, requireRole } from "@/server/auth/requireSession";
-import { AppointmentsService } from "@/server/appointments/AppointmentsService";
+import { AppointmentsService, type AppointmentInput } from "@/server/appointments/AppointmentsService";
 import { prisma } from "@/lib/prisma";
+import { sendEmail } from "@/server/notifications/email";
 
 const appointmentUpdateSchema = z.object({
   patientId: z.string().min(1).optional(),
@@ -19,6 +20,13 @@ function parseDate(value?: string) {
   if (!value) return null;
   const date = new Date(value);
   return Number.isNaN(date.valueOf()) ? null : date;
+}
+
+function formatDateTime(value: Date) {
+  return value.toLocaleString("es-CL", {
+    dateStyle: "full",
+    timeStyle: "short",
+  });
 }
 
 // GET /api/appointments/:id -> detalle; si es doctor, solo sus citas.
@@ -39,12 +47,12 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
     });
 
     if (!item) {
-      return NextResponse.json({ ok: false, error: "Not found" }, { status: 404 });
+      return NextResponse.json({ ok: false, error: "Cita no encontrada." }, { status: 404 });
     }
 
     return NextResponse.json({ ok: true, item });
-  } catch (error) {
-    return NextResponse.json({ ok: false, error: "Failed to load appointment" }, { status: 400 });
+  } catch {
+    return NextResponse.json({ ok: false, error: "No se pudo cargar la cita." }, { status: 400 });
   }
 }
 
@@ -57,26 +65,78 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
     const body = await req.json();
     const parsed = appointmentUpdateSchema.safeParse(body);
     if (!parsed.success) {
-      return NextResponse.json({ ok: false, error: "Invalid payload" }, { status: 400 });
+      return NextResponse.json({ ok: false, error: "Datos invalidos." }, { status: 400 });
     }
 
-    const data: any = { ...parsed.data };
-    if (parsed.data.startAt) data.startAt = parseDate(parsed.data.startAt);
-    if (parsed.data.endAt) data.endAt = parseDate(parsed.data.endAt);
-
-    if ((parsed.data.startAt && !data.startAt) || (parsed.data.endAt && !data.endAt)) {
-      return NextResponse.json({ ok: false, error: "Invalid time range" }, { status: 400 });
+    const startAt = parsed.data.startAt ? parseDate(parsed.data.startAt) : undefined;
+    const endAt = parsed.data.endAt ? parseDate(parsed.data.endAt) : undefined;
+    if ((parsed.data.startAt && !startAt) || (parsed.data.endAt && !endAt)) {
+      return NextResponse.json({ ok: false, error: "Rango de horario invalido." }, { status: 400 });
     }
+
+    const data: Partial<AppointmentInput> = {
+      patientId: parsed.data.patientId,
+      doctorId: parsed.data.doctorId,
+      boxId: parsed.data.boxId,
+      startAt: startAt ?? undefined,
+      endAt: endAt ?? undefined,
+      status: parsed.data.status,
+      paymentStatus: parsed.data.paymentStatus,
+      notes: parsed.data.notes,
+    };
+
+    const previous = await prisma.appointment.findFirst({
+      where: { id: params.id, clinicId: session.clinicId },
+      select: { startAt: true, endAt: true },
+    });
 
     const item = await AppointmentsService.update(params.id, session.clinicId, {
       ...data,
       createdBy: session.userId,
     });
 
-    return NextResponse.json({ ok: true, item });
+    let notificationWarning: string | null = null;
+    const wasRescheduled = previous
+      ? previous.startAt.getTime() !== item.startAt.getTime() ||
+        previous.endAt.getTime() !== item.endAt.getTime()
+      : Boolean(parsed.data.startAt || parsed.data.endAt);
+
+    if (wasRescheduled && item.patient.email) {
+      const patientName = [item.patient.firstName, item.patient.lastName, item.patient.secondLastName ?? ""]
+        .join(" ")
+        .trim();
+      const doctorName = [item.doctor.profile?.firstName ?? "", item.doctor.profile?.lastName ?? ""]
+        .join(" ")
+        .trim() || item.doctor.email;
+
+      const subject = "Tu cita fue reagendada en ZENSYA";
+      const text = [
+        `Hola ${patientName || item.patient.firstName},`,
+        "",
+        "Tu cita fue actualizada en ZENSYA.",
+        `Nueva fecha y hora: ${formatDateTime(item.startAt)}`,
+        `Profesional: ${doctorName}`,
+        "",
+        "Si tienes dudas, contacta a la clinica.",
+      ].join("\n");
+
+      const origin = new URL(req.url).origin;
+      const sent = await sendEmail({
+        origin,
+        to: item.patient.email,
+        subject,
+        text,
+      });
+      if (!sent.ok) {
+        notificationWarning = sent.error;
+      }
+    }
+
+    return NextResponse.json({ ok: true, item, notificationWarning });
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Failed to update appointment";
-    const status = message.includes("conflict") ? 409 : 400;
+    const message = error instanceof Error ? error.message : "No se pudo actualizar la cita.";
+    const lowerMessage = message.toLowerCase();
+    const status = lowerMessage.includes("conflict") || lowerMessage.includes("conflicto") ? 409 : 400;
     return NextResponse.json({ ok: false, error: message }, { status });
   }
 }
@@ -93,7 +153,7 @@ export async function DELETE(req: Request, { params }: { params: { id: string } 
     const item = await AppointmentsService.cancel(params.id, session.clinicId, session.userId, reason);
     return NextResponse.json({ ok: true, item });
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Failed to cancel appointment";
+    const message = error instanceof Error ? error.message : "No se pudo cancelar la cita.";
     return NextResponse.json({ ok: false, error: message }, { status: 400 });
   }
 }

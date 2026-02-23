@@ -186,9 +186,16 @@ export default function PatientsPage() {
         setApiError(data.error ?? "No se pudo guardar el paciente.");
         return;
       }
+      const savedMessage = selected
+        ? "Paciente actualizado exitosamente."
+        : "Paciente guardado exitosamente.";
       setSelected(null);
       setForm(EMPTY_FORM);
-      setSuccessMessage(selected ? "Paciente actualizado exitosamente." : "Paciente guardado exitosamente.");
+      setSuccessMessage(
+        data.notificationWarning
+          ? `${savedMessage} Aviso: ${data.notificationWarning}`
+          : savedMessage
+      );
       await loadPatients(query);
     } catch {
       setApiError("No se pudo guardar el paciente.");
@@ -210,7 +217,13 @@ export default function PatientsPage() {
       if (selected?.id === deleteTarget.id) setSelected(null);
       setDeleteTarget(null);
       setDeleteError(null);
-      setSuccessMessage("Paciente eliminado.");
+      setSuccessMessage(
+        data.softDeleted
+          ? "Paciente desactivado."
+          : data.deletedAppointments > 0
+            ? "Paciente eliminado y citas pasadas removidas de agenda."
+            : "Paciente eliminado."
+      );
       await loadPatients(query);
     } catch {
       setDeleteError("No se pudo eliminar el paciente.");

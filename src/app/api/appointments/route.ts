@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { requireClinicSession, requireRole } from "@/server/auth/requireSession";
 import { AppointmentsService } from "@/server/appointments/AppointmentsService";
+import { sendEmail } from "@/server/notifications/email";
 
 const appointmentCreateSchema = z.object({
   patientId: z.string().min(1),
@@ -18,6 +19,13 @@ function parseDate(value: string | null) {
   if (!value) return null;
   const date = new Date(value);
   return Number.isNaN(date.valueOf()) ? null : date;
+}
+
+function formatDateTime(value: Date) {
+  return value.toLocaleString("es-CL", {
+    dateStyle: "full",
+    timeStyle: "short",
+  });
 }
 
 // Lista citas de la clínica; si es doctor, las filtra al usuario autenticado.
@@ -44,8 +52,8 @@ export async function GET(req: Request) {
     });
 
     return NextResponse.json({ ok: true, items: data });
-  } catch (error) {
-    return NextResponse.json({ ok: false, error: "Failed to load appointments" }, { status: 400 });
+  } catch {
+    return NextResponse.json({ ok: false, error: "No se pudieron cargar las citas." }, { status: 400 });
   }
 }
 
@@ -58,13 +66,13 @@ export async function POST(req: Request) {
     const body = await req.json();
     const parsed = appointmentCreateSchema.safeParse(body);
     if (!parsed.success) {
-      return NextResponse.json({ ok: false, error: "Invalid payload" }, { status: 400 });
+      return NextResponse.json({ ok: false, error: "Datos invalidos." }, { status: 400 });
     }
 
     const startAt = parseDate(parsed.data.startAt);
     const endAt = parseDate(parsed.data.endAt);
     if (!startAt || !endAt || endAt <= startAt) {
-      return NextResponse.json({ ok: false, error: "Invalid time range" }, { status: 400 });
+      return NextResponse.json({ ok: false, error: "Rango de horario invalido." }, { status: 400 });
     }
 
     const item = await AppointmentsService.create({
@@ -80,10 +88,43 @@ export async function POST(req: Request) {
       createdBy: session.userId,
     });
 
-    return NextResponse.json({ ok: true, item }, { status: 201 });
+    let notificationWarning: string | null = null;
+    if (item.patient.email) {
+      const patientName = [item.patient.firstName, item.patient.lastName, item.patient.secondLastName ?? ""]
+        .join(" ")
+        .trim();
+      const doctorName = [item.doctor.profile?.firstName ?? "", item.doctor.profile?.lastName ?? ""]
+        .join(" ")
+        .trim() || item.doctor.email;
+
+      const subject = "Cita agendada en ZENSYA";
+      const text = [
+        `Hola ${patientName || item.patient.firstName},`,
+        "",
+        "Tu cita fue agendada correctamente en ZENSYA.",
+        `Fecha y hora: ${formatDateTime(item.startAt)}`,
+        `Profesional: ${doctorName}`,
+        "",
+        "Si necesitas reagendar, responde a este correo o contacta a la clinica.",
+      ].join("\n");
+
+      const origin = new URL(req.url).origin;
+      const sent = await sendEmail({
+        origin,
+        to: item.patient.email,
+        subject,
+        text,
+      });
+      if (!sent.ok) {
+        notificationWarning = sent.error;
+      }
+    }
+
+    return NextResponse.json({ ok: true, item, notificationWarning }, { status: 201 });
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Failed to create appointment";
-    const status = message.includes("conflict") ? 409 : 400;
+    const message = error instanceof Error ? error.message : "No se pudo crear la cita.";
+    const lowerMessage = message.toLowerCase();
+    const status = lowerMessage.includes("conflict") || lowerMessage.includes("conflicto") ? 409 : 400;
     return NextResponse.json({ ok: false, error: message }, { status });
   }
 }

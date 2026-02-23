@@ -28,6 +28,7 @@ const SLOT_MINUTES = 15;
 const SLOT_HEIGHT = 32;
 const SERVICE_OPTIONS = ["Consulta general", "Control", "Telemedicina", "Procedimiento"];
 const NOTE_MAX_LENGTH = 250;
+const FINALIZE_CONFIRM_TEXT = "CITA FINALIZADA";
 
 // Retorna el lunes correspondiente a la fecha indicada (hora 00:00).
 function startOfWeek(date: Date) {
@@ -95,6 +96,10 @@ export default function AgendaPage() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [finalizeConfirm, setFinalizeConfirm] = useState(false);
+  const [finalizing, setFinalizing] = useState(false);
+  const [finalizeChecked, setFinalizeChecked] = useState(false);
+  const [finalizePhrase, setFinalizePhrase] = useState("");
   const [now, setNow] = useState(() => new Date());
   const [form, setForm] = useState({
     patientId: "",
@@ -140,7 +145,7 @@ export default function AgendaPage() {
     return Array.from({ length: totalSlots }).map((_, index) => index);
   }, []);
 
-  // Obtiene citas de la semana visible y filtra las canceladas.
+  // Obtiene citas de la semana visible y filtra canceladas/finalizadas.
   const loadAgenda = async () => {
     const from = new Date(weekStart);
     const to = new Date(weekStart);
@@ -149,7 +154,7 @@ export default function AgendaPage() {
     const data = await res.json();
     if (data.ok) {
       const visible = (data.items ?? []).filter(
-        (item: Appointment) => item.status !== "CANCELLED"
+        (item: Appointment) => item.status !== "CANCELLED" && item.status !== "COMPLETED"
       );
       setAppointments(visible);
     }
@@ -208,6 +213,10 @@ export default function AgendaPage() {
     setSelection(null);
     setIsSelecting(false);
     setDeleteConfirm(false);
+    setFinalizeConfirm(false);
+    setFinalizing(false);
+    setFinalizeChecked(false);
+    setFinalizePhrase("");
   };
 
   // Prepara el formulario para crear cita en el rango seleccionado.
@@ -423,6 +432,44 @@ export default function AgendaPage() {
     }
     setDeleting(false);
     setAppointments((prev) => prev.filter((item) => item.id !== editingId));
+    resetModal();
+  };
+
+  // Finaliza una cita (COMPLETED) con doble verificacion en modal.
+  const handleFinalizeAppointment = async () => {
+    if (!detailAppointment) return;
+    if (!canEdit) return;
+
+    const endAt = new Date(detailAppointment.endAt);
+    if (endAt.getTime() > Date.now()) {
+      setErrorMessage("Solo puedes finalizar una cita cuando su horario ya termino.");
+      return;
+    }
+
+    const typedPhrase = finalizePhrase.trim().toUpperCase();
+    if (!finalizeChecked || typedPhrase !== FINALIZE_CONFIRM_TEXT) {
+      setErrorMessage("Debes completar la doble verificacion para finalizar la cita.");
+      return;
+    }
+
+    setFinalizing(true);
+    setErrorMessage(null);
+
+    const res = await fetch(`/api/appointments/${detailAppointment.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ status: "COMPLETED" }),
+    });
+    const data = await res.json();
+
+    if (!data.ok) {
+      setErrorMessage(data.error ?? "No se pudo finalizar la cita.");
+      setFinalizing(false);
+      return;
+    }
+
+    setAppointments((prev) => prev.filter((item) => item.id !== detailAppointment.id));
+    setFinalizing(false);
     resetModal();
   };
 
@@ -903,7 +950,19 @@ export default function AgendaPage() {
             </div>
 
             {canEdit && (
-              <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:justify-end">
+              <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:justify-between">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setFinalizeConfirm(true);
+                    setFinalizeChecked(false);
+                    setFinalizePhrase("");
+                    setErrorMessage(null);
+                  }}
+                  className="rounded-full border border-emerald-200 px-4 py-2 text-sm font-semibold text-emerald-700 transition hover:border-emerald-300"
+                >
+                  Finalizacion
+                </button>
                 <button
                   type="button"
                   onClick={() => {
@@ -917,6 +976,80 @@ export default function AgendaPage() {
                 </button>
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {finalizeConfirm && detailAppointment && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div
+            className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"
+            onClick={() => {
+              setFinalizeConfirm(false);
+              setFinalizeChecked(false);
+              setFinalizePhrase("");
+              setErrorMessage(null);
+            }}
+          />
+          <div className="relative w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl shadow-slate-900/20">
+            <h3 className="text-lg font-semibold text-slate-900">Finalizar cita</h3>
+            <p className="mt-2 text-sm text-slate-600">
+              Esta accion marcara la cita como finalizada y la quitara de la agenda visible.
+            </p>
+            <p className="mt-2 text-sm text-slate-600">
+              Doble verificacion: marca la confirmacion y escribe <span className="font-semibold">{FINALIZE_CONFIRM_TEXT}</span>.
+            </p>
+
+            <label className="mt-4 flex items-start gap-2 text-sm text-slate-700">
+              <input
+                type="checkbox"
+                checked={finalizeChecked}
+                onChange={(event) => setFinalizeChecked(event.target.checked)}
+                className="mt-1"
+              />
+              Confirmo que la atencion de esta cita fue realizada.
+            </label>
+
+            <input
+              type="text"
+              value={finalizePhrase}
+              onChange={(event) => setFinalizePhrase(event.target.value)}
+              placeholder={`Escribe: ${FINALIZE_CONFIRM_TEXT}`}
+              className="mt-3 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
+            />
+
+            {errorMessage && (
+              <div className="mt-4 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-600">
+                {errorMessage}
+              </div>
+            )}
+
+            <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:justify-end">
+              <button
+                type="button"
+                onClick={() => {
+                  setFinalizeConfirm(false);
+                  setFinalizeChecked(false);
+                  setFinalizePhrase("");
+                  setErrorMessage(null);
+                }}
+                className="rounded-full border border-slate-200 px-4 py-2 text-sm font-medium text-slate-600 transition hover:border-slate-300"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={handleFinalizeAppointment}
+                className="rounded-full bg-emerald-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:bg-emerald-300"
+                disabled={
+                  finalizing ||
+                  !finalizeChecked ||
+                  finalizePhrase.trim().toUpperCase() !== FINALIZE_CONFIRM_TEXT
+                }
+              >
+                {finalizing ? "Finalizando..." : "Finalizar cita"}
+              </button>
+            </div>
           </div>
         </div>
       )}

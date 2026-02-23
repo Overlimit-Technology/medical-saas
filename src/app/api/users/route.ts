@@ -26,7 +26,7 @@ async function ensureRutAvailable(rut: string) {
     select: { id: true },
   });
   if (existingDoctor) {
-    throw new Error("RUN already exists");
+    throw new Error("El RUN ya esta registrado.");
   }
 
   const profiles = await prisma.userProfile.findMany({
@@ -37,7 +37,7 @@ async function ensureRutAvailable(rut: string) {
     (profile) => normalizeId(profile.rut ?? "") === normalized
   );
   if (existsInProfiles) {
-    throw new Error("RUN already exists");
+    throw new Error("El RUN ya esta registrado.");
   }
 }
 
@@ -45,10 +45,11 @@ async function sendWelcomeEmail(
   origin: string,
   payload: { to: string; name: string; email: string; password: string }
 ) {
-  const subject = "Tu cuenta ha sido creada";
+  const subject = "Bienvenido a ZENSYA - tu cuenta fue creada";
   const text = [
     `Hola ${payload.name},`,
     "",
+    "Te damos la bienvenida a ZENSYA.",
     "Tu cuenta fue creada por el administrador.",
     `Usuario: ${payload.email}`,
     `Contrasena temporal: ${payload.password}`,
@@ -89,8 +90,8 @@ export async function GET() {
     });
 
     return NextResponse.json({ ok: true, items });
-  } catch (error) {
-    return NextResponse.json({ ok: false, error: "Failed to load users" }, { status: 400 });
+  } catch {
+    return NextResponse.json({ ok: false, error: "No se pudieron cargar los usuarios." }, { status: 400 });
   }
 }
 
@@ -102,7 +103,7 @@ export async function POST(req: Request) {
     const body = await req.json();
     const parsed = userCreateSchema.safeParse(body);
     if (!parsed.success) {
-      return NextResponse.json({ ok: false, error: "Invalid payload" }, { status: 400 });
+      return NextResponse.json({ ok: false, error: "Datos invalidos." }, { status: 400 });
     }
 
     const selectedClinics = parsed.data.clinicIds?.length
@@ -170,8 +171,8 @@ export async function POST(req: Request) {
 
     return NextResponse.json({ ok: true, item }, { status: 201 });
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Failed to create user";
-    const status = message.includes("exists") ? 409 : 400;
+    const message = error instanceof Error ? error.message : "No se pudo crear el usuario.";
+    const status = message.toLowerCase().includes("registrado") ? 409 : 400;
     return NextResponse.json({ ok: false, error: message }, { status });
   }
 }

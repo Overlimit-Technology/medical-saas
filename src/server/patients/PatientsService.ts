@@ -1,4 +1,5 @@
-import { prisma } from "@/lib/prisma";
+﻿import { prisma } from "@/lib/prisma";
+import { Prisma } from "@prisma/client";
 import { normalizeId } from "@/lib/normalize";
 
 export type PatientInput = {
@@ -17,7 +18,8 @@ export type PatientInput = {
   emergencyContactPhone?: string | null;
 };
 
-const FUTURE_APPOINTMENT_STATUSES = ["SCHEDULED", "CONFIRMED"] as const;
+const BLOCKING_APPOINTMENT_STATUSES = ["SCHEDULED", "CONFIRMED"] as const;
+const NON_BLOCKING_APPOINTMENT_STATUSES = ["CANCELLED", "COMPLETED", "NO_SHOW"] as const;
 
 export class PatientsService {
   static async list(params: {
@@ -31,7 +33,7 @@ export class PatientsService {
     const skip = (page - 1) * pageSize;
     const q = params.q?.trim();
 
-    const where: any = {
+    const where: Prisma.PatientWhereInput = {
       clinicId: params.clinicId,
       isActive: true,
     };
@@ -73,12 +75,38 @@ export class PatientsService {
   static async create(input: PatientInput) {
     const runNormalized = normalizeId(input.run);
 
-    const exists = await prisma.patient.findFirst({
+    const existing = await prisma.patient.findUnique({
       where: { runNormalized },
-      select: { id: true },
+      select: { id: true, clinicId: true, isActive: true },
     });
-    if (exists) {
-      throw new Error("El RUN ya está registrado.");
+    if (existing) {
+      if (existing.clinicId !== input.clinicId) {
+        throw new Error("El RUN ya esta registrado en otra sede.");
+      }
+
+      if (!existing.isActive) {
+        return prisma.patient.update({
+          where: { id: existing.id },
+          data: {
+            isActive: true,
+            firstName: input.firstName,
+            lastName: input.lastName,
+            secondLastName: input.secondLastName ?? null,
+            run: input.run,
+            runNormalized,
+            email: input.email ?? null,
+            phone: input.phone ?? null,
+            birthDate: input.birthDate ?? null,
+            gender: input.gender ?? null,
+            address: input.address ?? null,
+            city: input.city ?? null,
+            emergencyContactName: input.emergencyContactName ?? null,
+            emergencyContactPhone: input.emergencyContactPhone ?? null,
+          },
+        });
+      }
+
+      throw new Error("El RUN ya esta registrado.");
     }
 
     return prisma.patient.create({
@@ -107,9 +135,24 @@ export class PatientsService {
       throw new Error("Paciente no encontrado.");
     }
 
-    const data: any = {
-      ...input,
-    };
+    const data: Prisma.PatientUpdateInput = {};
+
+    if (input.firstName !== undefined) data.firstName = input.firstName;
+    if (input.lastName !== undefined) data.lastName = input.lastName;
+    if (input.secondLastName !== undefined) data.secondLastName = input.secondLastName ?? null;
+    if (input.run !== undefined) data.run = input.run;
+    if (input.email !== undefined) data.email = input.email ?? null;
+    if (input.phone !== undefined) data.phone = input.phone ?? null;
+    if (input.birthDate !== undefined) data.birthDate = input.birthDate ?? null;
+    if (input.gender !== undefined) data.gender = input.gender ?? null;
+    if (input.address !== undefined) data.address = input.address ?? null;
+    if (input.city !== undefined) data.city = input.city ?? null;
+    if (input.emergencyContactName !== undefined) {
+      data.emergencyContactName = input.emergencyContactName ?? null;
+    }
+    if (input.emergencyContactPhone !== undefined) {
+      data.emergencyContactPhone = input.emergencyContactPhone ?? null;
+    }
 
     if (typeof input.run === "string") {
       const runNormalized = normalizeId(input.run);
@@ -121,7 +164,7 @@ export class PatientsService {
         select: { id: true },
       });
       if (exists) {
-        throw new Error("El RUN ya está registrado. Ingresa un RUN diferente.");
+        throw new Error("El RUN ya estÃ¡ registrado. Ingresa un RUN diferente.");
       }
       data.runNormalized = runNormalized;
     }
@@ -138,20 +181,49 @@ export class PatientsService {
       throw new Error("Paciente no encontrado.");
     }
 
-    const now = new Date();
-    const hasFuture = await prisma.appointment.count({
+    const startOfToday = new Date();
+    startOfToday.setHours(0, 0, 0, 0);
+
+    const hasTodayOrFutureAppointments = await prisma.appointment.count({
       where: {
         patientId: id,
         clinicId,
-        startAt: { gt: now },
-        status: { in: [...FUTURE_APPOINTMENT_STATUSES] },
+        startAt: { gte: startOfToday },
+        status: { in: [...BLOCKING_APPOINTMENT_STATUSES] },
       },
     });
 
-    if (hasFuture > 0) {
-      throw new Error("El paciente tiene citas futuras.");
+    if (hasTodayOrFutureAppointments > 0) {
+      throw new Error("No se puede eliminar el paciente porque tiene citas de hoy o futuras.");
     }
 
-    await prisma.patient.delete({ where: { id } });
+    const deletedAppointments = await prisma.appointment.deleteMany({
+      where: {
+        patientId: id,
+        clinicId,
+        OR: [
+          { startAt: { lt: startOfToday } },
+          { status: { in: [...NON_BLOCKING_APPOINTMENT_STATUSES] } },
+        ],
+      },
+    });
+
+    try {
+      await prisma.patient.delete({ where: { id } });
+      return { softDeleted: false, deletedAppointments: deletedAppointments.count };
+    } catch (error) {
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === "P2003"
+      ) {
+        await prisma.patient.update({
+          where: { id },
+          data: { isActive: false },
+        });
+        return { softDeleted: true, deletedAppointments: deletedAppointments.count };
+      }
+      throw error;
+    }
   }
 }
+

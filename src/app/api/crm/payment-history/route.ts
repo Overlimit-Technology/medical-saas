@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { requireClinicSession, requireRole } from "@/server/auth/requireSession";
 import { CrmService } from "@/server/crm/CrmService";
+import { prisma } from "@/lib/prisma";
+import { sendEmail } from "@/server/notifications/email";
 
 const paymentCreateSchema = z.object({
   patientId: z.string().min(1),
@@ -19,6 +21,16 @@ function parseDate(value?: string) {
   return Number.isNaN(date.valueOf()) ? null : date;
 }
 
+const PAYMENT_STATUS_LABEL: Record<"PENDING" | "PAID" | "WAIVED", string> = {
+  PENDING: "Pendiente",
+  PAID: "Pagado",
+  WAIVED: "Exento",
+};
+
+function formatClp(value: number) {
+  return `${new Intl.NumberFormat("es-CL").format(Math.round(value))} CLP`;
+}
+
 export async function GET(req: Request) {
   try {
     const session = await requireClinicSession();
@@ -27,13 +39,13 @@ export async function GET(req: Request) {
     const { searchParams } = new URL(req.url);
     const patientId = searchParams.get("patientId");
     if (!patientId) {
-      return NextResponse.json({ ok: false, error: "patientId is required" }, { status: 400 });
+      return NextResponse.json({ ok: false, error: "El paciente es obligatorio." }, { status: 400 });
     }
 
     const data = await CrmService.listPaymentHistory(session.clinicId, patientId);
     return NextResponse.json({ ok: true, ...data });
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Failed to load payment history";
+    const message = error instanceof Error ? error.message : "No se pudo cargar el historial de pagos.";
     return NextResponse.json({ ok: false, error: message }, { status: 400 });
   }
 }
@@ -46,17 +58,17 @@ export async function POST(req: Request) {
     const body = await req.json();
     const parsed = paymentCreateSchema.safeParse(body);
     if (!parsed.success) {
-      return NextResponse.json({ ok: false, error: "Invalid payload" }, { status: 400 });
+      return NextResponse.json({ ok: false, error: "Datos invalidos." }, { status: 400 });
     }
 
     const recordedAt = parsed.data.recordedAt ? parseDate(parsed.data.recordedAt) : new Date();
     if (!recordedAt) {
-      return NextResponse.json({ ok: false, error: "Invalid recordedAt" }, { status: 400 });
+      return NextResponse.json({ ok: false, error: "La fecha de registro es invalida." }, { status: 400 });
     }
 
     const performedAt = parsed.data.performedAt ? parseDate(parsed.data.performedAt) : null;
     if (parsed.data.performedAt && !performedAt) {
-      return NextResponse.json({ ok: false, error: "Invalid performedAt" }, { status: 400 });
+      return NextResponse.json({ ok: false, error: "La fecha de realizacion es invalida." }, { status: 400 });
     }
 
     const item = await CrmService.createPaymentEntry({
@@ -70,9 +82,52 @@ export async function POST(req: Request) {
       notes: parsed.data.notes,
     });
 
-    return NextResponse.json({ ok: true, item }, { status: 201 });
+    let notificationWarning: string | null = null;
+    const patient = await prisma.patient.findFirst({
+      where: {
+        id: parsed.data.patientId,
+        clinicId: session.clinicId,
+        isActive: true,
+      },
+      select: {
+        firstName: true,
+        lastName: true,
+        secondLastName: true,
+        email: true,
+      },
+    });
+
+    if (patient?.email) {
+      const patientName = [patient.firstName, patient.lastName, patient.secondLastName ?? ""]
+        .join(" ")
+        .trim();
+      const subject = "Actualizacion de pago en ZENSYA";
+      const text = [
+        `Hola ${patientName || patient.firstName},`,
+        "",
+        "Se registro una actualizacion de cobro/pago en ZENSYA.",
+        `Tratamiento: ${item.treatment.name}`,
+        `Monto: ${formatClp(item.amount)}`,
+        `Estado: ${PAYMENT_STATUS_LABEL[item.status]}`,
+        "",
+        "Si tienes dudas, contacta a la clinica.",
+      ].join("\n");
+
+      const origin = new URL(req.url).origin;
+      const sent = await sendEmail({
+        origin,
+        to: patient.email,
+        subject,
+        text,
+      });
+      if (!sent.ok) {
+        notificationWarning = sent.error;
+      }
+    }
+
+    return NextResponse.json({ ok: true, item, notificationWarning }, { status: 201 });
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Failed to create payment history";
+    const message = error instanceof Error ? error.message : "No se pudo registrar el historial de pago.";
     return NextResponse.json({ ok: false, error: message }, { status: 400 });
   }
 }
