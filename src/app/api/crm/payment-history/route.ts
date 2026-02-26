@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { requireClinicSession, requireRole } from "@/server/auth/requireSession";
 import { CrmService } from "@/server/crm/CrmService";
+import { resolveSingleClinicLabel } from "@/server/clinics/clinicDisplay";
 import { prisma } from "@/lib/prisma";
 import { sendEmail } from "@/server/notifications/email";
 
@@ -98,6 +99,7 @@ export async function POST(req: Request) {
     });
 
     if (patient?.email) {
+      const clinicLabel = await resolveSingleClinicLabel(session.clinicId);
       const patientName = [patient.firstName, patient.lastName, patient.secondLastName ?? ""]
         .join(" ")
         .trim();
@@ -109,6 +111,7 @@ export async function POST(req: Request) {
         `Tratamiento: ${item.treatment.name}`,
         `Monto: ${formatClp(item.amount)}`,
         `Estado: ${PAYMENT_STATUS_LABEL[item.status]}`,
+        `Sede: ${clinicLabel}`,
         "",
         "Si tienes dudas, contacta a la clinica.",
       ].join("\n");

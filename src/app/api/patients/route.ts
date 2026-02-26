@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { requireClinicSession, requireRole } from "@/server/auth/requireSession";
+import { resolveSingleClinicLabel } from "@/server/clinics/clinicDisplay";
 import { PatientsService } from "@/server/patients/PatientsService";
 import { sendEmail } from "@/server/notifications/email";
 
@@ -71,11 +72,13 @@ export async function POST(req: Request) {
 
     let notificationWarning: string | null = null;
     if (item.email) {
+      const clinicLabel = await resolveSingleClinicLabel(session.clinicId);
       const subject = "Bienvenido a ZENSYA";
       const text = [
         `Hola ${item.firstName},`,
         "",
         "Tu registro como paciente fue creado correctamente en ZENSYA.",
+        `Sede: ${clinicLabel}`,
         "Si necesitas ayuda, contacta a la clinica.",
         "",
         "Saludos,",

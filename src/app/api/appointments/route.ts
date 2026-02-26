@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { requireClinicSession, requireRole } from "@/server/auth/requireSession";
 import { AppointmentsService } from "@/server/appointments/AppointmentsService";
+import { resolveSingleClinicLabel } from "@/server/clinics/clinicDisplay";
 import { sendEmail } from "@/server/notifications/email";
 
 const appointmentCreateSchema = z.object({
@@ -90,6 +91,7 @@ export async function POST(req: Request) {
 
     let notificationWarning: string | null = null;
     if (item.patient.email) {
+      const clinicLabel = await resolveSingleClinicLabel(session.clinicId);
       const patientName = [item.patient.firstName, item.patient.lastName, item.patient.secondLastName ?? ""]
         .join(" ")
         .trim();
@@ -104,6 +106,7 @@ export async function POST(req: Request) {
         "Tu cita fue agendada correctamente en ZENSYA.",
         `Fecha y hora: ${formatDateTime(item.startAt)}`,
         `Profesional: ${doctorName}`,
+        `Sede: ${clinicLabel}`,
         "",
         "Si necesitas reagendar, responde a este correo o contacta a la clinica.",
       ].join("\n");

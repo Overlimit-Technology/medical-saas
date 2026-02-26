@@ -216,7 +216,7 @@ model Patient {
   lastName              String
   secondLastName        String?
   run                   String
-  runNormalized         String    @unique
+  runNormalized         String
   email                 String?
   phone                 String?
   birthDate             DateTime?
@@ -235,6 +235,7 @@ model Patient {
   patientTreatments PatientTreatment[]
 
   @@index([clinicId, isActive])
+  @@unique([clinicId, runNormalized])
   @@index([clinicId, lastName])
 }
 

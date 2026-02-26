@@ -3,6 +3,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { generatePassword } from "@/lib/password";
 import { requireClinicSession, requireRole } from "@/server/auth/requireSession";
+import { resolveClinicLabels } from "@/server/clinics/clinicDisplay";
 import { DoctorsService } from "@/server/doctors/DoctorsService";
 
 const doctorCreateSchema = z.object({
@@ -15,13 +16,21 @@ const doctorCreateSchema = z.object({
   clinicIds: z.array(z.string()).optional(),
 });
 
-async function sendWelcomeEmail(origin: string, payload: { to: string; name: string; email: string; password: string }) {
+async function sendWelcomeEmail(
+  origin: string,
+  payload: { to: string; name: string; email: string; password: string; clinicLabels: string[] }
+) {
+  const clinicLine =
+    payload.clinicLabels.length > 1
+      ? `Sedes asignadas: ${payload.clinicLabels.join(", ")}`
+      : `Sede: ${payload.clinicLabels[0] ?? "Sede no especificada"}`;
   const subject = "Bienvenido a ZENSYA - tu cuenta fue creada";
   const text = [
     `Hola ${payload.name},`,
     "",
     "Te damos la bienvenida a ZENSYA.",
     "Tu cuenta fue creada por el administrador.",
+    clinicLine,
     `Usuario: ${payload.email}`,
     `Contrasena temporal: ${payload.password}`,
     "",
@@ -74,6 +83,9 @@ export async function POST(req: Request) {
 
     const generatedPassword = generatePassword();
 
+    const clinicIds = parsed.data.clinicIds ?? [session.clinicId];
+    const clinicLabels = await resolveClinicLabels(clinicIds);
+
     const item = await DoctorsService.create({
       email: parsed.data.email,
       password: generatedPassword,
@@ -82,7 +94,7 @@ export async function POST(req: Request) {
       phone: parsed.data.phone,
       rut: parsed.data.rut,
       specialty: parsed.data.specialty,
-      clinicIds: parsed.data.clinicIds ?? [session.clinicId],
+      clinicIds,
     });
 
     try {
@@ -92,6 +104,7 @@ export async function POST(req: Request) {
         name: parsed.data.firstName,
         email: item.email,
         password: generatedPassword,
+        clinicLabels,
       });
     } catch (error) {
       await prisma.user.delete({ where: { id: item.id } }).catch(() => null);

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { requireClinicSession, requireRole } from "@/server/auth/requireSession";
 import { AppointmentsService, type AppointmentInput } from "@/server/appointments/AppointmentsService";
+import { resolveSingleClinicLabel } from "@/server/clinics/clinicDisplay";
 import { prisma } from "@/lib/prisma";
 import { sendEmail } from "@/server/notifications/email";
 
@@ -102,6 +103,7 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
       : Boolean(parsed.data.startAt || parsed.data.endAt);
 
     if (wasRescheduled && item.patient.email) {
+      const clinicLabel = await resolveSingleClinicLabel(session.clinicId);
       const patientName = [item.patient.firstName, item.patient.lastName, item.patient.secondLastName ?? ""]
         .join(" ")
         .trim();
@@ -116,6 +118,7 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
         "Tu cita fue actualizada en ZENSYA.",
         `Nueva fecha y hora: ${formatDateTime(item.startAt)}`,
         `Profesional: ${doctorName}`,
+        `Sede: ${clinicLabel}`,
         "",
         "Si tienes dudas, contacta a la clinica.",
       ].join("\n");
@@ -151,7 +154,43 @@ export async function DELETE(req: Request, { params }: { params: { id: string } 
     const reason = typeof body?.reason === "string" ? body.reason : undefined;
 
     const item = await AppointmentsService.cancel(params.id, session.clinicId, session.userId, reason);
-    return NextResponse.json({ ok: true, item });
+    let notificationWarning: string | null = null;
+
+    if (item.patient.email) {
+      const clinicLabel = await resolveSingleClinicLabel(session.clinicId);
+      const patientName = [item.patient.firstName, item.patient.lastName, item.patient.secondLastName ?? ""]
+        .join(" ")
+        .trim();
+      const doctorName = [item.doctor.profile?.firstName ?? "", item.doctor.profile?.lastName ?? ""]
+        .join(" ")
+        .trim() || item.doctor.email;
+
+      const lines = [
+        `Hola ${patientName || item.patient.firstName},`,
+        "",
+        "Tu cita fue cancelada en ZENSYA.",
+        `Fecha y hora cancelada: ${formatDateTime(item.startAt)}`,
+        `Profesional: ${doctorName}`,
+        `Sede: ${clinicLabel}`,
+      ];
+      if (reason?.trim()) {
+        lines.push(`Motivo: ${reason.trim()}`);
+      }
+      lines.push("", "Si necesitas reagendar, contacta a la clinica.");
+
+      const origin = new URL(req.url).origin;
+      const sent = await sendEmail({
+        origin,
+        to: item.patient.email,
+        subject: "Tu cita fue cancelada en ZENSYA",
+        text: lines.join("\n"),
+      });
+      if (!sent.ok) {
+        notificationWarning = sent.error;
+      }
+    }
+
+    return NextResponse.json({ ok: true, item, notificationWarning });
   } catch (error) {
     const message = error instanceof Error ? error.message : "No se pudo cancelar la cita.";
     return NextResponse.json({ ok: false, error: message }, { status: 400 });

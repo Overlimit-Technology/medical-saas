@@ -75,15 +75,11 @@ export class PatientsService {
   static async create(input: PatientInput) {
     const runNormalized = normalizeId(input.run);
 
-    const existing = await prisma.patient.findUnique({
-      where: { runNormalized },
+    const existing = await prisma.patient.findFirst({
+      where: { clinicId: input.clinicId, runNormalized },
       select: { id: true, clinicId: true, isActive: true },
     });
     if (existing) {
-      if (existing.clinicId !== input.clinicId) {
-        throw new Error("El RUN ya esta registrado en otra sede.");
-      }
-
       if (!existing.isActive) {
         return prisma.patient.update({
           where: { id: existing.id },
@@ -158,6 +154,7 @@ export class PatientsService {
       const runNormalized = normalizeId(input.run);
       const exists = await prisma.patient.findFirst({
         where: {
+          clinicId,
           runNormalized,
           NOT: { id },
         },

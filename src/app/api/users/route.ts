@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { generatePassword, hashPassword } from "@/lib/password";
 import { normalizeId } from "@/lib/normalize";
 import { ClinicsService } from "@/server/clinics/ClinicsService";
+import { resolveClinicLabels } from "@/server/clinics/clinicDisplay";
 import { requireClinicSession, requireRole } from "@/server/auth/requireSession";
 import { DoctorsService } from "@/server/doctors/DoctorsService";
 
@@ -43,14 +44,19 @@ async function ensureRutAvailable(rut: string) {
 
 async function sendWelcomeEmail(
   origin: string,
-  payload: { to: string; name: string; email: string; password: string }
+  payload: { to: string; name: string; email: string; password: string; clinicLabels: string[] }
 ) {
+  const clinicLine =
+    payload.clinicLabels.length > 1
+      ? `Sedes asignadas: ${payload.clinicLabels.join(", ")}`
+      : `Sede: ${payload.clinicLabels[0] ?? "Sede no especificada"}`;
   const subject = "Bienvenido a ZENSYA - tu cuenta fue creada";
   const text = [
     `Hola ${payload.name},`,
     "",
     "Te damos la bienvenida a ZENSYA.",
     "Tu cuenta fue creada por el administrador.",
+    clinicLine,
     `Usuario: ${payload.email}`,
     `Contrasena temporal: ${payload.password}`,
     "",
@@ -116,6 +122,7 @@ export async function POST(req: Request) {
     await Promise.all(
       clinicIds.map((clinicId) => ClinicsService.selectActiveClinic(session.userId, clinicId))
     );
+    const clinicLabels = await resolveClinicLabels(clinicIds);
     await ensureRutAvailable(parsed.data.rut);
 
     const generatedPassword = generatePassword();
@@ -164,6 +171,7 @@ export async function POST(req: Request) {
         name: parsed.data.firstName,
         email: parsed.data.email,
         password: generatedPassword,
+        clinicLabels,
       });
     } catch (error) {
       await prisma.user.delete({ where: { id: item.id } }).catch(() => null);

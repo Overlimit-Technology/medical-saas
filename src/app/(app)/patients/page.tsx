@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useMemo, useState } from "react";
 import { DeleteIconButton } from "@/presentation/common/DeleteIconButton";
@@ -79,7 +79,7 @@ function validateForm(form: FormState) {
     errors.email = "Correo invÃ¡lido.";
   }
   if (form.phone && !phoneRegex.test(form.phone)) {
-    errors.phone = "TelÃ©fono invÃ¡lido. Ej: +56 9 1234 5678";
+    errors.phone = "Tele fono invalido. Ej: +56 9 1234 5678";
   }
   return errors;
 }
@@ -286,7 +286,7 @@ export default function PatientsPage() {
               {!loading && items.length === 0 && !query.trim() && (
                 <tr>
                   <td className="px-4 py-6 text-slate-400" colSpan={4}>
-                    No hay pacientes registrados. Â¡Crea el primero!
+                    No hay pacientes registrados. 
                   </td>
                 </tr>
               )}
@@ -415,7 +415,7 @@ export default function PatientsPage() {
             <input
               value={form.phone}
               onChange={(event) => handleFieldChange("phone", event.target.value)}
-              placeholder="TelÃ©fono"
+              placeholder="Telefono"
               className={`w-full rounded-xl border px-3 py-2 text-sm ${
                 errors.phone ? "border-rose-300" : "border-slate-200"
               }`}
