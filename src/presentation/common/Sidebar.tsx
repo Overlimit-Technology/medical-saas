@@ -10,7 +10,7 @@ const NAV_ITEMS = [
   { href: "/clinical-visits", label: "Cita clínica", roles: ["DOCTOR"] },
   { href: "/crm", label: "Gestion de contactos y cobros", roles: ["ADMIN", "SECRETARY"] },
   { href: "/patients", label: "Pacientes", roles: ["ADMIN", "SECRETARY"] },
-  { href: "/doctors", label: "Usuario", roles: ["ADMIN", "SECRETARY"] },
+  { href: "/doctors", label: "Usuario", roles: ["ADMIN"] },
   { href: "/treatments", label: "Tratamientos", roles: ["ADMIN", "DOCTOR"] },
   { href: "/boxes", label: "Boxes", roles: ["ADMIN"] },
 ];

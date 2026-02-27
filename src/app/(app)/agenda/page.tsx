@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { DeleteIconButton } from "@/presentation/common/DeleteIconButton";
 
 type Appointment = {
   id: string;
@@ -12,12 +11,18 @@ type Appointment = {
   endAt: string;
   status: string;
   notes?: string | null;
-  patient: { firstName: string; lastName: string };
+  patient: { firstName: string; lastName: string; email?: string | null; phone?: string | null };
   doctor: { profile?: { firstName: string; lastName: string } | null };
   box: { name: string };
 };
 
-type Patient = { id: string; firstName: string; lastName: string };
+type Patient = {
+  id: string;
+  firstName: string;
+  lastName: string;
+  email?: string | null;
+  phone?: string | null;
+};
 
 type Doctor = { id: string; profile?: { firstName: string; lastName: string } | null };
 
@@ -29,6 +34,7 @@ const SLOT_MINUTES = 15;
 const SLOT_HEIGHT = 32;
 const SERVICE_OPTIONS = ["Consulta general", "Control", "Telemedicina", "Procedimiento"];
 const NOTE_MAX_LENGTH = 250;
+const CANCEL_REASON_MAX_LENGTH = 250;
 const FINALIZE_CONFIRM_TEXT = "CITA FINALIZADA";
 
 // Retorna el lunes correspondiente a la fecha indicada (hora 00:00).
@@ -95,8 +101,9 @@ export default function AgendaPage() {
   const [detailAppointment, setDetailAppointment] = useState<Appointment | null>(null);
   const [draggingId, setDraggingId] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [deleteConfirm, setDeleteConfirm] = useState(false);
-  const [deleting, setDeleting] = useState(false);
+  const [cancelConfirm, setCancelConfirm] = useState(false);
+  const [cancelling, setCancelling] = useState(false);
+  const [cancelReason, setCancelReason] = useState("");
   const [finalizeConfirm, setFinalizeConfirm] = useState(false);
   const [finalizing, setFinalizing] = useState(false);
   const [finalizeChecked, setFinalizeChecked] = useState(false);
@@ -213,7 +220,9 @@ export default function AgendaPage() {
     setErrorMessage(null);
     setSelection(null);
     setIsSelecting(false);
-    setDeleteConfirm(false);
+    setCancelConfirm(false);
+    setCancelling(false);
+    setCancelReason("");
     setFinalizeConfirm(false);
     setFinalizing(false);
     setFinalizeChecked(false);
@@ -239,8 +248,17 @@ export default function AgendaPage() {
       setSelection(null);
       setIsModalOpen(true);
       setErrorMessage(null);
+      setCancelReason("");
     },
     [canEdit, slotToDate]
+  );
+
+  const isSlotUnavailable = useCallback(
+    (dayIndex: number, slot: number) => {
+      const slotStart = slotToDate(dayIndex, slot);
+      return slotStart.getTime() < now.getTime();
+    },
+    [now, slotToDate]
   );
 
   // Maneja drag-and-drop para mover una cita a otro slot validando choques.
@@ -250,6 +268,10 @@ export default function AgendaPage() {
     const appointmentId = event.dataTransfer.getData("text/plain");
     const slot = Number(event.currentTarget.dataset.slot ?? "0");
     const dayIndex = Number(event.currentTarget.dataset.day ?? "0");
+    if (isSlotUnavailable(dayIndex, slot)) {
+      setErrorMessage("Ese horario no esta disponible.");
+      return;
+    }
     const base = new Date(weekStart);
     base.setDate(base.getDate() + dayIndex);
     base.setHours(START_HOUR, 0, 0, 0);
@@ -259,7 +281,10 @@ export default function AgendaPage() {
     if (!appt) return;
     const duration = new Date(appt.endAt).getTime() - new Date(appt.startAt).getTime();
     const newEnd = new Date(newStart.getTime() + duration);
-    if (newStart.getTime() < Date.now()) return;
+    if (newStart.getTime() < Date.now()) {
+      setErrorMessage("Ese horario no esta disponible.");
+      return;
+    }
     const hasOverlap = appointments.some((item) => {
       if (item.id === appointmentId) return false;
       const sharesResource =
@@ -288,6 +313,7 @@ export default function AgendaPage() {
   const handlePointerDown = (dayIndex: number, slot: number, event?: React.PointerEvent) => {
     event?.preventDefault();
     if (!canEdit) return;
+    if (isSlotUnavailable(dayIndex, slot)) return;
     setIsSelecting(true);
     setSelection({ dayIndex, startSlot: slot, endSlot: slot });
     setEditingId(null);
@@ -297,6 +323,7 @@ export default function AgendaPage() {
   // Extiende selección mientras se arrastra dentro del mismo día.
   const handlePointerEnter = (dayIndex: number, slot: number) => {
     if (!isSelecting || !selection || dayIndex !== selection.dayIndex) return;
+    if (isSlotUnavailable(dayIndex, slot)) return;
     setSelection({ ...selection, endSlot: slot });
   };
 
@@ -333,8 +360,8 @@ export default function AgendaPage() {
       patientId: item.patientId,
       patientFirstName: item.patient.firstName,
       patientLastName: item.patient.lastName,
-      patientEmail: prev.patientEmail,
-      patientPhone: prev.patientPhone,
+      patientEmail: item.patient.email ?? "",
+      patientPhone: item.patient.phone ?? "",
       doctorId: item.doctorId,
       boxId: item.boxId,
       date: formatDateValue(startAt),
@@ -344,6 +371,7 @@ export default function AgendaPage() {
     }));
     setIsModalOpen(true);
     setErrorMessage(null);
+    setCancelReason("");
   };
 
   // Muestra detalles rápidos al hacer clic en una cita.
@@ -371,6 +399,12 @@ export default function AgendaPage() {
       setErrorMessage("Selecciona un paciente para agendar la cita.");
       return;
     }
+    const cleanPatientFirstName = form.patientFirstName.trim();
+    const cleanPatientLastName = form.patientLastName.trim();
+    if (!cleanPatientFirstName || !cleanPatientLastName) {
+      setErrorMessage("Completa nombre y apellido del paciente.");
+      return;
+    }
     if (!form.doctorId || !form.boxId) {
       setErrorMessage("Selecciona un profesional y un box disponible.");
       return;
@@ -392,6 +426,8 @@ export default function AgendaPage() {
     }
     // Funcion o servicio para crear o actualizar la cita
     const cleanNotes = form.notes.slice(0, NOTE_MAX_LENGTH).trim();
+    const cleanPatientEmail = form.patientEmail.trim();
+    const cleanPatientPhone = form.patientPhone.trim();
     const payload = {
       patientId: form.patientId,
       doctorId: form.doctorId,
@@ -399,6 +435,14 @@ export default function AgendaPage() {
       startAt: startAt.toISOString(),
       endAt: endAt.toISOString(),
       notes: cleanNotes ? cleanNotes : null,
+      ...(editingId
+        ? {}
+        : {
+            patientFirstName: cleanPatientFirstName,
+            patientLastName: cleanPatientLastName,
+            patientEmail: cleanPatientEmail ? cleanPatientEmail : null,
+            patientPhone: cleanPatientPhone ? cleanPatientPhone : null,
+          }),
     };
     const res = await fetch(editingId ? `/api/appointments/${editingId}` : "/api/appointments", {
       method: editingId ? "PATCH" : "POST",
@@ -414,24 +458,29 @@ export default function AgendaPage() {
     resetModal();
   };
 
-  // Elimina la cita seleccionada tras confirmación.
-  const handleDeleteAppointment = async () => {
+  // Cancela la cita seleccionada tras confirmación.
+  const handleCancelAppointment = async () => {
     if (!editingId) return;
     if (!canEdit) return;
-    setDeleting(true);
+    const cleanReason = cancelReason.slice(0, CANCEL_REASON_MAX_LENGTH).trim();
+    if (!cleanReason) {
+      setErrorMessage("Ingresa un motivo de cancelacion.");
+      return;
+    }
+    setCancelling(true);
     setErrorMessage(null);
     const res = await fetch(`/api/appointments/${editingId}`, {
       method: "DELETE",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ reason: "Cancelado desde agenda" }),
+      body: JSON.stringify({ reason: cleanReason, cancelledBy: "STAFF" }),
     });
     const data = await res.json();
     if (!data.ok) {
-      setErrorMessage(data.error ?? "No se pudo eliminar la cita.");
-      setDeleting(false);
+      setErrorMessage(data.error ?? "No se pudo cancelar la cita.");
+      setCancelling(false);
       return;
     }
-    setDeleting(false);
+    setCancelling(false);
     setAppointments((prev) => prev.filter((item) => item.id !== editingId));
     resetModal();
   };
@@ -581,10 +630,7 @@ export default function AgendaPage() {
               const row = slot + 2;
               const col = dayIndex + 2;
               const isToday = dayIndex === todayIndex;
-              const dayDate = days[dayIndex];
-              const todayStart = new Date(now);
-              todayStart.setHours(0, 0, 0, 0);
-              const isPastDay = dayDate < todayStart;
+              const isUnavailable = isSlotUnavailable(dayIndex, slot);
               return (
                 <div
                   key={`${slot}-${dayIndex}`}
@@ -592,18 +638,34 @@ export default function AgendaPage() {
                   className={`relative border-t border-slate-200 transition ${
                     isToday ? "bg-sky-50/40" : "bg-white"
                   } ${dayIndex === 0 ? "" : "border-l border-slate-200"} ${
-                    isPastDay ? "cursor-not-allowed bg-slate-50/60" : "hover:bg-sky-50/70"
+                    isUnavailable ? "cursor-not-allowed bg-slate-100/80" : "hover:bg-sky-50/70"
                   }`}
                   data-slot={slot}
                   data-day={dayIndex}
                   onPointerDown={(event) => {
-                    if (isPastDay) return;
+                    if (isUnavailable) return;
                     handlePointerDown(dayIndex, slot, event);
                   }}
                   onPointerEnter={() => handlePointerEnter(dayIndex, slot)}
-                  onDragOver={(event) => event.preventDefault()}
-                  onDrop={handleDrop}
-                />
+                  onDragOver={(event) => {
+                    if (!canEdit || isUnavailable) return;
+                    event.preventDefault();
+                  }}
+                  onDrop={(event) => {
+                    if (isUnavailable) return;
+                    handleDrop(event);
+                  }}
+                >
+                  {isUnavailable && (
+                    <div
+                      className="pointer-events-none absolute inset-0 bg-slate-100/70"
+                      style={{
+                        backgroundImage:
+                          "repeating-linear-gradient(135deg, rgba(148,163,184,0.18), rgba(148,163,184,0.18) 6px, rgba(148,163,184,0.05) 6px, rgba(148,163,184,0.05) 12px)",
+                      }}
+                    />
+                  )}
+                </div>
               );
             })
           )}
@@ -714,6 +776,9 @@ export default function AgendaPage() {
               <div className="rounded-xl border border-slate-100 bg-slate-50 p-3">
                 Los horarios se ajustan automaticamente a intervalos de 15 minutos.
               </div>
+              <div className="rounded-xl border border-slate-100 bg-slate-50 p-3">
+                Los bloques en gris estan fuera de disponibilidad y no se pueden seleccionar.
+              </div>
             </>
           ) : (
             <>
@@ -811,8 +876,10 @@ export default function AgendaPage() {
                     setForm({
                       ...form,
                       patientId: value,
-                      patientFirstName: patient?.firstName ?? form.patientFirstName,
-                      patientLastName: patient?.lastName ?? form.patientLastName,
+                      patientFirstName: patient?.firstName ?? "",
+                      patientLastName: patient?.lastName ?? "",
+                      patientEmail: patient?.email ?? "",
+                      patientPhone: patient?.phone ?? "",
                     });
                   }}
                   className="rounded-xl border border-slate-200 px-3 py-2 text-sm"
@@ -879,19 +946,20 @@ export default function AgendaPage() {
                 </div>
               )}
               <div className="flex flex-col justify-end gap-3 sm:flex-row">
-                {editingId && (
-                  <DeleteIconButton
-                    ariaLabel="Eliminar cita"
-                    onClick={() => setDeleteConfirm(true)}
-                    className="h-10 w-10"
-                  />
-                )}
                 <button
                   type="button"
-                  onClick={resetModal}
+                  onClick={() => {
+                    if (editingId) {
+                      setCancelReason("");
+                      setErrorMessage(null);
+                      setCancelConfirm(true);
+                      return;
+                    }
+                    resetModal();
+                  }}
                   className="rounded-full border border-slate-200 px-5 py-2 text-sm font-medium text-slate-600 transition hover:border-slate-300"
                 >
-                  Cancelar
+                  {editingId ? "Cancelar cita" : "Cancelar"}
                 </button>
                 <button
                   type="submit"
@@ -1053,30 +1121,58 @@ export default function AgendaPage() {
         </div>
       )}
 
-      {deleteConfirm && (
+      {cancelConfirm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" onClick={() => setDeleteConfirm(false)} />
+          <div
+            className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"
+            onClick={() => {
+              setCancelConfirm(false);
+              setCancelReason("");
+              setErrorMessage(null);
+            }}
+          />
           <div className="relative w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl shadow-slate-900/20">
-            <h3 className="text-lg font-semibold text-slate-900">Eliminar cita</h3>
+            <h3 className="text-lg font-semibold text-slate-900">Cancelar cita</h3>
             <p className="mt-2 text-sm text-slate-600">
-              ¿Estás seguro de eliminar la cita de {form.patientFirstName} {form.patientLastName}? Esta acción no se puede
-              deshacer.
+              Esta acción cancelará la cita de {form.patientFirstName} {form.patientLastName} y notificará a los
+              responsables correspondientes.
             </p>
+            <div className="relative mt-4">
+              <textarea
+                value={cancelReason}
+                onChange={(event) => setCancelReason(event.target.value.slice(0, CANCEL_REASON_MAX_LENGTH))}
+                maxLength={CANCEL_REASON_MAX_LENGTH}
+                placeholder="Motivo de cancelacion"
+                className="min-h-[96px] w-full rounded-xl border border-slate-200 px-3 py-2 pr-16 text-sm"
+              />
+              <span className="pointer-events-none absolute bottom-2 right-3 text-xs text-slate-400">
+                {cancelReason.length}/{CANCEL_REASON_MAX_LENGTH}
+              </span>
+            </div>
+            {errorMessage && (
+              <div className="mt-4 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-600">
+                {errorMessage}
+              </div>
+            )}
             <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:justify-end">
               <button
                 type="button"
-                onClick={() => setDeleteConfirm(false)}
+                onClick={() => {
+                  setCancelConfirm(false);
+                  setCancelReason("");
+                  setErrorMessage(null);
+                }}
                 className="rounded-full border border-slate-200 px-4 py-2 text-sm font-medium text-slate-600 transition hover:border-slate-300"
               >
-                Cancelar
+                Volver
               </button>
               <button
                 type="button"
-                onClick={handleDeleteAppointment}
+                onClick={handleCancelAppointment}
                 className="rounded-full bg-rose-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-rose-600 disabled:cursor-not-allowed disabled:bg-rose-300"
-                disabled={deleting}
+                disabled={cancelling || cancelReason.trim().length === 0}
               >
-                {deleting ? "Eliminando..." : "Eliminar"}
+                {cancelling ? "Cancelando..." : "Confirmar cancelacion"}
               </button>
             </div>
           </div>

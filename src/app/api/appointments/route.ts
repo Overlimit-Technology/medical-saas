@@ -4,6 +4,8 @@ import { requireClinicSession, requireRole } from "@/server/auth/requireSession"
 import { AppointmentsService } from "@/server/appointments/AppointmentsService";
 import { resolveSingleClinicLabel } from "@/server/clinics/clinicDisplay";
 import { sendEmail } from "@/server/notifications/email";
+import { InternalAlertsService } from "@/server/internal-alerts/InternalAlertsService";
+import { PatientsService } from "@/server/patients/PatientsService";
 
 const appointmentCreateSchema = z.object({
   patientId: z.string().min(1),
@@ -11,6 +13,10 @@ const appointmentCreateSchema = z.object({
   boxId: z.string().min(1),
   startAt: z.string().min(1),
   endAt: z.string().min(1),
+  patientFirstName: z.string().min(1).optional(),
+  patientLastName: z.string().min(1).optional(),
+  patientEmail: z.string().email().optional().nullable(),
+  patientPhone: z.string().optional().nullable(),
   status: z.string().optional(),
   paymentStatus: z.string().optional(),
   notes: z.string().optional().nullable(),
@@ -76,29 +82,82 @@ export async function POST(req: Request) {
       return NextResponse.json({ ok: false, error: "Rango de horario invalido." }, { status: 400 });
     }
 
-    const item = await AppointmentsService.create({
-      clinicId: session.clinicId,
-      patientId: parsed.data.patientId,
-      doctorId: parsed.data.doctorId,
-      boxId: parsed.data.boxId,
-      startAt,
-      endAt,
-      status: parsed.data.status,
-      paymentStatus: parsed.data.paymentStatus,
-      notes: parsed.data.notes,
-      createdBy: session.userId,
-    });
+    const patientFirstName = parsed.data.patientFirstName?.trim();
+    const patientLastName = parsed.data.patientLastName?.trim();
+    const patientEmail =
+      typeof parsed.data.patientEmail === "string" ? parsed.data.patientEmail.trim() || null : parsed.data.patientEmail;
+    const patientPhone =
+      typeof parsed.data.patientPhone === "string" ? parsed.data.patientPhone.trim() || null : parsed.data.patientPhone;
+
+    if ((parsed.data.patientFirstName !== undefined && !patientFirstName) ||
+        (parsed.data.patientLastName !== undefined && !patientLastName)) {
+      return NextResponse.json(
+        { ok: false, error: "Nombre y apellido del paciente son obligatorios." },
+        { status: 400 }
+      );
+    }
+
+    if (
+      parsed.data.patientFirstName !== undefined ||
+      parsed.data.patientLastName !== undefined ||
+      parsed.data.patientEmail !== undefined ||
+      parsed.data.patientPhone !== undefined
+    ) {
+      await PatientsService.update(parsed.data.patientId, session.clinicId, {
+        firstName: patientFirstName,
+        lastName: patientLastName,
+        email: patientEmail,
+        phone: patientPhone,
+      });
+    }
+
+    let item: Awaited<ReturnType<typeof AppointmentsService.create>>;
+    try {
+      item = await AppointmentsService.create({
+        clinicId: session.clinicId,
+        patientId: parsed.data.patientId,
+        doctorId: parsed.data.doctorId,
+        boxId: parsed.data.boxId,
+        startAt,
+        endAt,
+        status: parsed.data.status,
+        paymentStatus: parsed.data.paymentStatus,
+        notes: parsed.data.notes,
+        createdBy: session.userId,
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "No se pudo crear la cita.";
+      const lowerMessage = message.toLowerCase();
+      if (lowerMessage.includes("conflict") || lowerMessage.includes("conflicto")) {
+        try {
+          await InternalAlertsService.createAndDispatch({
+            origin: new URL(req.url).origin,
+            clinicId: session.clinicId,
+            actorUserId: session.userId,
+            actorRole: session.role,
+            doctorId: parsed.data.doctorId,
+            eventType: "APPOINTMENT_CONFLICT",
+            title: "Conflicto de agenda detectado",
+            message: `Se detecto conflicto al crear una cita. PacienteId: ${parsed.data.patientId}. DoctorId: ${parsed.data.doctorId}. Rango: ${formatDateTime(startAt)} - ${formatDateTime(endAt)}.`,
+            referenceType: "APPOINTMENT",
+          });
+        } catch {
+          // No interrumpir el flujo si falla la alerta interna.
+        }
+      }
+      throw error;
+    }
+
+    const patientName = [item.patient.firstName, item.patient.lastName, item.patient.secondLastName ?? ""]
+      .join(" ")
+      .trim();
+    const doctorName = [item.doctor.profile?.firstName ?? "", item.doctor.profile?.lastName ?? ""]
+      .join(" ")
+      .trim() || item.doctor.email;
 
     let notificationWarning: string | null = null;
     if (item.patient.email) {
       const clinicLabel = await resolveSingleClinicLabel(session.clinicId);
-      const patientName = [item.patient.firstName, item.patient.lastName, item.patient.secondLastName ?? ""]
-        .join(" ")
-        .trim();
-      const doctorName = [item.doctor.profile?.firstName ?? "", item.doctor.profile?.lastName ?? ""]
-        .join(" ")
-        .trim() || item.doctor.email;
-
       const subject = "Cita agendada en ZENSYA";
       const text = [
         `Hola ${patientName || item.patient.firstName},`,
@@ -123,7 +182,26 @@ export async function POST(req: Request) {
       }
     }
 
-    return NextResponse.json({ ok: true, item, notificationWarning }, { status: 201 });
+    let internalAlertWarning: string | null = null;
+    try {
+      const alert = await InternalAlertsService.createAndDispatch({
+        origin: new URL(req.url).origin,
+        clinicId: session.clinicId,
+        actorUserId: session.userId,
+        actorRole: session.role,
+        doctorId: item.doctorId,
+        eventType: "APPOINTMENT_CREATED",
+        title: "Nueva cita agendada",
+        message: `Paciente: ${patientName || item.patient.firstName}. Doctor: ${doctorName}. Fecha: ${formatDateTime(item.startAt)}.`,
+        referenceType: "APPOINTMENT",
+        referenceId: item.id,
+      });
+      internalAlertWarning = alert.warning;
+    } catch (error) {
+      internalAlertWarning = error instanceof Error ? error.message : "No se pudo generar la alerta interna.";
+    }
+
+    return NextResponse.json({ ok: true, item, notificationWarning, internalAlertWarning }, { status: 201 });
   } catch (error) {
     const message = error instanceof Error ? error.message : "No se pudo crear la cita.";
     const lowerMessage = message.toLowerCase();

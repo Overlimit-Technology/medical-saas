@@ -219,7 +219,8 @@ export async function middleware(req: NextRequest) {
       url.pathname = sessionPayload?.role === "DOCTOR" ? "/agenda" : roleHome;
       return NextResponse.redirect(url);
     }
-    if (pathname.startsWith("/doctors") && !canAccessCrmOption) {
+    const canAccessUsers = sessionPayload?.role === "ADMIN";
+    if (pathname.startsWith("/doctors") && !canAccessUsers) {
       const url = req.nextUrl.clone();
       url.pathname = sessionPayload?.role === "DOCTOR" ? "/agenda" : roleHome;
       return NextResponse.redirect(url);

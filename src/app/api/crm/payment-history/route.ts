@@ -5,6 +5,7 @@ import { CrmService } from "@/server/crm/CrmService";
 import { resolveSingleClinicLabel } from "@/server/clinics/clinicDisplay";
 import { prisma } from "@/lib/prisma";
 import { sendEmail } from "@/server/notifications/email";
+import { InternalAlertsService } from "@/server/internal-alerts/InternalAlertsService";
 
 const paymentCreateSchema = z.object({
   patientId: z.string().min(1),
@@ -128,7 +129,29 @@ export async function POST(req: Request) {
       }
     }
 
-    return NextResponse.json({ ok: true, item, notificationWarning }, { status: 201 });
+    const patientName = patient
+      ? [patient.firstName, patient.lastName, patient.secondLastName ?? ""].join(" ").trim()
+      : "Paciente no disponible";
+    let internalAlertWarning: string | null = null;
+
+    try {
+      const alert = await InternalAlertsService.createAndDispatch({
+        origin: new URL(req.url).origin,
+        clinicId: session.clinicId,
+        actorUserId: session.userId,
+        actorRole: session.role,
+        eventType: item.status === "PENDING" ? "PAYMENT_PENDING" : "CUSTOM",
+        title: item.status === "PENDING" ? "Cobro/Pago pendiente" : "Actualizacion de cobro/pago",
+        message: `Paciente: ${patientName}. Tratamiento: ${item.treatment.name}. Estado: ${PAYMENT_STATUS_LABEL[item.status]}. Monto: ${formatClp(item.amount)}.`,
+        referenceType: "PAYMENT_HISTORY",
+        referenceId: item.id,
+      });
+      internalAlertWarning = alert.warning;
+    } catch (error) {
+      internalAlertWarning = error instanceof Error ? error.message : "No se pudo generar la alerta interna.";
+    }
+
+    return NextResponse.json({ ok: true, item, notificationWarning, internalAlertWarning }, { status: 201 });
   } catch (error) {
     const message = error instanceof Error ? error.message : "No se pudo registrar el historial de pago.";
     return NextResponse.json({ ok: false, error: message }, { status: 400 });

@@ -42,6 +42,22 @@ enum PaymentStatus {
   WAIVED
 }
 
+enum InternalAlertType {
+  APPOINTMENT_CREATED
+  APPOINTMENT_RESCHEDULED
+  APPOINTMENT_CANCELLED
+  APPOINTMENT_CONFLICT
+  PAYMENT_PENDING
+  CUSTOM
+}
+
+enum InternalAlertDeliveryStatus {
+  PENDING
+  SENT
+  FAILED
+  SKIPPED
+}
+
 model User {
   // ID principal, generado como cuid() (string único, amigable para frontend)
   id String @id @default(cuid())
@@ -91,6 +107,9 @@ model User {
   appointmentsAsDoctor Appointment[]      @relation("AppointmentDoctor")
   appointmentsCreated  Appointment[]      @relation("AppointmentCreatedBy")
   clinicalVisits       ClinicalVisit[]
+  internalAlertsCreated InternalAlert[]          @relation("InternalAlertCreatedBy")
+  internalAlertsAsDoctor InternalAlert[]         @relation("InternalAlertDoctor")
+  internalAlertReceipts InternalAlertRecipient[]
 }
 
 model UserProfile {
@@ -192,6 +211,7 @@ model Clinic {
   boxes          Box[]
   appointments   Appointment[]
   clinicalVisits ClinicalVisit[]
+  internalAlerts InternalAlert[]
 }
 
 model ClinicMembership {
@@ -307,6 +327,48 @@ model AuditLog {
   author     String
   // Detalle opcional del evento
   detail     String?
+}
+
+model InternalAlert {
+  id            String            @id @default(cuid())
+  clinicId       String
+  createdById    String
+  doctorId       String?
+  eventType      InternalAlertType @default(CUSTOM)
+  title          String
+  message        String
+  referenceType  String?
+  referenceId    String?
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+
+  clinic     Clinic                  @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+  createdBy  User                    @relation("InternalAlertCreatedBy", fields: [createdById], references: [id], onDelete: Restrict)
+  doctor     User?                   @relation("InternalAlertDoctor", fields: [doctorId], references: [id], onDelete: SetNull)
+  recipients InternalAlertRecipient[]
+
+  @@index([clinicId, createdAt])
+  @@index([createdById, createdAt])
+  @@index([doctorId, createdAt])
+}
+
+model InternalAlertRecipient {
+  id             String                      @id @default(cuid())
+  alertId        String
+  userId         String
+  deliveryStatus InternalAlertDeliveryStatus @default(PENDING)
+  deliveryError  String?
+  deliveredAt    DateTime?
+  readAt         DateTime?
+  createdAt      DateTime                    @default(now())
+  updatedAt      DateTime                    @updatedAt
+
+  alert InternalAlert @relation(fields: [alertId], references: [id], onDelete: Cascade)
+  user  User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([alertId, userId])
+  @@index([userId, readAt, createdAt])
+  @@index([deliveryStatus, createdAt])
 }
 
 model Treatment {

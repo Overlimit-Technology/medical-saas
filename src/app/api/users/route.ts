@@ -79,7 +79,7 @@ async function sendWelcomeEmail(
 export async function GET() {
   try {
     const session = await requireClinicSession();
-    requireRole(session.role, ["ADMIN", "SECRETARY"]);
+    requireRole(session.role, ["ADMIN"]);
 
     const items = await prisma.user.findMany({
       where: {
