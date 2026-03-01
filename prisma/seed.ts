@@ -31,6 +31,7 @@ async function upsertUser(params: {
     update: {
       role: params.role,
       status: params.status ?? "ACTIVE",
+      mustChangePassword: false,
       passwordHash,
       name: params.name ?? `${params.firstName} ${params.lastName}`,
       profile: {
@@ -55,6 +56,7 @@ async function upsertUser(params: {
       passwordHash,
       role: params.role,
       status: params.status ?? "ACTIVE",
+      mustChangePassword: false,
       name: params.name ?? `${params.firstName} ${params.lastName}`,
       profile: {
         create: {
@@ -89,6 +91,15 @@ async function migrateEmailIfNeeded(legacyEmail: string, newEmail: string) {
   await prisma.user.update({
     where: { id: existingLegacy.id },
     data: { email: newEmail },
+  });
+}
+
+async function upsertTreatment(name: string, price: number) {
+  return prisma.treatment.upsert({
+    where: { name },
+    update: { price },
+    create: { name, price },
+    select: { id: true, name: true, price: true },
   });
 }
 
@@ -143,8 +154,13 @@ async function main() {
     phone: "+56955555555",
   });
 
+  const treatmentA = await upsertTreatment("Desparunizamiento Sesion 1", 25000);
+  const treatmentB = await upsertTreatment("Desparunizamiento Sesion 2", 25000);
+
   console.log("✅ Seed listo. Usuarios creados/actualizados:");
   console.table([admin, doctor, secretary, doctorMultiA, doctorMultiB]);
+  console.log("Tratamientos base:");
+  console.table([treatmentA, treatmentB]);
 
   console.log("\nCredenciales:");
   console.log("ADMIN      admin@medigest.cl           / Admin123!");

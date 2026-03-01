@@ -42,6 +42,22 @@ enum PaymentStatus {
   WAIVED
 }
 
+enum InternalAlertType {
+  APPOINTMENT_CREATED
+  APPOINTMENT_RESCHEDULED
+  APPOINTMENT_CANCELLED
+  APPOINTMENT_CONFLICT
+  PAYMENT_PENDING
+  CUSTOM
+}
+
+enum InternalAlertDeliveryStatus {
+  PENDING
+  SENT
+  FAILED
+  SKIPPED
+}
+
 model User {
   // ID principal, generado como cuid() (string único, amigable para frontend)
   id String @id @default(cuid())
@@ -62,6 +78,9 @@ model User {
   // - podrías tener usuarios creados por OAuth sin contraseña
   // - o flujos futuros como magic links
   passwordHash String?
+
+  // Fuerza cambio de contraseÃ±a al primer inicio de sesiÃ³n
+  mustChangePassword Boolean @default(false)
 
   // Rol del usuario (por defecto ADMIN mientras estás en MVP)
   role UserRole @default(ADMIN)
@@ -88,6 +107,9 @@ model User {
   appointmentsAsDoctor Appointment[]      @relation("AppointmentDoctor")
   appointmentsCreated  Appointment[]      @relation("AppointmentCreatedBy")
   clinicalVisits       ClinicalVisit[]
+  internalAlertsCreated InternalAlert[]          @relation("InternalAlertCreatedBy")
+  internalAlertsAsDoctor InternalAlert[]         @relation("InternalAlertDoctor")
+  internalAlertReceipts InternalAlertRecipient[]
 }
 
 model UserProfile {
@@ -189,6 +211,7 @@ model Clinic {
   boxes          Box[]
   appointments   Appointment[]
   clinicalVisits ClinicalVisit[]
+  internalAlerts InternalAlert[]
 }
 
 model ClinicMembership {
@@ -213,7 +236,7 @@ model Patient {
   lastName              String
   secondLastName        String?
   run                   String
-  runNormalized         String    @unique
+  runNormalized         String
   email                 String?
   phone                 String?
   birthDate             DateTime?
@@ -229,8 +252,10 @@ model Patient {
   clinic         Clinic          @relation(fields: [clinicId], references: [id], onDelete: Cascade)
   appointments   Appointment[]
   clinicalVisits ClinicalVisit[]
+  patientTreatments PatientTreatment[]
 
   @@index([clinicId, isActive])
+  @@unique([clinicId, runNormalized])
   @@index([clinicId, lastName])
 }
 
@@ -304,13 +329,88 @@ model AuditLog {
   detail     String?
 }
 
+model InternalAlert {
+  id            String            @id @default(cuid())
+  clinicId       String
+  createdById    String
+  doctorId       String?
+  eventType      InternalAlertType @default(CUSTOM)
+  title          String
+  message        String
+  referenceType  String?
+  referenceId    String?
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+
+  clinic     Clinic                  @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+  createdBy  User                    @relation("InternalAlertCreatedBy", fields: [createdById], references: [id], onDelete: Restrict)
+  doctor     User?                   @relation("InternalAlertDoctor", fields: [doctorId], references: [id], onDelete: SetNull)
+  recipients InternalAlertRecipient[]
+
+  @@index([clinicId, createdAt])
+  @@index([createdById, createdAt])
+  @@index([doctorId, createdAt])
+}
+
+model InternalAlertRecipient {
+  id             String                      @id @default(cuid())
+  alertId        String
+  userId         String
+  deliveryStatus InternalAlertDeliveryStatus @default(PENDING)
+  deliveryError  String?
+  deliveredAt    DateTime?
+  readAt         DateTime?
+  createdAt      DateTime                    @default(now())
+  updatedAt      DateTime                    @updatedAt
+
+  alert InternalAlert @relation(fields: [alertId], references: [id], onDelete: Cascade)
+  user  User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([alertId, userId])
+  @@index([userId, readAt, createdAt])
+  @@index([deliveryStatus, createdAt])
+}
+
 model Treatment {
   // Tratamientos disponibles en la clínica y su precio
   id    String  @id @default(cuid())
   // Nombre del tratamiento
-  name  String
+  name  String  @unique
   // Precio del tratamiento
   price Decimal @db.Decimal(10, 2)
+  patientTreatments PatientTreatment[]
+}
+
+model PatientTreatment {
+  id          String    @id @default(cuid())
+  patientId   String
+  treatmentId String
+  performedAt DateTime  @default(now())
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  patient   Patient         @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  treatment Treatment       @relation(fields: [treatmentId], references: [id], onDelete: Restrict)
+  payments  PaymentHistory[]
+
+  @@index([patientId, performedAt])
+  @@index([treatmentId])
+}
+
+model PaymentHistory {
+  id                 String        @id @default(cuid())
+  patientTreatmentId String
+  recordedAt         DateTime      @default(now())
+  status             PaymentStatus @default(PENDING)
+  amount             Decimal       @db.Decimal(10, 2)
+  notes              String?
+  createdAt          DateTime      @default(now())
+  updatedAt          DateTime      @updatedAt
+
+  patientTreatment PatientTreatment @relation(fields: [patientTreatmentId], references: [id], onDelete: Cascade)
+
+  @@index([patientTreatmentId, recordedAt])
+  @@index([status])
 }
 
 model ClinicalVisit {

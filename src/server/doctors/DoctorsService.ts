@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { normalizeId } from "@/lib/normalize";
 import { hashPassword } from "@/lib/password";
+import { Prisma } from "@prisma/client";
 
 export type DoctorInput = {
   email: string;
@@ -20,6 +21,10 @@ export class DoctorsService {
     return prisma.user.findMany({
       where: {
         role: "DOCTOR",
+        status: "ACTIVE",
+        doctorProfile: {
+          is: { isActive: true },
+        },
         clinicMemberships: {
           some: { clinicId, status: "ACTIVE" },
         },
@@ -37,6 +42,10 @@ export class DoctorsService {
       where: {
         id: userId,
         role: "DOCTOR",
+        status: "ACTIVE",
+        doctorProfile: {
+          is: { isActive: true },
+        },
         clinicMemberships: {
           some: { clinicId, status: "ACTIVE" },
         },
@@ -66,6 +75,7 @@ export class DoctorsService {
       data: {
         email: input.email,
         passwordHash,
+        mustChangePassword: true,
         role: "DOCTOR",
         status: "ACTIVE",
         profile: {
@@ -149,6 +159,18 @@ export class DoctorsService {
   }
 
   static async remove(userId: string, clinicId: string) {
+    const softDeleteDoctor = async () => {
+      await prisma.doctorProfile.update({
+        where: { userId },
+        data: { isActive: false },
+      });
+      await prisma.user.update({
+        where: { id: userId },
+        data: { status: "SUSPENDED" },
+      });
+      return { softDeleted: true };
+    };
+
     const now = new Date();
     const hasFuture = await prisma.appointment.count({
       where: {
@@ -160,18 +182,21 @@ export class DoctorsService {
     });
 
     if (hasFuture > 0) {
-      await prisma.doctorProfile.update({
-        where: { userId },
-        data: { isActive: false },
-      });
-      await prisma.user.update({
-        where: { id: userId },
-        data: { status: "SUSPENDED" },
-      });
-      return { softDeleted: true };
+      return softDeleteDoctor();
     }
 
-    await prisma.user.delete({ where: { id: userId } });
+    try {
+      await prisma.user.delete({ where: { id: userId } });
+    } catch (error) {
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === "P2003"
+      ) {
+        return softDeleteDoctor();
+      }
+      throw error;
+    }
+
     return { softDeleted: false };
   }
 

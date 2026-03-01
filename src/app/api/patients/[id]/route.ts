@@ -23,11 +23,11 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
     const { clinicId } = await requireClinicSession();
     const item = await PatientsService.getById(clinicId, params.id);
     if (!item) {
-      return NextResponse.json({ ok: false, error: "Not found" }, { status: 404 });
+      return NextResponse.json({ ok: false, error: "Paciente no encontrado." }, { status: 404 });
     }
     return NextResponse.json({ ok: true, item });
-  } catch (error) {
-    return NextResponse.json({ ok: false, error: "Failed to load patient" }, { status: 400 });
+  } catch {
+    return NextResponse.json({ ok: false, error: "No se pudo cargar el paciente." }, { status: 400 });
   }
 }
 
@@ -39,19 +39,34 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
     const body = await req.json();
     const parsed = patientUpdateSchema.safeParse(body);
     if (!parsed.success) {
-      return NextResponse.json({ ok: false, error: "Invalid payload" }, { status: 400 });
+      return NextResponse.json({ ok: false, error: "Datos invalidos." }, { status: 400 });
     }
 
-    const data: any = { ...parsed.data };
-    if (parsed.data.birthDate) {
-      data.birthDate = new Date(parsed.data.birthDate);
-    }
+    const data = {
+      firstName: parsed.data.firstName,
+      lastName: parsed.data.lastName,
+      secondLastName: parsed.data.secondLastName,
+      run: parsed.data.run,
+      email: parsed.data.email,
+      phone: parsed.data.phone,
+      birthDate:
+        parsed.data.birthDate === undefined
+          ? undefined
+          : parsed.data.birthDate === null
+            ? null
+            : new Date(parsed.data.birthDate),
+      gender: parsed.data.gender,
+      address: parsed.data.address,
+      city: parsed.data.city,
+      emergencyContactName: parsed.data.emergencyContactName,
+      emergencyContactPhone: parsed.data.emergencyContactPhone,
+    };
 
     const item = await PatientsService.update(params.id, session.clinicId, data);
     return NextResponse.json({ ok: true, item });
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Failed to update patient";
-    const status = message.includes("exists") ? 409 : 400;
+    const message = error instanceof Error ? error.message : "No se pudo actualizar el paciente.";
+    const status = message.includes("registrado") ? 409 : 400;
     return NextResponse.json({ ok: false, error: message }, { status });
   }
 }
@@ -61,11 +76,11 @@ export async function DELETE(_req: Request, { params }: { params: { id: string }
     const session = await requireClinicSession();
     requireRole(session.role, ["ADMIN", "SECRETARY"]);
 
-    await PatientsService.remove(params.id, session.clinicId);
-    return NextResponse.json({ ok: true });
+    const result = await PatientsService.remove(params.id, session.clinicId);
+    return NextResponse.json({ ok: true, ...result });
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Failed to delete patient";
-    const status = message.includes("future") ? 409 : 400;
+    const message = error instanceof Error ? error.message : "No se pudo eliminar el paciente.";
+    const status = message.includes("hoy o futuras") ? 409 : 400;
     return NextResponse.json({ ok: false, error: message }, { status });
   }
 }

@@ -1,7 +1,9 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { requireClinicSession, requireRole } from "@/server/auth/requireSession";
+import { resolveSingleClinicLabel } from "@/server/clinics/clinicDisplay";
 import { PatientsService } from "@/server/patients/PatientsService";
+import { sendEmail } from "@/server/notifications/email";
 
 const patientCreateSchema = z.object({
   firstName: z.string().min(1),
@@ -34,8 +36,8 @@ export async function GET(req: Request) {
     });
 
     return NextResponse.json({ ok: true, ...data });
-  } catch (error) {
-    return NextResponse.json({ ok: false, error: "Failed to load patients" }, { status: 400 });
+  } catch {
+    return NextResponse.json({ ok: false, error: "No se pudieron cargar los pacientes." }, { status: 400 });
   }
 }
 
@@ -47,7 +49,7 @@ export async function POST(req: Request) {
     const body = await req.json();
     const parsed = patientCreateSchema.safeParse(body);
     if (!parsed.success) {
-      return NextResponse.json({ ok: false, error: "Invalid payload" }, { status: 400 });
+      return NextResponse.json({ ok: false, error: "Datos invalidos." }, { status: 400 });
     }
 
     const birthDate = parsed.data.birthDate ? new Date(parsed.data.birthDate) : null;
@@ -68,10 +70,37 @@ export async function POST(req: Request) {
       emergencyContactPhone: parsed.data.emergencyContactPhone,
     });
 
-    return NextResponse.json({ ok: true, item }, { status: 201 });
+    let notificationWarning: string | null = null;
+    if (item.email) {
+      const clinicLabel = await resolveSingleClinicLabel(session.clinicId);
+      const subject = "Bienvenido a ZENSYA";
+      const text = [
+        `Hola ${item.firstName},`,
+        "",
+        "Tu registro como paciente fue creado correctamente en ZENSYA.",
+        `Sede: ${clinicLabel}`,
+        "Si necesitas ayuda, contacta a la clinica.",
+        "",
+        "Saludos,",
+        "Equipo ZENSYA",
+      ].join("\n");
+
+      const origin = new URL(req.url).origin;
+      const sent = await sendEmail({
+        origin,
+        to: item.email,
+        subject,
+        text,
+      });
+      if (!sent.ok) {
+        notificationWarning = sent.error;
+      }
+    }
+
+    return NextResponse.json({ ok: true, item, notificationWarning }, { status: 201 });
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Failed to create patient";
-    const status = message.includes("exists") ? 409 : 400;
+    const message = error instanceof Error ? error.message : "No se pudo crear el paciente.";
+    const status = message.includes("registrado") ? 409 : 400;
     return NextResponse.json({ ok: false, error: message }, { status });
   }
 }
