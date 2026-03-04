@@ -42,6 +42,19 @@ enum PaymentStatus {
   WAIVED
 }
 
+enum ObservationStatus {
+  PRELIMINARY
+  FINAL
+  AMENDED
+  ENTERED_IN_ERROR
+}
+
+enum ObservationValueType {
+  STRING
+  QUANTITY
+  BOOLEAN
+}
+
 enum InternalAlertType {
   APPOINTMENT_CREATED
   APPOINTMENT_RESCHEDULED
@@ -56,6 +69,13 @@ enum InternalAlertDeliveryStatus {
   SENT
   FAILED
   SKIPPED
+}
+
+enum FhirLinkResourceType {
+  PATIENT
+  APPOINTMENT
+  ENCOUNTER
+  OBSERVATION
 }
 
 model User {
@@ -106,6 +126,7 @@ model User {
   doctorProfile        DoctorProfile?
   appointmentsAsDoctor Appointment[]      @relation("AppointmentDoctor")
   appointmentsCreated  Appointment[]      @relation("AppointmentCreatedBy")
+  observationsAsDoctor Observation[]      @relation("ObservationDoctor")
   clinicalVisits       ClinicalVisit[]
   internalAlertsCreated InternalAlert[]          @relation("InternalAlertCreatedBy")
   internalAlertsAsDoctor InternalAlert[]         @relation("InternalAlertDoctor")
@@ -211,7 +232,9 @@ model Clinic {
   boxes          Box[]
   appointments   Appointment[]
   clinicalVisits ClinicalVisit[]
+  observations   Observation[]
   internalAlerts InternalAlert[]
+  fhirLinks      FhirLink[]
 }
 
 model ClinicMembership {
@@ -252,6 +275,7 @@ model Patient {
   clinic         Clinic          @relation(fields: [clinicId], references: [id], onDelete: Cascade)
   appointments   Appointment[]
   clinicalVisits ClinicalVisit[]
+  observations   Observation[]
   patientTreatments PatientTreatment[]
 
   @@index([clinicId, isActive])
@@ -314,6 +338,61 @@ model Appointment {
   @@index([doctorId, startAt])
   @@index([boxId, startAt])
   @@index([patientId, startAt])
+}
+
+model FhirLink {
+  id               String               @id @default(cuid())
+  clinicId         String
+  resourceType     FhirLinkResourceType
+  internalId       String
+  fhirId           String
+  identifierSystem String?
+  identifierValue  String?
+  identifierKey    String?
+  createdAt        DateTime             @default(now())
+  updatedAt        DateTime             @updatedAt
+
+  clinic Clinic @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+
+  @@unique([clinicId, resourceType, internalId])
+  @@unique([clinicId, resourceType, fhirId])
+  @@unique([clinicId, resourceType, identifierKey])
+  @@index([clinicId, resourceType, createdAt])
+}
+
+model Observation {
+  id              String               @id @default(cuid())
+  clinicId        String
+  patientId       String
+  doctorId        String
+  clinicalVisitId String?
+  status          ObservationStatus    @default(FINAL)
+  code            String
+  codeSystem      String
+  codeDisplay     String?
+  categoryCode    String?
+  categorySystem  String?
+  categoryDisplay String?
+  valueType       ObservationValueType
+  valueString     String?
+  valueQuantity   Float?
+  valueBoolean    Boolean?
+  valueUnit       String?
+  effectiveAt     DateTime             @default(now())
+  issuedAt        DateTime             @default(now())
+  notes           String?
+  createdAt       DateTime             @default(now())
+  updatedAt       DateTime             @updatedAt
+
+  clinic       Clinic        @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+  patient      Patient       @relation(fields: [patientId], references: [id], onDelete: Restrict)
+  doctor       User          @relation("ObservationDoctor", fields: [doctorId], references: [id], onDelete: Restrict)
+  clinicalVisit ClinicalVisit? @relation(fields: [clinicalVisitId], references: [id], onDelete: SetNull)
+
+  @@index([clinicId, patientId, effectiveAt])
+  @@index([clinicId, code, effectiveAt])
+  @@index([doctorId, effectiveAt])
+  @@index([clinicalVisitId, effectiveAt])
 }
 
 model AuditLog {
@@ -426,6 +505,7 @@ model ClinicalVisit {
   patient     Patient      @relation(fields: [patientId], references: [id], onDelete: Restrict)
   doctor      User         @relation(fields: [doctorId], references: [id], onDelete: Restrict)
   appointment Appointment? @relation(fields: [appointmentId], references: [id], onDelete: SetNull)
+  observations Observation[]
 
   @@index([clinicId, doctorId, startedAt])
   @@index([clinicId, patientId, startedAt])
