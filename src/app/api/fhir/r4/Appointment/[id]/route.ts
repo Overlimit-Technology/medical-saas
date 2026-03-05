@@ -1,4 +1,3 @@
-import { FhirLinkResourceType } from "@prisma/client";
 import { AppointmentsService, type AppointmentInput } from "@/server/appointments/AppointmentsService";
 import { requireRole } from "@/server/auth/requireSession";
 import { prisma } from "@/lib/prisma";
@@ -20,7 +19,7 @@ type InternalAppointmentShape = Parameters<typeof mapInternalAppointmentToFhir>[
 async function ensureAppointmentLink(clinicId: string, internalId: string) {
   return FhirLinkService.ensureLink({
     clinicId,
-    resourceType: FhirLinkResourceType.APPOINTMENT,
+    resourceType: "APPOINTMENT",
     internalId,
     fhirId: internalId,
   });
@@ -29,7 +28,7 @@ async function ensureAppointmentLink(clinicId: string, internalId: string) {
 async function ensurePatientLink(clinicId: string, internalPatient: { id: string; run: string }) {
   return FhirLinkService.ensureLink({
     clinicId,
-    resourceType: FhirLinkResourceType.PATIENT,
+    resourceType: "PATIENT",
     internalId: internalPatient.id,
     fhirId: internalPatient.id,
     identifier: {
@@ -62,7 +61,7 @@ async function resolveAppointmentInternalId(clinicId: string, fhirId: string) {
   return (
     (await FhirLinkService.resolveInternalId({
       clinicId,
-      resourceType: FhirLinkResourceType.APPOINTMENT,
+      resourceType: "APPOINTMENT",
       fhirId,
     })) ?? fhirId
   );
@@ -74,7 +73,7 @@ async function resolvePatientInternalId(clinicId: string, patientReferenceOrId: 
   return (
     (await FhirLinkService.resolveInternalId({
       clinicId,
-      resourceType: FhirLinkResourceType.PATIENT,
+      resourceType: "PATIENT",
       fhirId: patientFhirId,
     })) ?? patientFhirId
   );

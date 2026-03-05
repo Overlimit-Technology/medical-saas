@@ -1,4 +1,3 @@
-import { FhirLinkResourceType } from "@prisma/client";
 import { requireRole } from "@/server/auth/requireSession";
 import { requireFhirClinicSession } from "@/server/fhir/r4/access";
 import { FhirLinkService } from "@/server/fhir/r4/FhirLinkService";
@@ -18,7 +17,7 @@ type InternalObservationShape = Parameters<typeof mapInternalObservationToFhir>[
 async function ensureObservationLink(clinicId: string, internalId: string) {
   return FhirLinkService.ensureLink({
     clinicId,
-    resourceType: FhirLinkResourceType.OBSERVATION,
+    resourceType: "OBSERVATION",
     internalId,
     fhirId: internalId,
   });
@@ -27,7 +26,7 @@ async function ensureObservationLink(clinicId: string, internalId: string) {
 async function ensurePatientLink(clinicId: string, patient: { id: string; run: string | null | undefined }) {
   return FhirLinkService.ensureLink({
     clinicId,
-    resourceType: FhirLinkResourceType.PATIENT,
+    resourceType: "PATIENT",
     internalId: patient.id,
     fhirId: patient.id,
     identifier: patient.run
@@ -55,7 +54,7 @@ async function resolveObservationInternalId(clinicId: string, fhirId: string) {
   return (
     (await FhirLinkService.resolveInternalId({
       clinicId,
-      resourceType: FhirLinkResourceType.OBSERVATION,
+      resourceType: "OBSERVATION",
       fhirId,
     })) ?? fhirId
   );
@@ -65,7 +64,7 @@ async function resolvePatientInternalId(clinicId: string, patientFhirIdOrInterna
   return (
     (await FhirLinkService.resolveInternalId({
       clinicId,
-      resourceType: FhirLinkResourceType.PATIENT,
+      resourceType: "PATIENT",
       fhirId: patientFhirIdOrInternalId,
     })) ?? patientFhirIdOrInternalId
   );
