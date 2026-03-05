@@ -25,7 +25,7 @@ export async function GET() {
   try {
     const session = await requireClinicSession();
     const items = await InternalAlertsService.listForUser(session.userId);
-    const unreadCount = items.filter((item) => !item.isRead).length;
+    const unreadCount = items.filter((item: { isRead: boolean }) => !item.isRead).length;
     return NextResponse.json({ ok: true, items, unreadCount });
   } catch {
     return NextResponse.json(
