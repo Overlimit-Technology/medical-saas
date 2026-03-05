@@ -18,7 +18,7 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
       return NextResponse.json({ ok: false, error: "Not found" }, { status: 404 });
     }
     return NextResponse.json({ ok: true, item });
-  } catch (error) {
+  } catch {
     return NextResponse.json({ ok: false, error: "Failed to load box" }, { status: 400 });
   }
 }
@@ -36,7 +36,7 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
 
     const item = await BoxesService.update(params.id, session.clinicId, parsed.data.name);
     return NextResponse.json({ ok: true, item });
-  } catch (error) {
+  } catch {
     return NextResponse.json({ ok: false, error: "Failed to update box" }, { status: 400 });
   }
 }
@@ -48,7 +48,7 @@ export async function DELETE(_req: Request, { params }: { params: { id: string }
 
     const result = await BoxesService.remove(params.id, session.clinicId);
     return NextResponse.json({ ok: true, result });
-  } catch (error) {
+  } catch {
     return NextResponse.json({ ok: false, error: "Failed to delete box" }, { status: 400 });
   }
 }

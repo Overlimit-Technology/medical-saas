@@ -114,6 +114,14 @@ async function main() {
     lastName: "MediGest",
     phone: "+56911111111",
   });
+  const adminJean = await upsertUser({
+    email: "jeancarlosgarnicaflores@gmail.com",
+    password: "Jean1234x",
+    role: "ADMIN",
+    firstName: "Jean Carlos",
+    lastName: "Garnica Flores",
+    phone: "+56900000000",
+  });
 
   const doctor = await upsertUser({
     email: "doctor@medigest.cl",
@@ -158,12 +166,13 @@ async function main() {
   const treatmentB = await upsertTreatment("Desparunizamiento Sesion 2", 25000);
 
   console.log("✅ Seed listo. Usuarios creados/actualizados:");
-  console.table([admin, doctor, secretary, doctorMultiA, doctorMultiB]);
+  console.table([admin, adminJean, doctor, secretary, doctorMultiA, doctorMultiB]);
   console.log("Tratamientos base:");
   console.table([treatmentA, treatmentB]);
 
   console.log("\nCredenciales:");
   console.log("ADMIN      admin@medigest.cl           / Admin123!");
+  console.log("ADMIN      jeancarlosgarnicaflores@gmail.com / Jean1234x");
   console.log("DOCTOR     doctor@medigest.cl          / Doctor123!");
   console.log("SECRETARY  secretaria@medigest.cl      / Secre123!");
   console.log("DOCTOR A   doctor.A.multi.a@medigest.cl  / Doctor123!");

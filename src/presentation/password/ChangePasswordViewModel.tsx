@@ -67,7 +67,7 @@ export function useChangePasswordViewModel() {
       }
 
       router.push("/select-clinic");
-    } catch (error) {
+    } catch {
       setFormError("No se pudo actualizar la contrasena.");
     } finally {
       setLoading(false);
