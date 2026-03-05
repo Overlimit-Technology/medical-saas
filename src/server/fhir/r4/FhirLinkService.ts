@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { FhirLinkResourceType, Prisma } from "@prisma/client";
+import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 
 // Identificador externo FHIR (system + value) usado para resolver correlaciones.
@@ -7,6 +7,8 @@ export type FhirLinkIdentifier = {
   system: string;
   value: string;
 };
+
+export type FhirLinkResourceType = "PATIENT" | "APPOINTMENT" | "ENCOUNTER" | "OBSERVATION";
 
 // Datos necesarios para crear o reutilizar una correlacion interna <-> FHIR.
 export type EnsureFhirLinkInput = {

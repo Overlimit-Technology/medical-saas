@@ -1,4 +1,3 @@
-import { FhirLinkResourceType } from "@prisma/client";
 import { normalizeId } from "@/lib/normalize";
 import { PatientsService } from "@/server/patients/PatientsService";
 import { requireRole } from "@/server/auth/requireSession";
@@ -25,7 +24,7 @@ async function ensurePatientLink(
 ) {
   return FhirLinkService.ensureLink({
     clinicId,
-    resourceType: FhirLinkResourceType.PATIENT,
+    resourceType: "PATIENT",
     internalId,
     fhirId: internalId,
     identifier: run
@@ -66,7 +65,7 @@ async function resolvePatientByIdentifier(
   const identifierSystem = identifier.system ?? RUN_IDENTIFIER_SYSTEM;
   const internalId = await FhirLinkService.resolveInternalId({
     clinicId,
-    resourceType: FhirLinkResourceType.PATIENT,
+    resourceType: "PATIENT",
     identifier: {
       system: identifierSystem,
       value: identifier.value,
@@ -103,7 +102,7 @@ export const GET = withFhirTransaction(
         const internalId =
           (await FhirLinkService.resolveInternalId({
             clinicId,
-            resourceType: FhirLinkResourceType.PATIENT,
+            resourceType: "PATIENT",
             fhirId: resourceId,
           })) ?? resourceId;
         const item = await PatientsService.getById(clinicId, internalId);

@@ -1,4 +1,3 @@
-import { FhirLinkResourceType } from "@prisma/client";
 import { requireRole } from "@/server/auth/requireSession";
 import { PatientsService } from "@/server/patients/PatientsService";
 import { requireFhirClinicSession } from "@/server/fhir/r4/access";
@@ -17,7 +16,7 @@ async function resolvePatientInternalId(clinicId: string, fhirId: string) {
   return (
     (await FhirLinkService.resolveInternalId({
       clinicId,
-      resourceType: FhirLinkResourceType.PATIENT,
+      resourceType: "PATIENT",
       fhirId,
     })) ?? fhirId
   );
@@ -30,7 +29,7 @@ async function ensurePatientLink(
 ) {
   return FhirLinkService.ensureLink({
     clinicId,
-    resourceType: FhirLinkResourceType.PATIENT,
+    resourceType: "PATIENT",
     internalId,
     fhirId: internalId,
     identifier: run
