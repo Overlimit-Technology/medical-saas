@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { Prisma } from "@prisma/client";
 import { AuditService } from "@/server/audit/AuditService";
 
 export type ClinicalVisitInput = {
@@ -19,7 +20,7 @@ export class ClinicalVisitsService {
     from?: Date | null;
     to?: Date | null;
   }) {
-    const where: any = {
+    const where: Prisma.ClinicalVisitWhereInput = {
       clinicId: params.clinicId,
       doctorId: params.doctorId,
     };

@@ -12,7 +12,7 @@ export async function GET() {
     const session = await requireClinicSession();
     const items = await BoxesService.list(session.clinicId);
     return NextResponse.json({ ok: true, items });
-  } catch (error) {
+  } catch {
     return NextResponse.json({ ok: false, error: "Failed to load boxes" }, { status: 400 });
   }
 }
@@ -30,7 +30,7 @@ export async function POST(req: Request) {
 
     const item = await BoxesService.create(session.clinicId, parsed.data.name);
     return NextResponse.json({ ok: true, item }, { status: 201 });
-  } catch (error) {
+  } catch {
     return NextResponse.json({ ok: false, error: "Failed to create box" }, { status: 400 });
   }
 }

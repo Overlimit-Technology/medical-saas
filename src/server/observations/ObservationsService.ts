@@ -1,4 +1,5 @@
 import { prisma as db } from "@/lib/prisma";
+import { Prisma } from "@prisma/client";
 
 type ObservationStatus = "PRELIMINARY" | "FINAL" | "AMENDED" | "ENTERED_IN_ERROR";
 type ObservationValueType = "STRING" | "QUANTITY" | "BOOLEAN";
@@ -66,7 +67,7 @@ export class ObservationsService {
     from?: Date | null;
     to?: Date | null;
   }) {
-    const where: any = {
+    const where: Prisma.ObservationWhereInput = {
       clinicId: params.clinicId,
     };
 
@@ -81,7 +82,7 @@ export class ObservationsService {
       if (params.to) where.effectiveAt.lte = params.to;
     }
 
-    return (db as any).observation.findMany({
+    return db.observation.findMany({
       where,
       include: {
         patient: true,
@@ -93,7 +94,7 @@ export class ObservationsService {
   }
 
   static async getById(clinicId: string, id: string, doctorId?: string | null) {
-    return (db as any).observation.findFirst({
+    return db.observation.findFirst({
       where: {
         id,
         clinicId,
@@ -111,7 +112,7 @@ export class ObservationsService {
     await this.ensureRelations(input.clinicId, input.patientId, input.doctorId, input.clinicalVisitId ?? null);
     assertValueByType(input);
 
-    return (db as any).observation.create({
+    return db.observation.create({
       data: {
         clinicId: input.clinicId,
         patientId: input.patientId,
@@ -142,7 +143,7 @@ export class ObservationsService {
   }
 
   static async update(id: string, clinicId: string, input: Partial<ObservationInput>) {
-    const current = await (db as any).observation.findFirst({
+    const current = await db.observation.findFirst({
       where: { id, clinicId },
     });
     if (!current) {
@@ -174,7 +175,7 @@ export class ObservationsService {
     await this.ensureRelations(next.clinicId, next.patientId, next.doctorId, next.clinicalVisitId ?? null);
     assertValueByType(next);
 
-    return (db as any).observation.update({
+    return db.observation.update({
       where: { id },
       data: {
         patientId: next.patientId,
