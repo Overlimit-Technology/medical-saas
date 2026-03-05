@@ -1,41 +1,82 @@
 # Normas HL7
 
 ## Objetivo
-Definir el uso de estándares HL7 en este proyecto, con criterios claros de alcance, implementación y validación.
+Definir reglas operativas para interoperabilidad HL7/FHIR R4 en MediGest, con foco en seguridad, auditoria y trazabilidad.
 
 ## Estado actual
-- No se ha implementado HL7 en el código ni en la documentación del repositorio.
-- Última revisión: 2026-02-06.
+- HL7 principal: FHIR R4 (`4.0.1`) en `/api/fhir/r4`.
+- Recursos activos: `Patient`, `Appointment`, `Observation`.
+- Auditoria transaccional HL7 activa con correlacion por request.
+- Redaccion de datos sensibles activa en logs de auditoria HL7.
+- Ultima revision: 2026-03-04.
 
-## Estándares HL7 (resumen)
-- HL7 v2: mensajería basada en segmentos (p. ej., ADT/ORM/ORU).
-- HL7 FHIR: API basada en recursos (REST/JSON).
-- HL7 CDA: documentos clínicos estructurados.
+## Estandar y alcance
+- Variante seleccionada: HL7 FHIR R4.
+- Transporte: HTTPS + JSON (`application/fhir+json`).
+- Endpoints base:
+  - `GET /api/fhir/r4`
+  - `GET /api/fhir/r4/metadata`
+  - `GET/POST /api/fhir/r4/Patient`
+  - `GET/PUT /api/fhir/r4/Patient/{id}`
+  - `GET/POST /api/fhir/r4/Appointment`
+  - `GET/PUT /api/fhir/r4/Appointment/{id}`
+  - `GET/POST /api/fhir/r4/Observation`
+  - `GET/PUT /api/fhir/r4/Observation/{id}`
+  - `GET /api/fhir/r4/_audit` (consulta operacional, solo ADMIN)
 
-## Alcance
-- Sistemas externos a integrar:
-- Casos de uso prioritarios:
-- Variante HL7 seleccionada:
-- Versiones exactas:
+## Seguridad y autenticacion
+- Acceso por sesion de usuario (`mg_session` + `mg_clinic`) o cuenta tecnica.
+- Cuentas tecnicas:
+  - Header `Authorization: Bearer <token>` o `x-fhir-service-key`.
+  - Header opcional `x-fhir-client-id`.
+  - Configuracion en `FHIR_TECHNICAL_ACCOUNTS` (JSON).
+- Control por rol en endpoints de escritura:
+  - `Patient`/`Appointment`: `ADMIN` o `SECRETARY`.
+  - `Observation`: `DOCTOR`.
+  - `_audit`: `ADMIN`.
 
-## Requisitos de implementación
-- Transporte:
-- Esquemas/perfiles:
-- Mapeo de datos:
-- Validación y pruebas de conformidad:
-- Seguridad/autenticación:
-- Auditoría y trazabilidad:
+## Proteccion contra abuso (HL7-015)
+- Rate limit por actor/cliente/servicio.
+- Respuesta `429` con `OperationOutcome` en exceso de trafico.
+- Headers operacionales:
+  - `X-RateLimit-Limit`
+  - `X-RateLimit-Remaining`
+  - `X-RateLimit-Reset`
+  - `Retry-After` (si corresponde)
 
-## Decisiones pendientes
-- Estándar principal (v2 / FHIR / CDA):
-- Perfiles o guías locales:
-- Proveedores o partners:
-- Entornos y estrategia de despliegue:
+## Auditoria transaccional (HL7-016)
+- Cada transaccion FHIR registra:
+  - timestamp
+  - origen (ip hash + user-agent redaccionado)
+  - destino (path FHIR)
+  - correlacion (`X-Correlation-Id`)
+  - resultado (status, outcome, duracion)
+  - error (si aplica, redaccionado)
+- Eventos registrados:
+  - `hl7.fhir.transaction`
+  - `hl7.fhir.rate_limit.blocked`
 
-## Checklist de adopción
-- Definir variante y versión.
-- Acordar perfiles y casos de uso.
-- Implementar mapeos.
-- Validar con mensajes/recursos de prueba.
-- Documentar flujos y errores.
+## Minimizacion de datos sensibles (HL7-017)
+- No se guarda payload clinico completo en auditoria HL7.
+- Redaccion automatica de patrones sensibles:
+  - email
+  - RUN
+  - telefono
+- En objetos se enmascaran campos sensibles comunes:
+  - nombre/apellidos
+  - run
+  - email/telefono
+  - direccion
+  - fecha de nacimiento
+  - contactos de emergencia
+  - notas y valores clinicos directos
 
+## Conformidad y verificaciones
+- Mapeos: `npm run fhir:check-mapping`
+- Conformidad: `npm run fhir:check-conformance`
+- Validacion funcional: `npm run fhir:check-validation`
+- Tipos: `npx tsc --noEmit`
+
+## Pendientes
+- Endpoint FHIR `Encounter` (CU-3).
+- Rate limit distribuido (store compartido) para escenarios multi instancia.

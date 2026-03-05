@@ -1,12 +1,14 @@
 import { FhirLinkResourceType } from "@prisma/client";
 import { normalizeId } from "@/lib/normalize";
 import { PatientsService } from "@/server/patients/PatientsService";
-import { requireClinicSession, requireRole } from "@/server/auth/requireSession";
+import { requireRole } from "@/server/auth/requireSession";
+import { requireFhirClinicSession } from "@/server/fhir/r4/access";
 import { RUN_IDENTIFIER_SYSTEM } from "@/server/fhir/r4/constants";
 import { FhirLinkService } from "@/server/fhir/r4/FhirLinkService";
 import { buildSearchSetBundle } from "@/server/fhir/r4/bundle";
 import { fhirJsonResponse } from "@/server/fhir/r4/http";
 import { mapErrorToHttpStatus, fhirErrorResponse } from "@/server/fhir/r4/response";
+import { withFhirTransaction } from "@/server/fhir/r4/transaction";
 import {
   mapFhirPatientToInternalDraft,
   mapInternalPatientToFhir,
@@ -86,98 +88,109 @@ async function resolvePatientByIdentifier(
   );
 }
 
-export async function GET(req: Request) {
-  try {
-    const { clinicId } = await requireClinicSession();
-    const { searchParams, origin } = new URL(req.url);
+export const GET = withFhirTransaction(
+  {
+    interaction: "Patient.search",
+    rateLimitScope: "/api/fhir/r4/Patient",
+  },
+  async (req: Request) => {
+    try {
+      const { clinicId } = await requireFhirClinicSession(req);
+      const { searchParams, origin } = new URL(req.url);
 
-    const resourceId = searchParams.get("_id");
-    if (resourceId) {
-      const internalId =
-        (await FhirLinkService.resolveInternalId({
-          clinicId,
-          resourceType: FhirLinkResourceType.PATIENT,
-          fhirId: resourceId,
-        })) ?? resourceId;
-      const item = await PatientsService.getById(clinicId, internalId);
-      if (!item) {
-        return fhirJsonResponse(buildSearchSetBundle(origin, "Patient", []), 200);
+      const resourceId = searchParams.get("_id");
+      if (resourceId) {
+        const internalId =
+          (await FhirLinkService.resolveInternalId({
+            clinicId,
+            resourceType: FhirLinkResourceType.PATIENT,
+            fhirId: resourceId,
+          })) ?? resourceId;
+        const item = await PatientsService.getById(clinicId, internalId);
+        if (!item) {
+          return fhirJsonResponse(buildSearchSetBundle(origin, "Patient", []), 200);
+        }
+        const resource = await toFhirPatient(clinicId, item);
+        return fhirJsonResponse(buildSearchSetBundle(origin, "Patient", [{ resource }]), 200);
       }
-      const resource = await toFhirPatient(clinicId, item);
-      return fhirJsonResponse(buildSearchSetBundle(origin, "Patient", [{ resource }]), 200);
-    }
 
-    const identifierRaw = searchParams.get("identifier");
-    if (identifierRaw) {
-      const item = await resolvePatientByIdentifier(clinicId, identifierRaw);
-      if (!item) {
-        return fhirJsonResponse(buildSearchSetBundle(origin, "Patient", []), 200);
+      const identifierRaw = searchParams.get("identifier");
+      if (identifierRaw) {
+        const item = await resolvePatientByIdentifier(clinicId, identifierRaw);
+        if (!item) {
+          return fhirJsonResponse(buildSearchSetBundle(origin, "Patient", []), 200);
+        }
+        const resource = await toFhirPatient(clinicId, item);
+        return fhirJsonResponse(buildSearchSetBundle(origin, "Patient", [{ resource }]), 200);
       }
-      const resource = await toFhirPatient(clinicId, item);
-      return fhirJsonResponse(buildSearchSetBundle(origin, "Patient", [{ resource }]), 200);
+
+      const count = Number(searchParams.get("_count") ?? "20");
+      const pageSize = Number.isFinite(count) ? Math.min(Math.max(1, count), 100) : 20;
+      const q = getSearchQuery(searchParams);
+      const list = await PatientsService.list({
+        clinicId,
+        q,
+        page: 1,
+        pageSize,
+      });
+
+      const resources = await Promise.all(
+        list.items.map(async (item) => ({
+          resource: await toFhirPatient(clinicId, item),
+        }))
+      );
+      return fhirJsonResponse(buildSearchSetBundle(origin, "Patient", resources), 200);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "No se pudo buscar Patient.";
+      return fhirErrorResponse(mapErrorToHttpStatus(message), message);
     }
-
-    const count = Number(searchParams.get("_count") ?? "20");
-    const pageSize = Number.isFinite(count) ? Math.min(Math.max(1, count), 100) : 20;
-    const q = getSearchQuery(searchParams);
-    const list = await PatientsService.list({
-      clinicId,
-      q,
-      page: 1,
-      pageSize,
-    });
-
-    const resources = await Promise.all(
-      list.items.map(async (item) => ({
-        resource: await toFhirPatient(clinicId, item),
-      }))
-    );
-    return fhirJsonResponse(buildSearchSetBundle(origin, "Patient", resources), 200);
-  } catch (error) {
-    const message = error instanceof Error ? error.message : "No se pudo buscar Patient.";
-    return fhirErrorResponse(mapErrorToHttpStatus(message), message);
   }
-}
+);
 
-export async function POST(req: Request) {
-  try {
-    const session = await requireClinicSession();
-    requireRole(session.role, ["ADMIN", "SECRETARY"]);
+export const POST = withFhirTransaction(
+  {
+    interaction: "Patient.create",
+    rateLimitScope: "/api/fhir/r4/Patient",
+  },
+  async (req: Request) => {
+    try {
+      const session = await requireFhirClinicSession(req);
+      requireRole(session.role, ["ADMIN", "SECRETARY"]);
 
-    const body = (await req.json()) as FhirPatient;
-    if (body?.resourceType !== "Patient") {
-      return fhirErrorResponse(400, "El recurso debe ser Patient.", "invalid");
+      const body = (await req.json()) as FhirPatient;
+      if (body?.resourceType !== "Patient") {
+        return fhirErrorResponse(400, "El recurso debe ser Patient.", "invalid");
+      }
+
+      const draft = mapFhirPatientToInternalDraft(body);
+      const item = await PatientsService.create({
+        clinicId: session.clinicId,
+        firstName: draft.firstName,
+        lastName: draft.lastName,
+        secondLastName: draft.secondLastName ?? null,
+        run: draft.run,
+        email: draft.email ?? null,
+        phone: draft.phone ?? null,
+        birthDate: draft.birthDate ?? null,
+        gender: draft.gender ?? null,
+        address: draft.address ?? null,
+        city: draft.city ?? null,
+        emergencyContactName: draft.emergencyContactName ?? null,
+        emergencyContactPhone: draft.emergencyContactPhone ?? null,
+      });
+
+      const link = await ensurePatientLink(session.clinicId, item.id, item.run);
+      const resource = mapInternalPatientToFhir(item);
+      resource.id = link.fhirId;
+
+      const { origin } = new URL(req.url);
+      return fhirJsonResponse(resource, 201, {
+        Location: `${origin}/api/fhir/r4/Patient/${resource.id}`,
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "No se pudo crear Patient.";
+      const status = message.toLowerCase().includes("registrado") ? 409 : mapErrorToHttpStatus(message);
+      return fhirErrorResponse(status, message);
     }
-
-    const draft = mapFhirPatientToInternalDraft(body);
-    const item = await PatientsService.create({
-      clinicId: session.clinicId,
-      firstName: draft.firstName,
-      lastName: draft.lastName,
-      secondLastName: draft.secondLastName ?? null,
-      run: draft.run,
-      email: draft.email ?? null,
-      phone: draft.phone ?? null,
-      birthDate: draft.birthDate ?? null,
-      gender: draft.gender ?? null,
-      address: draft.address ?? null,
-      city: draft.city ?? null,
-      emergencyContactName: draft.emergencyContactName ?? null,
-      emergencyContactPhone: draft.emergencyContactPhone ?? null,
-    });
-
-    const link = await ensurePatientLink(session.clinicId, item.id, item.run);
-    const resource = mapInternalPatientToFhir(item);
-    resource.id = link.fhirId;
-
-    const { origin } = new URL(req.url);
-    return fhirJsonResponse(resource, 201, {
-      Location: `${origin}/api/fhir/r4/Patient/${resource.id}`,
-    });
-  } catch (error) {
-    const message = error instanceof Error ? error.message : "No se pudo crear Patient.";
-    const status = message.toLowerCase().includes("registrado") ? 409 : mapErrorToHttpStatus(message);
-    return fhirErrorResponse(status, message);
   }
-}
-
+);

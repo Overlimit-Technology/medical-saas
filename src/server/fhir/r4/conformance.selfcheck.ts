@@ -122,6 +122,10 @@ function checkCapabilityStatementConformance() {
   assert.ok(observation.interaction?.some((item) => item.code === "create"));
   assert.ok(observation.interaction?.some((item) => item.code === "update"));
 
+  const auditEvent = byType.get("AuditEvent");
+  assert.ok(auditEvent);
+  assert.ok(auditEvent.interaction?.some((item) => item.code === "search-type"));
+
   // Encounter remains optional until CU-3 is fully active.
   const encounter = byType.get("Encounter");
   if (encounter) {

@@ -3,7 +3,7 @@
 import { FHIR_JSON_CONTENT_TYPE, FHIR_R4_VERSION } from "@/server/fhir/r4/constants";
 
 // Recursos declarados en esta fase para metadata FHIR.
-type CapabilityResourceType = "Patient" | "Appointment" | "Encounter" | "Observation";
+type CapabilityResourceType = "Patient" | "Appointment" | "Encounter" | "Observation" | "AuditEvent";
 
 // Helper para armar cada entrada rest.resource con interacciones soportadas.
 function buildResource(
@@ -51,7 +51,7 @@ export function buildCapabilityStatement(baseUrl: string) {
         security: {
           cors: false,
           description:
-            "Clinical FHIR endpoints must enforce authentication, authorization, and clinic scoping.",
+            "Clinical FHIR endpoints enforce auth by user session or technical account, role checks, clinic scoping, per-client rate limits (429), transactional audit with correlation-id, and redacted logs.",
         },
         resource: [
           buildResource(
@@ -68,6 +68,11 @@ export function buildCapabilityStatement(baseUrl: string) {
             "Observation",
             "Baseline interactions active: read, search-type, create, update (HL7-006).",
             ["read", "search-type", "create", "update"]
+          ),
+          buildResource(
+            "AuditEvent",
+            "Operational audit endpoint for HL7/FHIR transactions with correlation-id traceability (HL7-016, admin only).",
+            ["search-type"]
           ),
           buildResource("Encounter", "Planned only when CU-3 is active (HL7-005)."),
         ],

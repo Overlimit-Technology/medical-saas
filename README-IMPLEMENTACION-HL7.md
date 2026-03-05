@@ -23,9 +23,8 @@ Definir e implementar interoperabilidad HL7 usando FHIR R4 para los recursos min
 
 ### No Hecho
 - Endpoints FHIR R4 pendientes (`Encounter`) y cobertura avanzada de operaciones.
-- Integracion completa de seguridad y autorizacion para todos los endpoints FHIR de datos.
-- Integracion de validaciones y pruebas HL7/FHIR en CI oficial (hoy disponibles via scripts locales).
 - Integracion de la correlacion persistente de IDs en todos los endpoints FHIR de negocio.
+- Endurecimiento productivo de antiabuso distribuido (rate limit centralizado en store compartido).
 
 ## Tickets De Implementacion
 
@@ -45,9 +44,9 @@ Definir e implementar interoperabilidad HL7 usando FHIR R4 para los recursos min
 | HL7-012 | Validacion estructural y funcional (casos validos/invalidos) | Implementado | Alta | Crear suite de pruebas HL7/FHIR con casos validos e invalidos por recurso y operacion. | Cada caso esperado valida respuesta, estructura FHIR y codigo HTTP; ejecucion automatica en CI. | Implementado en `src/server/fhir/r4/validation.selfcheck.ts` (`npm run fhir:check-validation`) + workflow CI. |
 | HL7-013 | Criterio de "pasa" por caso de uso (aceptacion tecnica) | Implementado | Alta | Definir matriz de aceptacion tecnica por CU con precondiciones, pasos, resultado esperado y evidencia. | Cada CU tiene criterio objetivo de pase/rechazo y trazabilidad a tests automatizados. | Matriz formal versionada en `docs/hl7/HL7-013-CRITERIO-ACEPTACION-TECNICA-POR-CU.md` con trazabilidad a `TC-*`. |
 | HL7-014 | Autenticacion y autorizacion obligatoria (Capa 7) | Parcial | Alta | Exigir autenticacion y autorizacion en todos los endpoints de intercambio HL7/FHIR. | Ningun endpoint FHIR responde datos sin credenciales validas ni permisos correctos. | La API interna ya usa sesion + roles, pero no existe politica FHIR publicada. |
-| HL7-015 | Control de acceso por rol/servicio y proteccion contra abuso | Pendiente | Alta | Implementar control por rol/servicio, cuentas tecnicas y limites basicos (rate limit/throttling). | Se aplican limites por cliente/servicio y respuestas `429` ante abuso, con monitoreo. | Existe control de rol en API interna; no hay limites antiabuso formales. |
-| HL7-016 | Auditoria transaccional HL7 | Pendiente | Alta | Registrar cada transaccion HL7 con timestamp, origen, destino, correlacion, resultado y error. | Bitacora consultable con correlacion end-to-end para diagnostico y soporte. | Hay auditoria puntual de eventos, no trazabilidad completa de intercambio HL7. |
-| HL7-017 | Minimizacion de datos sensibles en logs | Pendiente | Alta | Aplicar politica de logging seguro (redaccion/mascarado) para no exponer datos clinicos sensibles. | Verificacion automatica/manual confirma que logs contienen solo minimo necesario. | No hay estandar especifico HL7 de redaccion de logs en el proyecto. |
+| HL7-015 | Control de acceso por rol/servicio y proteccion contra abuso | Implementado | Alta | Implementar control por rol/servicio, cuentas tecnicas y limites basicos (rate limit/throttling). | Se aplican limites por cliente/servicio y respuestas `429` ante abuso, con monitoreo. | Implementado en capa transversal FHIR: cuentas tecnicas por `FHIR_TECHNICAL_ACCOUNTS`, rate limit por actor/servicio y headers `X-RateLimit-*` + `Retry-After`. |
+| HL7-016 | Auditoria transaccional HL7 | Implementado | Alta | Registrar cada transaccion HL7 con timestamp, origen, destino, correlacion, resultado y error. | Bitacora consultable con correlacion end-to-end para diagnostico y soporte. | Implementado con eventos `hl7.fhir.transaction` / `hl7.fhir.rate_limit.blocked`, `X-Correlation-Id` y consulta admin `GET /api/fhir/r4/_audit`. |
+| HL7-017 | Minimizacion de datos sensibles en logs | Implementado | Alta | Aplicar politica de logging seguro (redaccion/mascarado) para no exponer datos clinicos sensibles. | Verificacion automatica/manual confirma que logs contienen solo minimo necesario. | Implementado con redaccion de PII (email/RUN/telefono y campos sensibles) en auditoria HL7 y sin persistir payload clinico completo. |
 
 ## Avance Implementado (2026-03-04)
 
@@ -68,6 +67,10 @@ Definir e implementar interoperabilidad HL7 usando FHIR R4 para los recursos min
 - HL7-011/012: checks FHIR integrados en CI (`.github/workflows/hl7-fhir-validation.yml`).
 - HL7-012: suite estructural/funcional agregada con `npm run fhir:check-validation`.
 - HL7-013: matriz de aceptacion tecnica por CU documentada en `docs/hl7/HL7-013-CRITERIO-ACEPTACION-TECNICA-POR-CU.md`.
+- HL7-015: control de acceso FHIR por sesion o cuenta tecnica (`Bearer` o `x-fhir-service-key`) + rate limit por actor con respuestas `429`.
+- HL7-016: auditoria transaccional HL7 en `AuditLog` con `timestamp`, origen, destino, correlacion, resultado y error redaccionado.
+- HL7-016: endpoint de consulta operacional `GET /api/fhir/r4/_audit` (solo `ADMIN`) con `AuditEvent` en `Bundle`.
+- HL7-017: politica de minimizacion/redaccion aplicada en detalle de auditoria HL7 (`src/server/fhir/r4/logging.ts`).
 ## Reglas Funcionales Recomendadas Para FHIR
 
 - Version fija: FHIR R4.
@@ -100,6 +103,12 @@ Definir e implementar interoperabilidad HL7 usando FHIR R4 para los recursos min
   - Crear: `POST /api/fhir/r4/Observation`
   - Leer: `GET /api/fhir/r4/Observation/{id}`
   - Actualizar: `PUT /api/fhir/r4/Observation/{id}`
+- Auditoria FHIR:
+  - Buscar transacciones HL7: `GET /api/fhir/r4/_audit?_count=&correlation=&status=&outcome=&from=&to=` (solo `ADMIN`).
+- Seguridad/antiabuso:
+  - Correlacion por request: header `X-Correlation-Id` (entrada/salida).
+  - Limites por cliente/servicio: headers `X-RateLimit-Limit`, `X-RateLimit-Remaining`, `X-RateLimit-Reset`, `Retry-After` (si aplica).
+  - Cuentas tecnicas: configurar `FHIR_TECHNICAL_ACCOUNTS` (JSON), opcional `x-fhir-client-id`.
 - Validacion local:
   - Mapeos: `npm run fhir:check-mapping`
   - Conformidad: `npm run fhir:check-conformance`
