@@ -83,7 +83,7 @@ async function resolvePatientByIdentifier(
   });
   const expectedRun = normalizeId(identifier.value);
   return (
-    data.items.find((item) => normalizeId(item.run) === expectedRun) ?? null
+    data.items.find((item: { run: string | null }) => item.run !== null && normalizeId(item.run) === expectedRun) ?? null
   );
 }
 
