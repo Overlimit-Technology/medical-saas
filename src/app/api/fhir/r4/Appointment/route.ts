@@ -159,7 +159,7 @@ export const GET = withFhirTransaction(
       });
 
       const resources = await Promise.all(
-        list.map(async (item) => ({
+        list.map(async (item: InternalAppointmentShape) => ({
           resource: await toFhirAppointment(session.clinicId, item),
         }))
       );
