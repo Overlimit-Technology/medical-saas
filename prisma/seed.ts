@@ -1,9 +1,10 @@
 import "dotenv/config";
-import { UserRole, UserStatus } from "@prisma/client";
 import { hashPassword } from "../src/lib/password";
 import { prisma } from "../src/lib/prisma";
 
 type FieldErrors = Partial<Record<"email" | "password", string>>;
+type UserRole = "ADMIN" | "DOCTOR" | "SECRETARY";
+type UserStatus = "ACTIVE" | "SUSPENDED" | "PENDING";
 
 /**
  * Seeder MVP:
