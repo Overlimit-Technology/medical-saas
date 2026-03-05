@@ -1,15 +1,6 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
-/**
- * Signed cookie format:
- *   "<payloadB64>.<sigB64>"
- * sig = HMAC-SHA256(payloadB64, SESSION_SECRET)
- * payload includes: exp (epoch seconds)
- *
- * Runs on Edge runtime => WebCrypto (crypto.subtle).
- */
-
 function base64urlToUint8Array(b64url: string) {
   const b64 = b64url.replaceAll("-", "+").replaceAll("_", "/");
   const pad = b64.length % 4 === 0 ? "" : "=".repeat(4 - (b64.length % 4));
@@ -44,10 +35,9 @@ type SignedPayload = {
   exp?: unknown;
   userId?: unknown;
   role?: unknown;
-
-  // clinic context (mg_clinic)
   clinicId?: unknown;
   setAt?: unknown;
+  mustChangePassword?: unknown;
 };
 
 async function readSignedCookiePayload(
@@ -81,7 +71,9 @@ async function readSignedCookiePayload(
   return payload;
 }
 
-function isValidSessionPayload(p: SignedPayload | null): p is { userId: string; exp: number; role?: unknown } {
+function isValidSessionPayload(
+  p: SignedPayload | null
+): p is { userId: string; exp: number; role?: unknown; mustChangePassword?: unknown } {
   return !!p && typeof p.userId === "string" && typeof p.exp === "number";
 }
 
@@ -99,6 +91,19 @@ function isValidClinicPayload(
   );
 }
 
+const PROTECTED_PREFIXES = ["/dashboard", "/agenda", "/crm", "/patients", "/doctors", "/boxes", "/appointments"];
+
+function roleHomePath(role: unknown) {
+  switch (role) {
+    case "ADMIN":
+      return "/dashboard/admin";
+    case "SECRETARY":
+      return "/dashboard/secretary";
+    default:
+      return "/dashboard";
+  }
+}
+
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
@@ -109,7 +114,6 @@ export async function middleware(req: NextRequest) {
   const sessionPayload = await readSignedCookiePayload(sessionCookie, secret);
   const hasValidSession = isValidSessionPayload(sessionPayload);
 
-  // Read clinic context (mg_clinic) only if session exists
   const clinicCookie = req.cookies.get("mg_clinic")?.value;
   const clinicPayload = hasValidSession
     ? await readSignedCookiePayload(clinicCookie, secret)
@@ -119,41 +123,113 @@ export async function middleware(req: NextRequest) {
     ? isValidClinicPayload(clinicPayload, sessionPayload.userId)
     : false;
 
-  // 1) Logged-in users should not see login pages
+  const roleHome = roleHomePath(sessionPayload?.role);
+  const mustChangePassword = hasValidSession && sessionPayload?.mustChangePassword === true;
+
   if (pathname === "/" || pathname === "/login") {
     if (hasValidSession) {
       const url = req.nextUrl.clone();
-      url.pathname = hasValidClinic ? "/dashboard" : "/select-clinic";
+      url.pathname = mustChangePassword ? "/change-password" : hasValidClinic ? roleHome : "/select-clinic";
       return NextResponse.redirect(url);
     }
     return NextResponse.next();
   }
 
-  // 2) Clinic selector requires session
+  if (pathname === "/change-password") {
+    if (!hasValidSession) {
+      const url = req.nextUrl.clone();
+      url.pathname = "/";
+      return NextResponse.redirect(url);
+    }
+    if (!mustChangePassword) {
+      const url = req.nextUrl.clone();
+      url.pathname = hasValidClinic ? roleHome : "/select-clinic";
+      return NextResponse.redirect(url);
+    }
+    return NextResponse.next();
+  }
+
   if (pathname === "/select-clinic") {
     if (!hasValidSession) {
       const url = req.nextUrl.clone();
       url.pathname = "/";
       return NextResponse.redirect(url);
     }
+    if (mustChangePassword) {
+      const url = req.nextUrl.clone();
+      url.pathname = "/change-password";
+      return NextResponse.redirect(url);
+    }
     if (hasValidClinic) {
       const url = req.nextUrl.clone();
-      url.pathname = "/dashboard";
+      url.pathname = roleHome;
       return NextResponse.redirect(url);
     }
     return NextResponse.next();
   }
 
-  // 3) Dashboard requires session + selected clinic
-  if (pathname.startsWith("/dashboard")) {
+  if (PROTECTED_PREFIXES.some((prefix) => pathname.startsWith(prefix))) {
     if (!hasValidSession) {
       const url = req.nextUrl.clone();
       url.pathname = "/";
       return NextResponse.redirect(url);
     }
+    if (mustChangePassword) {
+      const url = req.nextUrl.clone();
+      url.pathname = "/change-password";
+      return NextResponse.redirect(url);
+    }
     if (!hasValidClinic) {
       const url = req.nextUrl.clone();
       url.pathname = "/select-clinic";
+      return NextResponse.redirect(url);
+    }
+
+    if (pathname === "/dashboard" || pathname === "/dashboard/") {
+      if (roleHome !== "/dashboard") {
+        const url = req.nextUrl.clone();
+        url.pathname = roleHome;
+        return NextResponse.redirect(url);
+      }
+    }
+
+    if (pathname.startsWith("/dashboard/admin") && sessionPayload?.role !== "ADMIN") {
+      const url = req.nextUrl.clone();
+      url.pathname = roleHome;
+      return NextResponse.redirect(url);
+    }
+
+    if (pathname.startsWith("/dashboard/secretary") && sessionPayload?.role !== "SECRETARY") {
+      const url = req.nextUrl.clone();
+      url.pathname = roleHome;
+      return NextResponse.redirect(url);
+    }
+    if (pathname.startsWith("/boxes") && sessionPayload?.role !== "ADMIN") {
+      const url = req.nextUrl.clone();
+      url.pathname = roleHome;
+      return NextResponse.redirect(url);
+    }
+    const canAccessCrmOption =
+      sessionPayload?.role === "ADMIN" || sessionPayload?.role === "SECRETARY";
+    if (pathname.startsWith("/crm") && !canAccessCrmOption) {
+      const url = req.nextUrl.clone();
+      url.pathname = sessionPayload?.role === "DOCTOR" ? "/agenda" : roleHome;
+      return NextResponse.redirect(url);
+    }
+    if (pathname.startsWith("/patients") && !canAccessCrmOption) {
+      const url = req.nextUrl.clone();
+      url.pathname = sessionPayload?.role === "DOCTOR" ? "/agenda" : roleHome;
+      return NextResponse.redirect(url);
+    }
+    const canAccessUsers = sessionPayload?.role === "ADMIN";
+    if (pathname.startsWith("/doctors") && !canAccessUsers) {
+      const url = req.nextUrl.clone();
+      url.pathname = sessionPayload?.role === "DOCTOR" ? "/agenda" : roleHome;
+      return NextResponse.redirect(url);
+    }
+    if (pathname.startsWith("/clinical-visits") && sessionPayload?.role !== "DOCTOR") {
+      const url = req.nextUrl.clone();
+      url.pathname = roleHome;
       return NextResponse.redirect(url);
     }
     return NextResponse.next();
@@ -163,5 +239,17 @@ export async function middleware(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/", "/login", "/select-clinic", "/dashboard/:path*"],
+  matcher: [
+    "/",
+    "/login",
+    "/change-password",
+    "/select-clinic",
+    "/dashboard/:path*",
+    "/agenda/:path*",
+    "/crm/:path*",
+    "/patients/:path*",
+    "/doctors/:path*",
+    "/boxes/:path*",
+    "/appointments/:path*",
+  ],
 };

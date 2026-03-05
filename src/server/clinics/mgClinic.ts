@@ -10,13 +10,13 @@ export type MgClinicPayload = {
 
 export async function createMgClinicToken(input: MgClinicPayload): Promise<string> {
   const secret = process.env.SESSION_SECRET
-  if (!secret) throw new Error('SESSION_SECRET is not set')
+  if (!secret) throw new Error('SESSION_SECRET no está configurado.')
   return signPayload(input, secret)
 }
 
 export async function readMgClinic(cookieValue: string | undefined): Promise<MgClinicPayload | null> {
   const secret = process.env.SESSION_SECRET
-  if (!secret) throw new Error('SESSION_SECRET is not set')
+  if (!secret) throw new Error('SESSION_SECRET no está configurado.')
 
   const payload = await verifyPayload<MgClinicPayload>(cookieValue, secret)
   if (!payload) return null

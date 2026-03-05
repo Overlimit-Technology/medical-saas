@@ -35,6 +35,26 @@ async function ensureMembership(userId: string, clinicId: string, status: "ACTIV
   });
 }
 
+async function setMembershipsWithinClinics(
+  userId: string,
+  allClinicIds: string[],
+  keepClinicIds: string[],
+  status: "ACTIVE" | "INACTIVE" = "ACTIVE"
+) {
+  const keepSet = new Set(keepClinicIds);
+  const removeIds = allClinicIds.filter((id) => !keepSet.has(id));
+
+  if (removeIds.length > 0) {
+    await prisma.clinicMembership.deleteMany({
+      where: { userId, clinicId: { in: removeIds } },
+    });
+  }
+
+  for (const clinicId of keepClinicIds) {
+    await ensureMembership(userId, clinicId, status);
+  }
+}
+
 async function requireUserIdByEmail(email: string): Promise<{ id: string; email: string }> {
   const u = await prisma.user.findUnique({ where: { email }, select: { id: true, email: true } });
   if (!u) throw new Error(`User not found: ${email}. Run prisma/seed.ts first.`);
@@ -56,25 +76,22 @@ async function main() {
   const admin = await requireUserIdByEmail("admin@medigest.cl");
   const doctor = await requireUserIdByEmail("doctor@medigest.cl");
   const secretary = await requireUserIdByEmail("secretaria@medigest.cl");
-  const doctorMultiA = await requireUserIdByEmail("doctor.multi.a@medigest.cl");
-  const doctorMultiB = await requireUserIdByEmail("doctor.multi.b@medigest.cl");
+  const doctorMultiA = await requireUserIdByEmail("doctor.A.multi.a@medigest.cl");
+  const doctorMultiB = await requireUserIdByEmail("doctor.B.multi.b@medigest.cl");
 
   // 3) Memberships
+  const clinicIds = clinics.map((c) => c.id);
+
   // Base users -> all 3 clinics
-  for (const c of clinics) {
-    await ensureMembership(admin.id, c.id, "ACTIVE");
-    await ensureMembership(doctor.id, c.id, "ACTIVE");
-    await ensureMembership(secretary.id, c.id, "ACTIVE");
-  }
+  await setMembershipsWithinClinics(admin.id, clinicIds, clinicIds);
+  await setMembershipsWithinClinics(doctor.id, clinicIds, clinicIds);
+  await setMembershipsWithinClinics(secretary.id, clinicIds, clinicIds);
 
-  // doctorMultiA -> Central + Norte
-  await ensureMembership(doctorMultiA.id, clinics[0].id, "ACTIVE");
-  await ensureMembership(doctorMultiA.id, clinics[1].id, "ACTIVE");
+  // doctorMultiA -> Central + Norte (2 clínicas)
+  await setMembershipsWithinClinics(doctorMultiA.id, clinicIds, [clinicIds[0], clinicIds[1]]);
 
-  // doctorMultiB -> Norte + Sur + Central (3 clínicas)
-  await ensureMembership(doctorMultiB.id, clinics[1].id, "ACTIVE");
-  await ensureMembership(doctorMultiB.id, clinics[2].id, "ACTIVE");
-  await ensureMembership(doctorMultiB.id, clinics[0].id, "ACTIVE");
+  // doctorMultiB -> Central (1 clínica)
+  await setMembershipsWithinClinics(doctorMultiB.id, clinicIds, [clinicIds[0]]);
 
   console.log("✅ Clinics seeded:");
   console.table(clinics);

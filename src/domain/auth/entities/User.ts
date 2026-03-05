@@ -15,4 +15,5 @@ export type User = {
   role: UserRole;
   status: UserStatus;
   name?: string | null;
+  mustChangePassword?: boolean;
 };

@@ -46,6 +46,11 @@ SESSION_SECRET="tu-secreto-super-seguro-aqui-minimo-32-caracteres"
 NODE_ENV="development"
 ```
 
+Notas para cambiar la BD mas adelante (online):
+- Local: define `DATABASE_URL` en `.env.local` (no se versiona).
+- Produccion: define `DATABASE_URL` como variable de entorno en el hosting
+  (o usa `.env.production` si tu plataforma lo soporta).
+
 ### 4. Configurar la base de datos
 
 ```bash
@@ -84,64 +89,15 @@ npm run db:clinic-seed  # Ejecuta el seed de clínicas y membresías
 
 # Utilidades
 npm run lint         # Ejecuta ESLint
+npm run fhir:check-mapping      # Auto-check de mapeos internos <-> FHIR
+npm run fhir:check-conformance  # Conformidad estructural FHIR base
+npm run fhir:check-validation   # Suite estructural/funcional HL7 (validos/invalidos)
 npx prisma studio    # Abre Prisma Studio (GUI para la BD)
 ```
 
-## 👤 Usuarios de prueba
 
-Después de ejecutar `npm run db:seed`, puedes usar estas credenciales:
+## Estado actual del proyecto
 
-| Rol | Email | Contraseña |
-|-----|-------|------------|
-| ADMIN | admin@medigest.cl | Admin123! |
-| DOCTOR | doctor@medigest.cl | Doctor123! |
-| SECRETARY | secretaria@medigest.cl | Secre123! |
-
-## ✅ Estado actual del proyecto
-
-### Requerimientos implementados
-
-#### 1. **Autenticación** ✅
-- Login con email y contraseña
-- Validación de credenciales con bcrypt
-- Sesión segura mediante cookies firmadas (`mg_session`)
-- Verificación de estado de usuario (ACTIVE)
-- Logout con limpieza de cookies
-- Endpoint `/api/auth/me` para verificar sesión actual
-
-#### 2. **Selección de clínica** ✅
-- Sistema multi-tenant con soporte para múltiples clínicas
-- Selección de clínica activa mediante cookie firmada (`mg_clinic`)
-- Validación de membresía activa del usuario en la clínica
-- Listado de clínicas disponibles para el usuario autenticado
-- Redirección automática según estado de sesión y clínica
-
-#### 3. **Protección de rutas** ✅
-- Middleware que protege rutas según autenticación y contexto de clínica
-- Redirecciones automáticas:
-  - Sin sesión → `/login`
-  - Con sesión pero sin clínica → `/select-clinic`
-  - Con sesión y clínica → `/dashboard`
-
-### Arquitectura
-
-El proyecto sigue una arquitectura en capas:
-
-- **Dominio** (`src/domain/`): Entidades, casos de uso, contratos de repositorios
-- **Datos** (`src/data/`): Implementaciones HTTP de repositorios
-- **Presentación** (`src/presentation/`): Componentes UI y ViewModels
-- **Servidor** (`src/server/`): Servicios de negocio y lógica server-side
-- **API** (`src/app/api/`): Route handlers de Next.js
-
-### Próximos pasos
-
-- Sistema de permisos basado en roles
-- Request Context centralizado
-- Reglas de ownership (ABAC)
-- UI diferenciada por rol (menús, navegación)
-- CRUD de citas, pacientes, equipo de trabajo
-- Dashboard con métricas
-- Módulos adicionales (CRM, finanzas, mensajería)
 
 ## 📁 Estructura del proyecto
 
@@ -177,3 +133,23 @@ medigest/
 
 Privado - Todos los derechos reservados
 
+## 👤 Usuarios de prueba
+
+DAtos de prueba 
+
+ADMIN admin@medigest.cl / Admin123!
+
+DOCTOR doctor@medigest.cl / Doctor123!
+
+SECRETARY secretaria@medigest.cl / Secre123!
+
+DOCTOR A doctor.A.multi.a@medigest.cl / Doctor123!
+
+DOCTOR B doctor.B.multi.b@medigest.cl / Doctor123!
+
+
+
+Doctores de prueba (cantidad de sedes):
+- DOCTOR (doctor@medigest.cl): 3 sede
+- DOCTOR A (doctor.A.multi.a@medigest.cl): 2 sedes
+- DOCTOR B (doctor.B.multi.b@medigest.cl): 1 sedes

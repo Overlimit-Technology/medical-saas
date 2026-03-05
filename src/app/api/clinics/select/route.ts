@@ -13,6 +13,9 @@ export async function POST(req: Request) {
   if (!session) {
     return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
   }
+  if (session.mustChangePassword) {
+    return NextResponse.json({ ok: false, error: "Debes cambiar tu contrasena." }, { status: 403 });
+  }
 
   const body = (await req.json().catch(() => null)) as { clinicId?: unknown } | null;
   const clinicId = typeof body?.clinicId === "string" ? body.clinicId : null;
@@ -31,7 +34,14 @@ export async function POST(req: Request) {
     exp: session.exp, // aligned to mg_session
   });
 
-  const res = NextResponse.json({ ok: true, redirectTo: "/dashboard" }, { status: 200 });
+  const roleHome =
+    session.role === "ADMIN"
+      ? "/dashboard/admin"
+      : session.role === "SECRETARY"
+        ? "/dashboard/secretary"
+        : "/dashboard";
+
+  const res = NextResponse.json({ ok: true, redirectTo: roleHome }, { status: 200 });
 
   res.cookies.set("mg_clinic", token, {
     httpOnly: true,

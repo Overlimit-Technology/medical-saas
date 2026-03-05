@@ -31,6 +31,7 @@ async function upsertUser(params: {
     update: {
       role: params.role,
       status: params.status ?? "ACTIVE",
+      mustChangePassword: false,
       passwordHash,
       name: params.name ?? `${params.firstName} ${params.lastName}`,
       profile: {
@@ -55,6 +56,7 @@ async function upsertUser(params: {
       passwordHash,
       role: params.role,
       status: params.status ?? "ACTIVE",
+      mustChangePassword: false,
       name: params.name ?? `${params.firstName} ${params.lastName}`,
       profile: {
         create: {
@@ -69,6 +71,36 @@ async function upsertUser(params: {
   });
 
   return user;
+}
+
+async function migrateEmailIfNeeded(legacyEmail: string, newEmail: string) {
+  if (legacyEmail === newEmail) return;
+
+  const existingNew = await prisma.user.findUnique({
+    where: { email: newEmail },
+    select: { id: true },
+  });
+  if (existingNew) return;
+
+  const existingLegacy = await prisma.user.findUnique({
+    where: { email: legacyEmail },
+    select: { id: true },
+  });
+  if (!existingLegacy) return;
+
+  await prisma.user.update({
+    where: { id: existingLegacy.id },
+    data: { email: newEmail },
+  });
+}
+
+async function upsertTreatment(name: string, price: number) {
+  return prisma.treatment.upsert({
+    where: { name },
+    update: { price },
+    create: { name, price },
+    select: { id: true, name: true, price: true },
+  });
 }
 
 async function main() {
@@ -101,8 +133,11 @@ async function main() {
     phone: "+56933333333",
   });
 
+  await migrateEmailIfNeeded("doctor.multi.a@medigest.cl", "doctor.A.multi.a@medigest.cl");
+  await migrateEmailIfNeeded("doctor.multi.b@medigest.cl", "doctor.B.multi.b@medigest.cl");
+
   const doctorMultiA = await upsertUser({
-    email: "doctor.multi.a@medigest.cl",
+    email: "doctor.A.multi.a@medigest.cl",
     password: "Doctor123!",
     role: "DOCTOR",
     firstName: "Dr.",
@@ -111,7 +146,7 @@ async function main() {
   });
 
   const doctorMultiB = await upsertUser({
-    email: "doctor.multi.b@medigest.cl",
+    email: "doctor.B.multi.b@medigest.cl",
     password: "Doctor123!",
     role: "DOCTOR",
     firstName: "Dra.",
@@ -119,15 +154,20 @@ async function main() {
     phone: "+56955555555",
   });
 
+  const treatmentA = await upsertTreatment("Desparunizamiento Sesion 1", 25000);
+  const treatmentB = await upsertTreatment("Desparunizamiento Sesion 2", 25000);
+
   console.log("✅ Seed listo. Usuarios creados/actualizados:");
   console.table([admin, doctor, secretary, doctorMultiA, doctorMultiB]);
+  console.log("Tratamientos base:");
+  console.table([treatmentA, treatmentB]);
 
   console.log("\nCredenciales:");
   console.log("ADMIN      admin@medigest.cl           / Admin123!");
   console.log("DOCTOR     doctor@medigest.cl          / Doctor123!");
   console.log("SECRETARY  secretaria@medigest.cl      / Secre123!");
-  console.log("DOCTOR A   doctor.multi.a@medigest.cl  / Doctor123!");
-  console.log("DOCTOR B   doctor.multi.b@medigest.cl  / Doctor123!");
+  console.log("DOCTOR A   doctor.A.multi.a@medigest.cl  / Doctor123!");
+  console.log("DOCTOR B   doctor.B.multi.b@medigest.cl  / Doctor123!");
 }
 
 main()

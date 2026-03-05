@@ -5,11 +5,12 @@ export type MgSessionPayload = {
   userId: string
   role: string
   exp: number // unix seconds
+  mustChangePassword?: boolean
 }
 
 export async function readMgSession(cookieValue: string | undefined): Promise<MgSessionPayload | null> {
   const secret = process.env.SESSION_SECRET
-  if (!secret) throw new Error('SESSION_SECRET is not set')
+  if (!secret) throw new Error('SESSION_SECRET no está configurado.')
 
   const payload = await verifyPayload<MgSessionPayload>(cookieValue, secret)
   if (!payload) return null

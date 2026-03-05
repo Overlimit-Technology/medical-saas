@@ -45,9 +45,9 @@ export function useLoginViewModel() {
 
     setLoading(true);
     try {
-      await useCase.execute(parsed.data);
-
-      router.push("/select-clinic");
+      const user = await useCase.execute(parsed.data);
+      const next = user.mustChangePassword ? "/change-password" : "/select-clinic";
+      router.push(next);
     } catch (e) {
       setFormError(
         e instanceof Error

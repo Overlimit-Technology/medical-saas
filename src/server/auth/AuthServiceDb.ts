@@ -13,9 +13,9 @@ import type { User } from "@/domain/auth/entities/User";
  * Este servicio no sabe nada sobre la capa HTTP, solo se enfoca en la **lógica de negocio**.
  */
 export async function loginWithEmailPassword(input: LoginInput): Promise<User> {
-  // Busca el usuario por email
-  const user = await prisma.user.findUnique({
-    where: { email: input.email },
+  // Busca el usuario por email (case-insensitive)
+  const user = await prisma.user.findFirst({
+    where: { email: { equals: input.email, mode: "insensitive" } },
     select: {
       id: true,
       email: true,
@@ -23,6 +23,7 @@ export async function loginWithEmailPassword(input: LoginInput): Promise<User> {
       role: true,
       status: true,
       name: true,
+      mustChangePassword: true,
     },
   });
 
@@ -57,5 +58,6 @@ export async function loginWithEmailPassword(input: LoginInput): Promise<User> {
     role: user.role,
     status: user.status,
     name: user.name,
+    mustChangePassword: user.mustChangePassword ?? false,
   };
 }
