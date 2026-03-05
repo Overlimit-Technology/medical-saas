@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 
 type Patient = { id: string; firstName: string; lastName: string };
@@ -18,8 +18,7 @@ type ClinicalVisit = {
   patient: { id: string; firstName: string; lastName: string };
   appointment?: { id: string; startAt: string } | null;
 };
-// ClinicalVisitPage component
-export default function ClinicalVisitPage() {
+function ClinicalVisitPageContent() {
   const searchParams = useSearchParams();
   const qsAppointmentId = searchParams.get("appointmentId");
   const qsPatientId = searchParams.get("patientId");
@@ -241,5 +240,13 @@ export default function ClinicalVisitPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function ClinicalVisitPage() {
+  return (
+    <Suspense fallback={<div className="text-sm text-slate-500">Cargando cita clinica...</div>}>
+      <ClinicalVisitPageContent />
+    </Suspense>
   );
 }
