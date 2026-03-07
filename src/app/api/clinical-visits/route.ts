@@ -34,7 +34,7 @@ export async function GET(req: Request) {
     });
 
     return NextResponse.json({ ok: true, items });
-  } catch (error) {
+  } catch {
     return NextResponse.json({ ok: false, error: "Failed to load clinical visits" }, { status: 400 });
   }
 }

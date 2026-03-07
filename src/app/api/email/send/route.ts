@@ -101,10 +101,8 @@ export async function POST(req: Request) {
     } as nodemailer.TransportOptions);
 
     console.log("[EMAIL] Verificando conexión con el servidor SMTP (puerto 587)...");
-    let connectionVerified = false;
     try {
       await transporter.verify();
-      connectionVerified = true;
       console.log("[EMAIL] Conexión verificada exitosamente con puerto 587");
     } catch (verifyError) {
       console.warn("[EMAIL] Error verificando puerto 587, intentando puerto 465:", verifyError);
@@ -132,7 +130,6 @@ export async function POST(req: Request) {
       
       console.log("[EMAIL] Verificando conexión con el servidor SMTP (puerto 465)...");
       await transporter.verify();
-      connectionVerified = true;
       console.log("[EMAIL] Conexión verificada exitosamente con puerto 465");
     }
 
@@ -157,7 +154,7 @@ export async function POST(req: Request) {
     console.error("[EMAIL] Error al enviar correo:", e);
     
     let errorMessage = "No se pudo enviar el correo.";
-    let errorDetails: any = {};
+    let errorDetails: Record<string, unknown> | undefined;
 
     if (e instanceof Error) {
       errorMessage = e.message;

@@ -36,7 +36,7 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
     }
 
     return NextResponse.json({ ok: true, item });
-  } catch (error) {
+  } catch {
     return NextResponse.json({ ok: false, error: "Failed to load doctor" }, { status: 400 });
   }
 }

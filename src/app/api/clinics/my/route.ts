@@ -21,7 +21,7 @@ export async function GET() {
     if (activeClinic && activeClinic.userId === session.userId) {
       activeClinicId = activeClinic.clinicId;
     }
-  } catch (error) {
+  } catch {
     activeClinicId = null;
   }
 

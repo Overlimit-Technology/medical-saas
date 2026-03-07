@@ -1,7 +1,23 @@
 import { prisma } from "@/lib/prisma";
+import { AppointmentStatus, PaymentStatus, Prisma } from "@prisma/client";
 import { AuditService } from "@/server/audit/AuditService";
 
 const CONFLICT_STATUSES = ["SCHEDULED", "CONFIRMED"] as const;
+
+const APPOINTMENT_STATUSES = new Set<AppointmentStatus>(Object.values(AppointmentStatus));
+const PAYMENT_STATUSES = new Set<PaymentStatus>(Object.values(PaymentStatus));
+
+function toAppointmentStatus(value?: string | null): AppointmentStatus | undefined {
+  return value && APPOINTMENT_STATUSES.has(value as AppointmentStatus)
+    ? (value as AppointmentStatus)
+    : undefined;
+}
+
+function toPaymentStatus(value?: string | null): PaymentStatus | undefined {
+  return value && PAYMENT_STATUSES.has(value as PaymentStatus)
+    ? (value as PaymentStatus)
+    : undefined;
+}
 
 export type AppointmentInput = {
   clinicId: string;
@@ -26,7 +42,7 @@ export class AppointmentsService {
     status?: string | null;
     q?: string | null;
   }) {
-    const where: any = { clinicId: params.clinicId };
+    const where: Prisma.AppointmentWhereInput = { clinicId: params.clinicId };
 
     if (params.from || params.to) {
       where.startAt = {};
@@ -36,7 +52,8 @@ export class AppointmentsService {
 
     if (params.doctorId) where.doctorId = params.doctorId;
     if (params.patientId) where.patientId = params.patientId;
-    if (params.status) where.status = params.status;
+    const status = toAppointmentStatus(params.status);
+    if (status) where.status = status;
 
     if (params.q) {
       where.OR = [
@@ -70,8 +87,8 @@ export class AppointmentsService {
         boxId: input.boxId,
         startAt: input.startAt,
         endAt: input.endAt,
-        status: (input.status as any) ?? "SCHEDULED",
-        paymentStatus: (input.paymentStatus as any) ?? "PENDING",
+        status: toAppointmentStatus(input.status) ?? "SCHEDULED",
+        paymentStatus: toPaymentStatus(input.paymentStatus) ?? "PENDING",
         notes: input.notes ?? null,
         createdBy: input.createdBy ?? null,
       },
@@ -118,8 +135,8 @@ export class AppointmentsService {
         boxId: input.boxId ?? undefined,
         startAt: input.startAt ?? undefined,
         endAt: input.endAt ?? undefined,
-        status: (input.status as any) ?? undefined,
-        paymentStatus: (input.paymentStatus as any) ?? undefined,
+        status: toAppointmentStatus(input.status),
+        paymentStatus: toPaymentStatus(input.paymentStatus),
         notes: input.notes ?? undefined,
       },
       include: {

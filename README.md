@@ -89,6 +89,9 @@ npm run db:clinic-seed  # Ejecuta el seed de clínicas y membresías
 
 # Utilidades
 npm run lint         # Ejecuta ESLint
+npm run fhir:check-mapping      # Auto-check de mapeos internos <-> FHIR
+npm run fhir:check-conformance  # Conformidad estructural FHIR base
+npm run fhir:check-validation   # Suite estructural/funcional HL7 (validos/invalidos)
 npx prisma studio    # Abre Prisma Studio (GUI para la BD)
 ```
 

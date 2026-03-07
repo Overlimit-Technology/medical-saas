@@ -71,7 +71,9 @@ async function readSignedCookiePayload(
   return payload;
 }
 
-function isValidSessionPayload(p: SignedPayload | null): p is { userId: string; exp: number; role?: unknown } {
+function isValidSessionPayload(
+  p: SignedPayload | null
+): p is { userId: string; exp: number; role?: unknown; mustChangePassword?: unknown } {
   return !!p && typeof p.userId === "string" && typeof p.exp === "number";
 }
 

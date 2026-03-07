@@ -1,7 +1,13 @@
 'use client'
 
 import React from 'react'
+import Image from 'next/image'
 import { useClinicSelectorViewModel } from './ClinicSelectorViewModel'
+
+// Logo: subir/bajar este valor para agrandar o achicar.
+const CLINIC_SELECTOR_LOGO_WIDTH = 280
+// Logo: altura base usada por next/image.
+const CLINIC_SELECTOR_LOGO_HEIGHT = 80
 
 export default function ClinicSelector() {
   const { state, actions } = useClinicSelectorViewModel()
@@ -9,11 +15,20 @@ export default function ClinicSelector() {
   return (
     <div className="min-h-screen bg-neutral-50 flex items-center justify-center px-4">
       <div className="w-full max-w-md">
-        <div className="mb-6 text-center">
-          <span className="inline-flex items-center justify-center rounded-full bg-blue-50 px-5 py-2 text-sm font-semibold text-blue-700 shadow-sm">
-            <span className="tracking-wide">Medi</span>
-            <span className="font-bold tracking-tight">Gest</span>
-          </span>
+        {/* Separacion vertical del logo respecto a la tarjeta: cambia mb-8. */}
+        <div className="mb-8 text-center">
+          {/* Espacio lateral/logo pill: cambia px-8 y py-4 para mas/menos aire. */}
+          <div className="inline-flex items-center justify-center rounded-full bg-blue-50 px-8 py-4 shadow-sm">
+            <Image
+              src="/images/branding/Zensya.png"
+              alt="Zensya"
+              width={CLINIC_SELECTOR_LOGO_WIDTH}
+              height={CLINIC_SELECTOR_LOGO_HEIGHT}
+              // Tamano visual final en pantalla: cambia h-20 (ej: h-16, h-24).
+              className="h-20 w-auto object-contain"
+              priority
+            />
+          </div>
         </div>
 
         <div className="rounded-3xl bg-white border border-neutral-100 shadow-lg px-8 py-10">

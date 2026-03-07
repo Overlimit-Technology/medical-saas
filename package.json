@@ -4,9 +4,14 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "prisma generate && next build",
+    "postinstall": "prisma generate",
     "start": "next start",
     "lint": "next lint",
+    "fhir:check-mapping": "tsx src/server/fhir/r4/mapping.selfcheck.ts",
+    "fhir:check-conformance": "tsx src/server/fhir/r4/conformance.selfcheck.ts",
+    "fhir:check-validation": "tsx src/server/fhir/r4/validation.selfcheck.ts",
+    "fhir:check-security": "tsx src/server/fhir/r4/security.selfcheck.ts",
     "db:seed": "tsx prisma/seed.ts",
     "db:clinic-seed": "tsx prisma/clinic-seed.ts"
   },

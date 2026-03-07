@@ -29,6 +29,13 @@ const PAYMENT_STATUS_LABEL: Record<"PENDING" | "PAID" | "WAIVED", string> = {
   WAIVED: "Exento",
 };
 
+function statusToLabel(status: unknown) {
+  if (status === "PENDING") return PAYMENT_STATUS_LABEL.PENDING;
+  if (status === "PAID") return PAYMENT_STATUS_LABEL.PAID;
+  if (status === "WAIVED") return PAYMENT_STATUS_LABEL.WAIVED;
+  return "Desconocido";
+}
+
 function formatClp(value: number) {
   return `${new Intl.NumberFormat("es-CL").format(Math.round(value))} CLP`;
 }
@@ -111,7 +118,7 @@ export async function POST(req: Request) {
         "Se registro una actualizacion de cobro/pago en ZENSYA.",
         `Tratamiento: ${item.treatment.name}`,
         `Monto: ${formatClp(item.amount)}`,
-        `Estado: ${PAYMENT_STATUS_LABEL[item.status]}`,
+        `Estado: ${statusToLabel(item.status)}`,
         `Sede: ${clinicLabel}`,
         "",
         "Si tienes dudas, contacta a la clinica.",
@@ -142,7 +149,7 @@ export async function POST(req: Request) {
         actorRole: session.role,
         eventType: item.status === "PENDING" ? "PAYMENT_PENDING" : "CUSTOM",
         title: item.status === "PENDING" ? "Cobro/Pago pendiente" : "Actualizacion de cobro/pago",
-        message: `Paciente: ${patientName}. Tratamiento: ${item.treatment.name}. Estado: ${PAYMENT_STATUS_LABEL[item.status]}. Monto: ${formatClp(item.amount)}.`,
+        message: `Paciente: ${patientName}. Tratamiento: ${item.treatment.name}. Estado: ${statusToLabel(item.status)}. Monto: ${formatClp(item.amount)}.`,
         referenceType: "PAYMENT_HISTORY",
         referenceId: item.id,
       });

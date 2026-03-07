@@ -74,6 +74,7 @@ async function main() {
 
   // 2) Users (must already exist from seed.ts)
   const admin = await requireUserIdByEmail("admin@medigest.cl");
+  const adminJean = await requireUserIdByEmail("jeancarlosgarnicaflores@gmail.com");
   const doctor = await requireUserIdByEmail("doctor@medigest.cl");
   const secretary = await requireUserIdByEmail("secretaria@medigest.cl");
   const doctorMultiA = await requireUserIdByEmail("doctor.A.multi.a@medigest.cl");
@@ -84,6 +85,7 @@ async function main() {
 
   // Base users -> all 3 clinics
   await setMembershipsWithinClinics(admin.id, clinicIds, clinicIds);
+  await setMembershipsWithinClinics(adminJean.id, clinicIds, clinicIds);
   await setMembershipsWithinClinics(doctor.id, clinicIds, clinicIds);
   await setMembershipsWithinClinics(secretary.id, clinicIds, clinicIds);
 
@@ -97,6 +99,7 @@ async function main() {
   console.table(clinics);
   console.log("✅ Memberships ensured for users:", [
     admin.email,
+    adminJean.email,
     doctor.email,
     secretary.email,
     doctorMultiA.email,

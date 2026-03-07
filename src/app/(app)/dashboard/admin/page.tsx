@@ -86,9 +86,9 @@ export default function AdminDashboardPage() {
             <div className="mt-4 space-y-3">
               {[
                 { label: "Odontología", value: 52.1 },
-                { label: "Nutricionista", value: 22.6 },
-                { label: "Cirugía menor", value: 13.9 },
-                { label: "Sala de Médico", value: 11.2 },
+                { label: "Nutricionista", value: 13.13 },
+                { label: "Cirugía menor", value: 69.69 },
+                { label: "Sala de Médico", value: 11.11 },
               ].map((item) => (
                 <div key={item.label} className="flex items-center justify-between">
                   <div className="flex items-center gap-3">

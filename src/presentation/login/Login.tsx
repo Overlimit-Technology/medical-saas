@@ -5,16 +5,26 @@ import { useLoginViewModel } from "./LoginViewModel";
 
 export default function Login() {
   const { state, actions } = useLoginViewModel();
+  const [logoError, setLogoError] = React.useState(false);
 
   return (
     <div className="min-h-screen bg-neutral-50 flex items-center justify-center px-4">
       <div className="w-full max-w-md">
-        {/* Marca / placeholder de logo */}
+        {/* Logo principal de la clínica (archivo en /public/images/branding/Zensya.png) */}
         <div className="mb-6 text-center">
-          <span className="inline-flex items-center justify-center rounded-full bg-blue-50 px-5 py-2 text-sm font-semibold text-blue-700 shadow-sm">
-            <span className="tracking-wide">Medi</span>
-            <span className="font-bold tracking-tight">Gest</span>
-          </span>
+          {!logoError ? (
+            <img
+              src="/images/branding/Zensya.png"
+              alt="Centro Médico Zensya"
+              className="mx-auto h-auto w-[210px] sm:w-[250px]"
+              onError={() => setLogoError(true)}
+            />
+          ) : (
+            <span className="inline-flex items-center justify-center rounded-full bg-blue-50 px-5 py-2 text-sm font-semibold text-blue-700 shadow-sm">
+              <span className="tracking-wide">Medi</span>
+              <span className="font-bold tracking-tight">Gest</span>
+            </span>
+          )}
         </div>
 
         {/* Tarjeta de login */}
