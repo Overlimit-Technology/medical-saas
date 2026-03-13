@@ -18,7 +18,16 @@ body {
     text-wrap: balance;
   }
   .animate-fade-in {
-    animation: fade-in 180ms ease-out;
+    animation: fade-in 180ms ease-out forwards;
+  }
+  .animate-grid-fade {
+    animation: grid-fade 280ms ease-out forwards;
+  }
+  .animate-modal-in {
+    animation: modal-in 220ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  }
+  .animate-card-in {
+    animation: card-in 350ms ease-out both;
   }
 }
 
@@ -26,6 +35,37 @@ body {
   from {
     opacity: 0;
     transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes grid-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes modal-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes card-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
   }
   to {
     opacity: 1;
