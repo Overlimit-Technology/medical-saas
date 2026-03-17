@@ -19,8 +19,8 @@ const globalForPrisma = globalThis as unknown as {
 };
 
 function getDatabaseUrl() {
-  const url = process.env.DATABASE_URL;
-  if (!url) throw new Error("DATABASE_URL no está definido");
+  const url = process.env.DATABASE_URL ?? process.env.DIRECT_URL;
+  if (!url) throw new Error("DATABASE_URL o DIRECT_URL debe estar definido");
   return url;
 }
 
@@ -48,3 +48,4 @@ export const prisma =
 if (process.env.NODE_ENV !== "production") {
   globalForPrisma.prisma = prisma;
 }
+
