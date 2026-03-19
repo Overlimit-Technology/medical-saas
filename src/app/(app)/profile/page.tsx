@@ -122,6 +122,7 @@ export default function ProfilePage() {
         image: data.item?.image ?? "",
       }));
       setClinicLabel(data.clinicLabel ?? clinicLabel);
+      window.dispatchEvent(new Event("profile-updated"));
       setSuccess("Perfil actualizado.");
     } catch {
       setError("No se pudo actualizar el perfil.");

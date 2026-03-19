@@ -31,6 +31,7 @@ export async function GET() {
         id: true,
         email: true,
         role: true,
+        image: true,
         lastLoginAt: true,
         profile: {
           select: {
@@ -56,6 +57,7 @@ export async function GET() {
         id: contact.id,
         email: contact.email,
         role: contact.role,
+        image: contact.image,
         firstName: contact.profile?.firstName ?? "",
         lastName: contact.profile?.lastName ?? "",
         specialty: contact.doctorProfile?.specialty ?? null,

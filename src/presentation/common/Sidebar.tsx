@@ -72,7 +72,18 @@ export default function Sidebar() {
       }
     };
 
+    const handleProfileUpdated = () => {
+      void loadSidebarData();
+    };
+
     void loadSidebarData();
+    window.addEventListener("profile-updated", handleProfileUpdated);
+    window.addEventListener("focus", handleProfileUpdated);
+
+    return () => {
+      window.removeEventListener("profile-updated", handleProfileUpdated);
+      window.removeEventListener("focus", handleProfileUpdated);
+    };
   }, []);
 
   const handleChangeClinic = async () => {

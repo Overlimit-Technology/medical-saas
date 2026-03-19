@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 type ContactRole = "ADMIN" | "DOCTOR" | "SECRETARY";
 
@@ -8,6 +8,7 @@ type Contact = {
   id: string;
   email: string;
   role: ContactRole;
+  image: string | null;
   firstName: string;
   lastName: string;
   specialty: string | null;
@@ -71,6 +72,36 @@ function formatMessageTime(value: string) {
   }).format(date);
 }
 
+function ContactAvatar({
+  contact,
+  selected = false,
+  className = "h-12 w-12 rounded-2xl text-sm",
+}: {
+  contact: Contact;
+  selected?: boolean;
+  className?: string;
+}) {
+  if (contact.image) {
+    return (
+      <img
+        src={contact.image}
+        alt={getDisplayName(contact)}
+        className={`${className} object-cover`}
+      />
+    );
+  }
+
+  return (
+    <div
+      className={`flex items-center justify-center font-semibold ${
+        selected ? "bg-white/15 text-white" : "bg-sky-100 text-sky-700"
+      } ${className}`}
+    >
+      {getInitials(contact)}
+    </div>
+  );
+}
+
 export default function ChatPage() {
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -83,6 +114,7 @@ export default function ChatPage() {
   const [draft, setDraft] = useState("");
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const messagesEndRef = useRef<HTMLDivElement | null>(null);
 
   async function loadContacts(showLoader = false) {
     if (showLoader) setLoading(true);
@@ -177,6 +209,10 @@ export default function ChatPage() {
     return () => window.clearInterval(intervalId);
   }, [selectedId]);
 
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ block: "end" });
+  }, [messages, messagesLoading, selectedId]);
+
   const filteredContacts = useMemo(() => {
     const query = search.trim().toLowerCase();
     if (!query) return contacts;
@@ -248,8 +284,8 @@ export default function ChatPage() {
         </div>
       )}
 
-      <div className="grid min-h-[72vh] grid-cols-1 gap-5 xl:grid-cols-[360px_minmax(0,1fr)]">
-        <section className="overflow-hidden rounded-[28px] border border-slate-200 bg-white shadow-sm">
+      <div className="grid h-[calc(100vh-9rem)] min-h-[640px] grid-cols-1 gap-5 xl:grid-cols-[360px_minmax(0,1fr)]">
+        <section className="flex min-h-0 flex-col overflow-hidden rounded-[28px] border border-slate-200 bg-white shadow-sm">
           <div className="border-b border-slate-100 bg-slate-950 px-5 py-5 text-white">
             <p className="text-xs uppercase tracking-[0.28em] text-slate-300">Contactos</p>
             <p className="mt-2 text-lg font-semibold">Usuarios de la sede</p>
@@ -265,7 +301,7 @@ export default function ChatPage() {
             />
           </div>
 
-          <div className="max-h-[calc(72vh-156px)] overflow-y-auto p-3">
+          <div className="min-h-0 flex-1 overflow-y-auto p-3">
             {loading && (
               <div className="space-y-3">
                 {[1, 2, 3, 4].map((item) => (
@@ -304,13 +340,7 @@ export default function ChatPage() {
                     }`}
                   >
                     <div className="flex items-center gap-3">
-                      <div
-                        className={`flex h-12 w-12 items-center justify-center rounded-2xl text-sm font-semibold ${
-                          selected ? "bg-white/15 text-white" : "bg-sky-100 text-sky-700"
-                        }`}
-                      >
-                        {getInitials(contact)}
-                      </div>
+                      <ContactAvatar contact={contact} selected={selected} />
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center justify-between gap-3">
                           <p className="truncate text-sm font-semibold">
@@ -352,14 +382,15 @@ export default function ChatPage() {
           </div>
         </section>
 
-        <section className="flex min-h-[72vh] flex-col overflow-hidden rounded-[32px] border border-slate-200 bg-white shadow-sm">
+        <section className="flex min-h-0 flex-col overflow-hidden rounded-[32px] border border-slate-200 bg-white shadow-sm">
           {selectedContact ? (
             <>
               <div className="border-b border-slate-100 bg-[radial-gradient(circle_at_top_left,_rgba(14,165,233,0.18),_transparent_40%),linear-gradient(135deg,#ffffff,#eff6ff)] px-6 py-5">
                 <div className="flex items-center gap-4">
-                  <div className="flex h-14 w-14 items-center justify-center rounded-[20px] bg-slate-900 text-base font-semibold text-white">
-                    {getInitials(selectedContact)}
-                  </div>
+                  <ContactAvatar
+                    contact={selectedContact}
+                    className="h-14 w-14 rounded-[20px] text-base"
+                  />
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-2">
                       <h2 className="text-lg font-semibold text-slate-900">
@@ -383,9 +414,9 @@ export default function ChatPage() {
                 </div>
               </div>
 
-              <div className="flex-1 bg-[linear-gradient(180deg,#f8fbff_0%,#ffffff_28%)] px-6 py-6">
-                <div className="mx-auto flex h-full max-w-3xl flex-col justify-between gap-6">
-                  <div className="space-y-4">
+              <div className="min-h-0 flex-1 bg-[linear-gradient(180deg,#f8fbff_0%,#ffffff_28%)] px-6 py-6">
+                <div className="mx-auto flex h-full min-h-0 max-w-3xl flex-col gap-6">
+                  <div className="min-h-0 flex-1 overflow-y-auto pr-1">
                     <div className="space-y-4">
                       {messagesLoading && (
                         <div className="rounded-3xl border border-slate-200 bg-white px-4 py-5 text-sm text-slate-500">
@@ -425,6 +456,7 @@ export default function ChatPage() {
                           </div>
                         );
                       })}
+                      <div ref={messagesEndRef} />
                     </div>
                   </div>
 
