@@ -5,6 +5,15 @@ import { requireClinicSession, requireRole } from "@/server/auth/requireSession"
 export const dynamic = "force-dynamic";
 const ONLINE_WINDOW_MINUTES = 10;
 
+function isUserOnline(lastLoginAt: Date | string | null, onlineThreshold: Date) {
+  if (!lastLoginAt) return false;
+
+  const parsed = lastLoginAt instanceof Date ? lastLoginAt : new Date(lastLoginAt);
+  if (Number.isNaN(parsed.getTime())) return false;
+
+  return parsed >= onlineThreshold;
+}
+
 export async function GET() {
   try {
     const session = await requireClinicSession();
@@ -61,8 +70,7 @@ export async function GET() {
         firstName: contact.profile?.firstName ?? "",
         lastName: contact.profile?.lastName ?? "",
         specialty: contact.doctorProfile?.specialty ?? null,
-        isOnline:
-          contact.lastLoginAt instanceof Date && contact.lastLoginAt >= onlineThreshold,
+        isOnline: isUserOnline(contact.lastLoginAt, onlineThreshold),
       })),
     });
   } catch (error) {
