@@ -21,6 +21,10 @@ type MessageDoc = {
   recipientId: string;
   text: string;
   createdAt: Date;
+  attachmentUrl?: string;
+  attachmentName?: string;
+  attachmentType?: string;
+  attachmentSize?: number;
 };
 
 export type ChatMessageItem = {
@@ -30,6 +34,10 @@ export type ChatMessageItem = {
   recipientId: string;
   text: string;
   createdAt: string;
+  attachmentUrl?: string;
+  attachmentName?: string;
+  attachmentType?: string;
+  attachmentSize?: number;
 };
 
 let indexPromise: Promise<void> | null = null;
@@ -123,7 +131,7 @@ function mapMessage(doc: MessageDoc): ChatMessageItem {
     throw new Error("Mensaje sin conversacion asociada.");
   }
 
-  return {
+  const item: ChatMessageItem = {
     id: doc._id.toHexString(),
     conversationId: doc.conversationId.toHexString(),
     senderId: doc.senderId,
@@ -131,6 +139,15 @@ function mapMessage(doc: MessageDoc): ChatMessageItem {
     text: doc.text,
     createdAt: doc.createdAt.toISOString(),
   };
+
+  if (doc.attachmentUrl) {
+    item.attachmentUrl = doc.attachmentUrl;
+    item.attachmentName = doc.attachmentName;
+    item.attachmentType = doc.attachmentType;
+    item.attachmentSize = doc.attachmentSize;
+  }
+
+  return item;
 }
 
 export class ChatService {
@@ -167,10 +184,16 @@ export class ChatService {
     senderId: string;
     recipientId: string;
     text: string;
+    attachment?: {
+      url: string;
+      fileName: string;
+      fileType: string;
+      fileSize: number;
+    };
   }) {
     const text = input.text.trim();
-    if (!text) {
-      throw new Error("El mensaje no puede estar vacio.");
+    if (!text && !input.attachment) {
+      throw new Error("Debes enviar un mensaje o un archivo.");
     }
 
     if (input.senderId === input.recipientId) {
@@ -195,21 +218,31 @@ export class ChatService {
       throw new Error("Conversacion sin identificador.");
     }
 
-    const result = await messages.insertOne({
+    const messageDoc: MessageDoc = {
       conversationId: conversation._id,
       clinicId: input.clinicId,
       senderId: input.senderId,
       recipientId: input.recipientId,
       text,
       createdAt: now,
-    });
+    };
 
+    if (input.attachment) {
+      messageDoc.attachmentUrl = input.attachment.url;
+      messageDoc.attachmentName = input.attachment.fileName;
+      messageDoc.attachmentType = input.attachment.fileType;
+      messageDoc.attachmentSize = input.attachment.fileSize;
+    }
+
+    const result = await messages.insertOne(messageDoc);
+
+    const lastText = text || `[Archivo: ${input.attachment?.fileName ?? "adjunto"}]`;
     await conversations.updateOne(
       { _id: conversation._id },
       {
         $set: {
           updatedAt: now,
-          lastMessageText: text,
+          lastMessageText: lastText,
           lastMessageAt: now,
         },
       }

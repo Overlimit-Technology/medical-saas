@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 type ContactRole = "ADMIN" | "DOCTOR" | "SECRETARY";
 
@@ -42,6 +42,10 @@ type ChatMessage = {
   recipientId: string;
   text: string;
   createdAt: string;
+  attachmentUrl?: string;
+  attachmentName?: string;
+  attachmentType?: string;
+  attachmentSize?: number;
 };
 
 const ROLE_LABELS: Record<ContactRole, string> = {
@@ -62,6 +66,32 @@ function getInitials(contact: Contact) {
     .slice(0, 2)
     .map((part) => part.charAt(0).toUpperCase())
     .join("");
+}
+
+function formatFileSize(bytes: number) {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+function isImageType(mimeType?: string) {
+  return mimeType?.startsWith("image/") ?? false;
+}
+
+function PaperclipIcon({ className = "h-5 w-5" }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M15.172 7l-6.586 6.586a2 2 0 002.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 008.486 8.486L20.5 13" />
+    </svg>
+  );
+}
+
+function FileIcon({ className = "h-5 w-5" }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+    </svg>
+  );
 }
 
 function formatMessageTime(value: string) {
@@ -114,6 +144,9 @@ export default function ChatPage() {
   const [draft, setDraft] = useState("");
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [filePreviewUrl, setFilePreviewUrl] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
 
   async function loadContacts(showLoader = false) {
@@ -236,24 +269,58 @@ export default function ChatPage() {
     contacts.find((contact) => contact.id === selectedId) ??
     null;
 
+  const handleFileSelect = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 10 * 1024 * 1024) {
+      setError("El archivo excede el limite de 10MB.");
+      return;
+    }
+
+    setSelectedFile(file);
+
+    if (file.type.startsWith("image/")) {
+      const url = URL.createObjectURL(file);
+      setFilePreviewUrl(url);
+    } else {
+      setFilePreviewUrl(null);
+    }
+  }, []);
+
+  const clearSelectedFile = useCallback(() => {
+    setSelectedFile(null);
+    if (filePreviewUrl) {
+      URL.revokeObjectURL(filePreviewUrl);
+      setFilePreviewUrl(null);
+    }
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  }, [filePreviewUrl]);
+
   const handleSendMessage = async () => {
     if (!selectedContact) return;
 
     const text = draft.trim();
-    if (!text) return;
+    if (!text && !selectedFile) return;
 
     setSending(true);
     setError(null);
 
     try {
+      const formData = new FormData();
+      formData.append("recipientId", selectedContact.id);
+      formData.append("text", text);
+
+      if (selectedFile) {
+        formData.append("file", selectedFile);
+      }
+
       const res = await fetch("/api/chat/messages", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
         credentials: "include",
-        body: JSON.stringify({
-          recipientId: selectedContact.id,
-          text,
-        }),
+        body: formData,
       });
       const data = (await res.json()) as MessagesPayload;
 
@@ -264,6 +331,7 @@ export default function ChatPage() {
 
       setMessages((current) => [...current, data.item as ChatMessage]);
       setDraft("");
+      clearSelectedFile();
     } catch {
       setError("No se pudo enviar el mensaje.");
     } finally {
@@ -444,7 +512,42 @@ export default function ChatPage() {
                                   : "border border-slate-200 bg-white text-slate-700"
                               }`}
                             >
-                              <p className="text-sm leading-6">{message.text}</p>
+                              {message.attachmentUrl && isImageType(message.attachmentType) && (
+                                <a href={message.attachmentUrl} target="_blank" rel="noopener noreferrer">
+                                  <img
+                                    src={message.attachmentUrl}
+                                    alt={message.attachmentName ?? "imagen"}
+                                    className="mb-2 max-h-64 rounded-xl object-contain"
+                                  />
+                                </a>
+                              )}
+
+                              {message.attachmentUrl && !isImageType(message.attachmentType) && (
+                                <a
+                                  href={message.attachmentUrl}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className={`mb-2 flex items-center gap-2 rounded-xl px-3 py-2 text-sm transition ${
+                                    own
+                                      ? "bg-white/10 hover:bg-white/20"
+                                      : "bg-slate-50 hover:bg-slate-100"
+                                  }`}
+                                >
+                                  <FileIcon className="h-5 w-5 shrink-0" />
+                                  <div className="min-w-0 flex-1">
+                                    <p className="truncate font-medium">{message.attachmentName}</p>
+                                    {message.attachmentSize != null && (
+                                      <p className={`text-xs ${own ? "text-slate-300" : "text-slate-400"}`}>
+                                        {formatFileSize(message.attachmentSize)}
+                                      </p>
+                                    )}
+                                  </div>
+                                </a>
+                              )}
+
+                              {message.text && (
+                                <p className="text-sm leading-6">{message.text}</p>
+                              )}
                               <p
                                 className={`mt-2 text-[11px] ${
                                   own ? "text-slate-300" : "text-slate-400"
@@ -461,7 +564,55 @@ export default function ChatPage() {
                   </div>
 
                   <div className="rounded-[28px] border border-slate-200 bg-white p-3 shadow-sm">
+                    {selectedFile && (
+                      <div className="mb-3 flex items-center gap-3 rounded-2xl bg-slate-50 px-4 py-3">
+                        {filePreviewUrl ? (
+                          <img
+                            src={filePreviewUrl}
+                            alt="preview"
+                            className="h-16 w-16 rounded-xl object-cover"
+                          />
+                        ) : (
+                          <div className="flex h-16 w-16 items-center justify-center rounded-xl bg-slate-200">
+                            <FileIcon className="h-6 w-6 text-slate-500" />
+                          </div>
+                        )}
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-sm font-medium text-slate-700">
+                            {selectedFile.name}
+                          </p>
+                          <p className="text-xs text-slate-400">
+                            {formatFileSize(selectedFile.size)}
+                          </p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={clearSelectedFile}
+                          className="rounded-full p-1 text-slate-400 transition hover:bg-slate-200 hover:text-slate-600"
+                        >
+                          <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                          </svg>
+                        </button>
+                      </div>
+                    )}
                     <div className="flex flex-col gap-3 md:flex-row md:items-end">
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.txt"
+                        onChange={handleFileSelect}
+                        className="hidden"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => fileInputRef.current?.click()}
+                        disabled={sending}
+                        className="rounded-2xl border border-slate-200 bg-slate-50 px-3 py-3 text-slate-500 transition hover:bg-slate-100 hover:text-slate-700 disabled:cursor-not-allowed disabled:opacity-50"
+                        title="Adjuntar archivo"
+                      >
+                        <PaperclipIcon />
+                      </button>
                       <textarea
                         value={draft}
                         onChange={(event) => setDraft(event.target.value)}
@@ -472,7 +623,7 @@ export default function ChatPage() {
                       <button
                         type="button"
                         onClick={handleSendMessage}
-                        disabled={sending || !draft.trim()}
+                        disabled={sending || (!draft.trim() && !selectedFile)}
                         className="rounded-2xl bg-slate-900 px-5 py-3 text-sm font-medium text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:bg-slate-300"
                       >
                         {sending ? "Enviando..." : "Enviar"}
