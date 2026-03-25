@@ -4,16 +4,12 @@ import { loginSchema } from "@/domain/auth/schemas/login.schema";
 import { loginWithEmailPassword } from "@/server/auth/AuthServiceDb";
 import { createSessionCookieValue } from "@/lib/session";
 
-/**
- * Variables requeridas:
- * - SESSION_SECRET: firma de la cookie (ponla en .env.local)
- *
- * Ejemplo:
- * SESSION_SECRET="cambia-esto-por-un-secreto-largo"
- */
 function getSessionSecret() {
   const secret = process.env.SESSION_SECRET;
-  if (!secret) throw new Error("SESSION_SECRET no está definido");
+  if (!secret) {
+    console.error("[/api/auth/login] SESSION_SECRET no est? definido");
+    throw new Error("SESSION_SECRET no est? definido");
+  }
   return secret;
 }
 
@@ -28,6 +24,10 @@ export async function POST(req: Request) {
   try {
     // Parseamos el body de la solicitud
     const body = await req.json();
+    console.log("[POST /api/auth/login] Body recibido", {
+      email: body?.email,
+      hasPassword: typeof body?.password === "string",
+    });
     const parsed = loginSchema.safeParse(body);
 
     if (!parsed.success) {
@@ -43,6 +43,11 @@ export async function POST(req: Request) {
 
     // Llamamos al servicio de autenticación para verificar las credenciales
     const user = await loginWithEmailPassword(parsed.data);
+    console.log("[POST /api/auth/login] Login OK para usuario", {
+      id: user.id,
+      email: user.email,
+      role: user.role,
+    });
 
     // Creamos el valor de la cookie httpOnly
     const exp = Math.floor(Date.now() / 1000) + 60 * 60 * 8; // 8 horas de expiración
@@ -64,14 +69,14 @@ export async function POST(req: Request) {
     // Respondemos con el usuario (sin la contraseña) y ok
     return NextResponse.json({ ok: true, user });
   } catch (e) {
-    const msg =
-      e instanceof Error ? e.message : "No se pudo iniciar sesión.";
+    console.error("[POST /api/auth/login] Error real:", e);
+    const msg = e instanceof Error ? e.message : "No se pudo iniciar sesi?n.";
 
-    // Si las credenciales son inválidas, devolvemos un error 401
+    // Si las credenciales son inv?lidas, devolvemos un error 401
     const status = msg.includes("Credenciales") ? 401 : 400;
 
     return NextResponse.json(
-      { message: "No se pudo iniciar sesión. Revisa tus credenciales." },
+      { message: "No se pudo iniciar sesi?n. Revisa tus credenciales." },
       { status }
     );
   }

@@ -25,10 +25,13 @@ function getDatabaseUrl() {
 }
 
 // Pool singleton (evita crear pools múltiples en dev/hot reload)
+const isProduction = process.env.NODE_ENV === "production";
+
 const pool =
   globalForPrisma.pgPool ??
   new Pool({
     connectionString: getDatabaseUrl(),
+    ssl: isProduction ? { rejectUnauthorized: false } : undefined,
   });
 
 if (process.env.NODE_ENV !== "production") {

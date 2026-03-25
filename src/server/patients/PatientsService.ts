@@ -66,7 +66,10 @@ export class PatientsService {
       include: {
         appointments: {
           orderBy: { startAt: "desc" },
-          take: 10,
+          take: 50,
+          include: {
+            doctor: { include: { profile: true } },
+          },
         },
       },
     });
