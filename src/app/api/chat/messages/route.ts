@@ -1,9 +1,22 @@
 import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
 import { requireClinicSession, requireRole } from "@/server/auth/requireSession";
 import { ChatService } from "@/server/chat/ChatService";
-import { uploadChatFile } from "@/lib/cloudinary";
 
 export const dynamic = "force-dynamic";
+
+const sendMessageSchema = z.object({
+  recipientId: z.string().min(1),
+  text: z.string().default(""),
+  attachment: z
+    .object({
+      url: z.string().url(),
+      fileName: z.string().min(1),
+      fileType: z.string().min(1),
+      fileSize: z.number().int().positive(),
+    })
+    .optional(),
+});
 
 export async function GET(req: NextRequest) {
   try {
@@ -31,38 +44,19 @@ export async function POST(req: Request) {
     const session = await requireClinicSession();
     requireRole(session.role, ["ADMIN", "DOCTOR", "SECRETARY"]);
 
-    const formData = await req.formData();
-    const recipientId = (formData.get("recipientId") as string)?.trim();
-    const text = (formData.get("text") as string)?.trim() ?? "";
-    const file = formData.get("file") as File | null;
-
-    if (!recipientId) {
-      return NextResponse.json({ ok: false, error: "Destinatario requerido." }, { status: 400 });
+    const body = await req.json();
+    const parsed = sendMessageSchema.safeParse(body);
+    if (!parsed.success) {
+      return NextResponse.json({ ok: false, error: "Datos invalidos." }, { status: 400 });
     }
 
-    if (!text && !file) {
+    const { recipientId, text, attachment } = parsed.data;
+
+    if (!text.trim() && !attachment) {
       return NextResponse.json(
         { ok: false, error: "Debes enviar un mensaje o un archivo." },
         { status: 400 }
       );
-    }
-
-    let attachment: {
-      url: string;
-      fileName: string;
-      fileType: string;
-      fileSize: number;
-    } | undefined;
-
-    if (file) {
-      const buffer = Buffer.from(await file.arrayBuffer());
-      const uploaded = await uploadChatFile(buffer, file.name, file.type, file.size);
-      attachment = {
-        url: uploaded.url,
-        fileName: uploaded.fileName,
-        fileType: uploaded.fileType,
-        fileSize: uploaded.fileSize,
-      };
     }
 
     const item = await ChatService.sendMessage({

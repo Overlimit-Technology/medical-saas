@@ -146,6 +146,8 @@ export default function ChatPage() {
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [filePreviewUrl, setFilePreviewUrl] = useState<string | null>(null);
+  const [dragging, setDragging] = useState(false);
+  const dragCounterRef = useRef(0);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
 
@@ -269,10 +271,7 @@ export default function ChatPage() {
     contacts.find((contact) => contact.id === selectedId) ??
     null;
 
-  const handleFileSelect = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-
+  const processFile = useCallback((file: File) => {
     if (file.size > 10 * 1024 * 1024) {
       setError("El archivo excede el limite de 10MB.");
       return;
@@ -281,23 +280,104 @@ export default function ChatPage() {
     setSelectedFile(file);
 
     if (file.type.startsWith("image/")) {
-      const url = URL.createObjectURL(file);
-      setFilePreviewUrl(url);
+      setFilePreviewUrl((prev) => {
+        if (prev) URL.revokeObjectURL(prev);
+        return URL.createObjectURL(file);
+      });
     } else {
-      setFilePreviewUrl(null);
+      setFilePreviewUrl((prev) => {
+        if (prev) URL.revokeObjectURL(prev);
+        return null;
+      });
     }
   }, []);
 
+  const handleFileSelect = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) processFile(file);
+  }, [processFile]);
+
   const clearSelectedFile = useCallback(() => {
     setSelectedFile(null);
-    if (filePreviewUrl) {
-      URL.revokeObjectURL(filePreviewUrl);
-      setFilePreviewUrl(null);
-    }
+    setFilePreviewUrl((prev) => {
+      if (prev) URL.revokeObjectURL(prev);
+      return null;
+    });
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
-  }, [filePreviewUrl]);
+  }, []);
+
+  const handleDragEnter = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    dragCounterRef.current += 1;
+    if (e.dataTransfer.types.includes("Files")) {
+      setDragging(true);
+    }
+  }, []);
+
+  const handleDragLeave = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    dragCounterRef.current -= 1;
+    if (dragCounterRef.current <= 0) {
+      dragCounterRef.current = 0;
+      setDragging(false);
+    }
+  }, []);
+
+  const handleDragOver = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+  }, []);
+
+  const handleDrop = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    dragCounterRef.current = 0;
+    setDragging(false);
+
+    const file = e.dataTransfer.files?.[0];
+    if (file) processFile(file);
+  }, [processFile]);
+
+  const uploadToCloudinary = async (file: File) => {
+    const sigRes = await fetch("/api/chat/upload-signature", {
+      method: "POST",
+      credentials: "include",
+    });
+    const sigData = await sigRes.json();
+
+    if (!sigData.ok) {
+      throw new Error(sigData.error ?? "No se pudo obtener firma de subida.");
+    }
+
+    const uploadForm = new FormData();
+    uploadForm.append("file", file);
+    uploadForm.append("timestamp", String(sigData.timestamp));
+    uploadForm.append("signature", sigData.signature);
+    uploadForm.append("folder", sigData.folder);
+    uploadForm.append("api_key", sigData.apiKey);
+
+    const uploadRes = await fetch(
+      `https://api.cloudinary.com/v1_1/${sigData.cloudName}/auto/upload`,
+      { method: "POST", body: uploadForm }
+    );
+
+    if (!uploadRes.ok) {
+      throw new Error("Error al subir el archivo.");
+    }
+
+    const uploadData = await uploadRes.json();
+
+    return {
+      url: uploadData.secure_url as string,
+      fileName: file.name,
+      fileType: file.type,
+      fileSize: file.size,
+    };
+  };
 
   const handleSendMessage = async () => {
     if (!selectedContact) return;
@@ -309,18 +389,26 @@ export default function ChatPage() {
     setError(null);
 
     try {
-      const formData = new FormData();
-      formData.append("recipientId", selectedContact.id);
-      formData.append("text", text);
+      let attachment: {
+        url: string;
+        fileName: string;
+        fileType: string;
+        fileSize: number;
+      } | undefined;
 
       if (selectedFile) {
-        formData.append("file", selectedFile);
+        attachment = await uploadToCloudinary(selectedFile);
       }
 
       const res = await fetch("/api/chat/messages", {
         method: "POST",
+        headers: { "Content-Type": "application/json" },
         credentials: "include",
-        body: formData,
+        body: JSON.stringify({
+          recipientId: selectedContact.id,
+          text,
+          attachment,
+        }),
       });
       const data = (await res.json()) as MessagesPayload;
 
@@ -450,7 +538,22 @@ export default function ChatPage() {
           </div>
         </section>
 
-        <section className="flex min-h-0 flex-col overflow-hidden rounded-[32px] border border-slate-200 bg-white shadow-sm">
+        <section
+          className="relative flex min-h-0 flex-col overflow-hidden rounded-[32px] border border-slate-200 bg-white shadow-sm"
+          onDragEnter={selectedContact ? handleDragEnter : undefined}
+          onDragLeave={selectedContact ? handleDragLeave : undefined}
+          onDragOver={selectedContact ? handleDragOver : undefined}
+          onDrop={selectedContact ? handleDrop : undefined}
+        >
+          {dragging && selectedContact && (
+            <div className="absolute inset-0 z-50 flex items-center justify-center rounded-[32px] border-2 border-dashed border-sky-400 bg-sky-50/90 backdrop-blur-sm">
+              <div className="text-center">
+                <PaperclipIcon className="mx-auto h-10 w-10 text-sky-500" />
+                <p className="mt-3 text-base font-semibold text-sky-700">Suelta el archivo aqui</p>
+                <p className="mt-1 text-sm text-sky-500">Imagenes, PDFs, documentos (max 10MB)</p>
+              </div>
+            </div>
+          )}
           {selectedContact ? (
             <>
               <div className="border-b border-slate-100 bg-[radial-gradient(circle_at_top_left,_rgba(14,165,233,0.18),_transparent_40%),linear-gradient(135deg,#ffffff,#eff6ff)] px-6 py-5">
