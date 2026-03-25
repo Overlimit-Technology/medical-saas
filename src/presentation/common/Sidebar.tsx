@@ -13,6 +13,7 @@ import {
   UserCog,
   Pill,
   DoorOpen,
+  ClipboardList,
   ChevronsUpDown,
   LogOut,
 } from "lucide-react";
@@ -81,6 +82,13 @@ const NAV_ITEMS: NavItem[] = [
     label: "Boxes",
     icon: DoorOpen,
     roles: ["ADMIN"],
+    group: "paginas",
+  },
+  {
+    href: "/form-templates",
+    label: "Plantillas",
+    icon: ClipboardList,
+    roles: ["ADMIN", "DOCTOR"],
     group: "paginas",
   },
 ];

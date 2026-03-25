@@ -9,7 +9,6 @@ export type Treatment = {
 };
 
 export type FormState = {
-  id: string;
   name: string;
   price: string;
 };
@@ -17,26 +16,20 @@ export type FormState = {
 export type FormErrors = Partial<Record<keyof FormState, string>>;
 
 const EMPTY_FORM: FormState = {
-  id: "",
   name: "",
   price: "",
 };
 
-function validateForm(form: FormState, editing: boolean) {
+function validateForm(form: FormState): FormErrors {
   const errors: FormErrors = {};
-  if (!editing && !form.id.trim()) {
-    errors.id = "Id obligatorio.";
-  }
-  if (!form.name.trim()) {
-    errors.name = "Nombre obligatorio.";
-  }
+  if (!form.name.trim()) errors.name = "Nombre obligatorio.";
   if (!form.price.trim()) {
     errors.price = "Precio obligatorio.";
   } else {
-    const parsedPrice = Number(form.price);
-    if (Number.isNaN(parsedPrice)) {
-      errors.price = "Precio invalido.";
-    } else if (parsedPrice < 0) {
+    const parsed = Number(form.price);
+    if (Number.isNaN(parsed)) {
+      errors.price = "Precio inválido.";
+    } else if (parsed < 0) {
       errors.price = "El precio debe ser mayor o igual a 0.";
     }
   }
@@ -47,36 +40,42 @@ export function formatPrice(value: number) {
   return new Intl.NumberFormat("es-CL", {
     style: "currency",
     currency: "CLP",
-    maximumFractionDigits: 2,
+    maximumFractionDigits: 0,
   }).format(value);
 }
 
 export function useTreatmentsViewModel() {
   const [items, setItems] = useState<Treatment[]>([]);
   const [query, setQuery] = useState("");
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [selected, setSelected] = useState<Treatment | null>(null);
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
   const [errors, setErrors] = useState<FormErrors>({});
   const [role, setRole] = useState<string | null>(null);
   const [roleLoading, setRoleLoading] = useState(true);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [deletingId, setDeletingId] = useState<string | null>(null);
   const [apiError, setApiError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
-
-  const selectedTreatment = useMemo(
-    () => items.find((item) => item.id === selectedId) ?? null,
-    [items, selectedId]
-  );
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<Treatment | null>(null);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   const filteredItems = useMemo(() => {
     if (!query.trim()) return items;
     const term = query.toLowerCase();
     return items.filter(
-      (item) => item.id.toLowerCase().includes(term) || item.name.toLowerCase().includes(term)
+      (item) => item.name.toLowerCase().includes(term)
     );
   }, [items, query]);
+
+  const totalLabel = `${items.length} tratamiento${items.length === 1 ? "" : "s"}`;
+
+  const headerHint = useMemo(() => {
+    if (!query.trim()) return null;
+    return `${filteredItems.length} resultado${filteredItems.length === 1 ? "" : "s"} para "${query}"`;
+  }, [filteredItems.length, query]);
+
+  const isSubmitDisabled = saving || Object.keys(validateForm(form)).length > 0;
 
   const loadRole = async () => {
     try {
@@ -127,55 +126,58 @@ export function useTreatmentsViewModel() {
     loadTreatments();
   }, [role, roleLoading]);
 
-  useEffect(() => {
-    if (selectedTreatment) {
-      setForm({
-        id: selectedTreatment.id,
-        name: selectedTreatment.name,
-        price: `${selectedTreatment.price}`,
-      });
-    } else {
-      setForm(EMPTY_FORM);
-    }
+  const openCreateModal = () => {
+    setSelected(null);
+    setForm(EMPTY_FORM);
     setErrors({});
     setApiError(null);
-  }, [selectedTreatment]);
+    setIsModalOpen(true);
+  };
+
+  const openEditModal = (treatment: Treatment) => {
+    setSelected(treatment);
+    setForm({
+      name: treatment.name,
+      price: `${treatment.price}`,
+    });
+    setErrors({});
+    setApiError(null);
+    setIsModalOpen(true);
+  };
+
+  const closeModal = () => {
+    setIsModalOpen(false);
+    setSelected(null);
+    setForm(EMPTY_FORM);
+    setErrors({});
+    setApiError(null);
+  };
 
   const handleFieldChange = (key: keyof FormState, value: string) => {
     setForm((current) => ({ ...current, [key]: value }));
-    if (!errors[key]) return;
-    const next = { ...errors };
-    delete next[key];
-    setErrors(next);
+    if (errors[key]) {
+      const next = { ...errors };
+      delete next[key];
+      setErrors(next);
+    }
   };
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
-    const editing = Boolean(selectedTreatment);
-    const nextErrors = validateForm(form, editing);
+    const nextErrors = validateForm(form);
     setErrors(nextErrors);
     if (Object.keys(nextErrors).length > 0) return;
-
-    if (editing) {
-      const confirmed = window.confirm("Confirma guardar cambios de este tratamiento.");
-      if (!confirmed) return;
-    }
 
     setSaving(true);
     setApiError(null);
 
-    const payload = editing
-      ? {
-          name: form.name.trim(),
-          price: Number(form.price),
-        }
-      : {
-          id: form.id.trim(),
-          name: form.name.trim(),
-          price: Number(form.price),
-        };
+    const payload = {
+      name: form.name.trim(),
+      price: Number(form.price),
+    };
 
-    const endpoint = editing ? `/api/treatments/${selectedTreatment?.id}` : "/api/treatments";
+    const editing = Boolean(selected);
+    const endpoint = editing ? `/api/treatments/${selected!.id}` : "/api/treatments";
     const method = editing ? "PUT" : "POST";
 
     try {
@@ -189,10 +191,8 @@ export function useTreatmentsViewModel() {
         setApiError(data.error ?? "No se pudo guardar el tratamiento.");
         return;
       }
-
+      closeModal();
       setSuccessMessage(editing ? "Tratamiento actualizado." : "Tratamiento creado.");
-      setSelectedId(null);
-      setForm(EMPTY_FORM);
       await loadTreatments();
     } catch {
       setApiError("No se pudo guardar el tratamiento.");
@@ -201,33 +201,28 @@ export function useTreatmentsViewModel() {
     }
   };
 
-  const handleDelete = async (item: Treatment) => {
-    const confirmed = window.confirm(
-      `Confirma eliminar el tratamiento "${item.name}". Esta accion no se puede deshacer.`
-    );
-    if (!confirmed) return;
-
-    setDeletingId(item.id);
-    setApiError(null);
-
+  const handleDelete = async () => {
+    if (!deleteTarget) return;
+    setDeleteError(null);
     try {
-      const res = await fetch(`/api/treatments/${item.id}`, { method: "DELETE" });
+      const res = await fetch(`/api/treatments/${deleteTarget.id}`, { method: "DELETE" });
       const data = await res.json();
       if (!data.ok) {
-        setApiError(data.error ?? "No se pudo eliminar el tratamiento.");
+        setDeleteError(data.error ?? "No se pudo eliminar el tratamiento.");
         return;
       }
-
-      if (selectedId === item.id) {
-        setSelectedId(null);
-      }
+      setDeleteTarget(null);
+      setDeleteError(null);
       setSuccessMessage("Tratamiento eliminado.");
       await loadTreatments();
     } catch {
-      setApiError("No se pudo eliminar el tratamiento.");
-    } finally {
-      setDeletingId(null);
+      setDeleteError("No se pudo eliminar el tratamiento.");
     }
+  };
+
+  const dismissDeleteModal = () => {
+    setDeleteTarget(null);
+    setDeleteError(null);
   };
 
   const hasAccess = role === "ADMIN" || role === "DOCTOR";
@@ -236,25 +231,33 @@ export function useTreatmentsViewModel() {
     state: {
       items,
       query,
-      selectedTreatment,
+      selected,
       filteredItems,
       form,
       errors,
-      role,
       roleLoading,
       loading,
       saving,
-      deletingId,
       apiError,
       successMessage,
       hasAccess,
+      isModalOpen,
+      deleteTarget,
+      deleteError,
+      totalLabel,
+      headerHint,
+      isSubmitDisabled,
     },
     actions: {
       setQuery,
-      setSelectedId,
+      openCreateModal,
+      openEditModal,
+      closeModal,
       handleFieldChange,
       handleSubmit,
       handleDelete,
+      setDeleteTarget,
+      dismissDeleteModal,
     },
   };
 }

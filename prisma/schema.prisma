@@ -55,6 +55,15 @@ enum ObservationValueType {
   BOOLEAN
 }
 
+enum FormFieldType {
+  TEXT
+  NUMBER
+  DATE
+  SELECT
+  TEXTAREA
+  BOOLEAN
+}
+
 enum InternalAlertType {
   APPOINTMENT_CREATED
   APPOINTMENT_RESCHEDULED
@@ -131,6 +140,7 @@ model User {
   internalAlertsCreated InternalAlert[]          @relation("InternalAlertCreatedBy")
   internalAlertsAsDoctor InternalAlert[]         @relation("InternalAlertDoctor")
   internalAlertReceipts InternalAlertRecipient[]
+  clinicalRecordsAsDoctor ClinicalRecord[]       @relation("ClinicalRecordDoctor")
 }
 
 model UserProfile {
@@ -227,14 +237,16 @@ model Clinic {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  memberships    ClinicMembership[]
-  patients       Patient[]
-  boxes          Box[]
-  appointments   Appointment[]
-  clinicalVisits ClinicalVisit[]
-  observations   Observation[]
-  internalAlerts InternalAlert[]
-  fhirLinks      FhirLink[]
+  memberships     ClinicMembership[]
+  patients        Patient[]
+  boxes           Box[]
+  appointments    Appointment[]
+  clinicalVisits  ClinicalVisit[]
+  observations    Observation[]
+  internalAlerts  InternalAlert[]
+  fhirLinks       FhirLink[]
+  formTemplates   FormTemplate[]
+  clinicalRecords ClinicalRecord[]
 }
 
 model ClinicMembership {
@@ -272,11 +284,12 @@ model Patient {
   createdAt             DateTime  @default(now())
   updatedAt             DateTime  @updatedAt
 
-  clinic         Clinic          @relation(fields: [clinicId], references: [id], onDelete: Cascade)
-  appointments   Appointment[]
-  clinicalVisits ClinicalVisit[]
-  observations   Observation[]
+  clinic          Clinic          @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+  appointments    Appointment[]
+  clinicalVisits  ClinicalVisit[]
+  observations    Observation[]
   patientTreatments PatientTreatment[]
+  clinicalRecords ClinicalRecord[]
 
   @@index([clinicId, isActive])
   @@unique([clinicId, runNormalized])
@@ -331,8 +344,9 @@ model Appointment {
   patient        Patient         @relation(fields: [patientId], references: [id], onDelete: Restrict)
   doctor         User            @relation("AppointmentDoctor", fields: [doctorId], references: [id], onDelete: Restrict)
   box            Box             @relation(fields: [boxId], references: [id], onDelete: Restrict)
-  createdByUser  User?           @relation("AppointmentCreatedBy", fields: [createdBy], references: [id], onDelete: SetNull)
-  clinicalVisits ClinicalVisit[]
+  createdByUser   User?           @relation("AppointmentCreatedBy", fields: [createdBy], references: [id], onDelete: SetNull)
+  clinicalVisits  ClinicalVisit[]
+  clinicalRecords ClinicalRecord[]
 
   @@index([clinicId, startAt])
   @@index([doctorId, startAt])
@@ -509,4 +523,69 @@ model ClinicalVisit {
 
   @@index([clinicId, doctorId, startedAt])
   @@index([clinicId, patientId, startedAt])
+}
+
+model FormTemplate {
+  id          String  @id @default(cuid())
+  clinicId    String
+  name        String
+  description String?
+  isActive    Boolean @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  clinic          Clinic              @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+  fields          FormTemplateField[]
+  clinicalRecords ClinicalRecord[]
+
+  @@unique([clinicId, name])
+}
+
+model FormTemplateField {
+  id           String        @id @default(cuid())
+  templateId   String
+  label        String
+  fieldType    FormFieldType
+  position     Int
+  isRequired   Boolean       @default(false)
+  options      String?
+  defaultValue String?
+
+  template             FormTemplate          @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  clinicalRecordValues ClinicalRecordValue[]
+
+  @@index([templateId, position])
+}
+
+model ClinicalRecord {
+  id            String   @id @default(cuid())
+  clinicId      String
+  appointmentId String
+  templateId    String
+  patientId     String
+  doctorId      String
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  clinic      Clinic        @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+  appointment Appointment   @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
+  template    FormTemplate  @relation(fields: [templateId], references: [id], onDelete: Restrict)
+  patient     Patient       @relation(fields: [patientId], references: [id], onDelete: Restrict)
+  doctor      User          @relation("ClinicalRecordDoctor", fields: [doctorId], references: [id], onDelete: Restrict)
+  values      ClinicalRecordValue[]
+
+  @@index([clinicId, appointmentId])
+  @@index([clinicId, patientId, createdAt])
+}
+
+model ClinicalRecordValue {
+  id               String @id @default(cuid())
+  clinicalRecordId String
+  fieldId          String
+  value            String
+
+  clinicalRecord ClinicalRecord    @relation(fields: [clinicalRecordId], references: [id], onDelete: Cascade)
+  field          FormTemplateField @relation(fields: [fieldId], references: [id], onDelete: Restrict)
+
+  @@unique([clinicalRecordId, fieldId])
 }

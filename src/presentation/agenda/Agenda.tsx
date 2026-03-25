@@ -32,7 +32,7 @@ type Box = { id: string; name: string };
 const START_HOUR = 8;
 const END_HOUR = 20;
 const SLOT_MINUTES = 15;
-const SLOT_HEIGHT = 32;
+const SLOT_HEIGHT = 22;
 const SERVICE_OPTIONS = ["Consulta general", "Control", "Telemedicina", "Procedimiento"];
 const NOTE_MAX_LENGTH = 250;
 const CANCEL_REASON_MAX_LENGTH = 250;
@@ -1046,33 +1046,41 @@ export default function Agenda() {
               </div>
             </div>
 
-            {canEdit && (
-              <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:justify-between">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setFinalizeConfirm(true);
-                    setFinalizeChecked(false);
-                    setFinalizePhrase("");
-                    setErrorMessage(null);
-                  }}
-                  className="rounded-full border border-emerald-200 px-4 py-2.5 text-sm font-semibold text-emerald-700 transition-colors hover:border-emerald-300 hover:bg-emerald-50"
-                >
-                  Finalizacion
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    const item = detailAppointment;
-                    resetModal();
-                    openEditModal(item);
-                  }}
-                  className="rounded-full bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white transition-all hover:bg-slate-800 hover:shadow-lg hover:shadow-slate-900/20"
-                >
-                  Editar
-                </button>
-              </div>
-            )}
+            <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:justify-between">
+              <a
+                href={`/appointments/${detailAppointment.id}`}
+                className="rounded-full border border-blue-200 px-4 py-2.5 text-center text-sm font-semibold text-blue-700 transition-colors hover:border-blue-300 hover:bg-blue-50"
+              >
+                Ficha clínica
+              </a>
+              {canEdit && (
+                <div className="flex gap-3">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setFinalizeConfirm(true);
+                      setFinalizeChecked(false);
+                      setFinalizePhrase("");
+                      setErrorMessage(null);
+                    }}
+                    className="rounded-full border border-emerald-200 px-4 py-2.5 text-sm font-semibold text-emerald-700 transition-colors hover:border-emerald-300 hover:bg-emerald-50"
+                  >
+                    Finalizacion
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const item = detailAppointment;
+                      resetModal();
+                      openEditModal(item);
+                    }}
+                    className="rounded-full bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white transition-all hover:bg-slate-800 hover:shadow-lg hover:shadow-slate-900/20"
+                  >
+                    Editar
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       )}

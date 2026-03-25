@@ -91,7 +91,7 @@ function isValidClinicPayload(
   );
 }
 
-const PROTECTED_PREFIXES = ["/dashboard", "/agenda", "/crm", "/patients", "/doctors", "/boxes", "/appointments"];
+const PROTECTED_PREFIXES = ["/dashboard", "/agenda", "/crm", "/patients", "/doctors", "/boxes", "/appointments", "/form-templates"];
 
 function roleHomePath(role: unknown) {
   switch (role) {
@@ -227,6 +227,11 @@ export async function middleware(req: NextRequest) {
       url.pathname = sessionPayload?.role === "DOCTOR" ? "/agenda" : roleHome;
       return NextResponse.redirect(url);
     }
+    if (pathname.startsWith("/form-templates") && sessionPayload?.role !== "ADMIN" && sessionPayload?.role !== "DOCTOR") {
+      const url = req.nextUrl.clone();
+      url.pathname = roleHome;
+      return NextResponse.redirect(url);
+    }
     if (pathname.startsWith("/clinical-visits") && sessionPayload?.role !== "DOCTOR") {
       const url = req.nextUrl.clone();
       url.pathname = roleHome;
@@ -251,5 +256,6 @@ export const config = {
     "/doctors/:path*",
     "/boxes/:path*",
     "/appointments/:path*",
+    "/form-templates/:path*",
   ],
 };
