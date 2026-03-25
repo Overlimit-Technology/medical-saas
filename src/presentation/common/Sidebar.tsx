@@ -16,6 +16,8 @@ import {
   ClipboardList,
   ChevronsUpDown,
   LogOut,
+  UserCircle,
+  MessageCircle,
 } from "lucide-react";
 
 type Role = "ADMIN" | "SECRETARY" | "DOCTOR";
@@ -47,6 +49,13 @@ const NAV_ITEMS: NavItem[] = [
     label: "Cita clínica",
     icon: Stethoscope,
     roles: ["DOCTOR"],
+    group: "escritorios",
+  },
+  {
+    href: "/chat",
+    label: "Chat",
+    icon: MessageCircle,
+    roles: ["ADMIN", "SECRETARY", "DOCTOR"],
     group: "escritorios",
   },
   {
@@ -91,31 +100,83 @@ const NAV_ITEMS: NavItem[] = [
     roles: ["ADMIN", "DOCTOR"],
     group: "paginas",
   },
+  {
+    href: "/profile",
+    label: "Mi perfil",
+    icon: UserCircle,
+    roles: ["ADMIN", "SECRETARY", "DOCTOR"],
+    group: "paginas",
+  },
 ];
+
+type SidebarProfile = {
+  ok: boolean;
+  clinicLabel?: string;
+  item?: {
+    email: string;
+    firstName: string;
+    lastName: string;
+    image: string | null;
+    role: string;
+  };
+};
+
+function getInitials(firstName: string, lastName: string, email: string) {
+  const seed = `${firstName} ${lastName}`.trim() || email || "MG";
+  return seed
+    .split(/\s+/)
+    .slice(0, 2)
+    .map((part) => part.charAt(0).toUpperCase())
+    .join("");
+}
 
 export default function Sidebar() {
   const pathname = usePathname();
   const [role, setRole] = useState<Role | null>(null);
   const [collapsed, setCollapsed] = useState(false);
-  const [userName, setUserName] = useState<string | null>(null);
-  const [clinicName, setClinicName] = useState<string | null>(null);
+  const [displayName, setDisplayName] = useState("Medigest");
+  const [clinicLabel, setClinicLabel] = useState("Panel clínico");
+  const [email, setEmail] = useState("");
+  const [image, setImage] = useState<string | null>(null);
+  const [initials, setInitials] = useState("MG");
 
   useEffect(() => {
-    const loadMe = async () => {
+    const loadSidebarData = async () => {
       try {
-        const res = await fetch("/api/auth/me", { credentials: "include" });
-        const data = await res.json();
-        if (data.ok) {
-          if (data.session?.role) setRole(data.session.role);
-          if (data.profileName) setUserName(data.profileName);
-          if (data.clinicName) setClinicName(data.clinicName);
+        const res = await fetch("/api/profile/me", {
+          credentials: "include",
+          cache: "no-store",
+        });
+        const data = (await res.json()) as SidebarProfile;
+
+        if (!data.ok || !data.item) {
+          setRole(null);
+          return;
         }
+
+        setRole(data.item.role as Role);
+        setEmail(data.item.email);
+        setImage(data.item.image ?? null);
+        setDisplayName(`${data.item.firstName} ${data.item.lastName}`.trim() || data.item.email);
+        setClinicLabel(data.clinicLabel ?? "Sede actual");
+        setInitials(getInitials(data.item.firstName, data.item.lastName, data.item.email));
       } catch {
         setRole(null);
       }
     };
 
-    loadMe();
+    const handleProfileUpdated = () => {
+      void loadSidebarData();
+    };
+
+    void loadSidebarData();
+    window.addEventListener("profile-updated", handleProfileUpdated);
+    window.addEventListener("focus", handleProfileUpdated);
+
+    return () => {
+      window.removeEventListener("profile-updated", handleProfileUpdated);
+      window.removeEventListener("focus", handleProfileUpdated);
+    };
   }, []);
 
   const handleChangeClinic = async () => {
@@ -168,18 +229,27 @@ export default function Sidebar() {
       }`}
     >
       <div className="flex items-center gap-3 px-2">
-        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-slate-200 text-sm font-semibold text-slate-700">
-          {userName ? userName.charAt(0).toUpperCase() : "MG"}
-        </div>
+        {image ? (
+          <img
+            src={image}
+            alt={displayName}
+            className="h-10 w-10 shrink-0 rounded-full object-cover"
+          />
+        ) : (
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-slate-200 text-sm font-semibold text-slate-700">
+            {initials}
+          </div>
+        )}
 
         {!collapsed && (
           <div className="min-w-0 flex-1">
             <p className="truncate text-sm font-semibold text-slate-900">
-              {userName ?? "Medigest"}
+              {displayName}
             </p>
             <p className="truncate text-xs text-slate-500">
-              {clinicName ?? "Panel clínico"}
+              {clinicLabel}
             </p>
+            {email ? <p className="truncate text-[11px] text-slate-400">{email}</p> : null}
           </div>
         )}
 
