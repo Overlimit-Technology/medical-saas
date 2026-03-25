@@ -5,7 +5,6 @@ import {
   CalendarDays,
   Clock,
   CheckCircle2,
-  XCircle,
   AlertCircle,
   Pill,
   RefreshCw,

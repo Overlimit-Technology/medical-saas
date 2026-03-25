@@ -174,11 +174,11 @@ export async function GET() {
     const revenue = Number(monthPayments._sum.amount ?? 0);
     const prevRevenue = Number(prevMonthPayments._sum.amount ?? 0);
 
-    function delta(current: number, previous: number): string {
+    const delta = (current: number, previous: number): string => {
       if (previous === 0) return current > 0 ? "+100%" : "0%";
       const pct = ((current - previous) / previous) * 100;
       return `${pct >= 0 ? "+" : ""}${pct.toFixed(1)}%`;
-    }
+    };
 
     const todayScheduled = todayAppointments - todayCompleted - todayNoShow - todayCancelled;
     const attendanceRate =
