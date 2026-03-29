@@ -48,14 +48,6 @@ export default function AppointmentDetailPage() {
           </h1>
         </div>
         <div className="flex items-center gap-2">
-          {appointment && (
-            <Link
-              href={`/clinical-visits?appointmentId=${appointment.id}&patientId=${appointment.patientId}`}
-              className="rounded-full bg-slate-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-slate-800"
-            >
-              Iniciar cita clínica
-            </Link>
-          )}
           <Link
             href="/agenda"
             className="rounded-full border border-slate-200 px-4 py-2 text-sm text-slate-600 hover:bg-slate-100"
@@ -98,6 +90,7 @@ export default function AppointmentDetailPage() {
           appointmentId={appointment.id}
           patientId={appointment.patientId}
           patientName={`${appointment.patient.firstName} ${appointment.patient.lastName}`}
+          doctorName={appointment.doctor.profile ? `${appointment.doctor.profile.firstName} ${appointment.doctor.profile.lastName}` : "Doctor"}
         />
       )}
     </div>
@@ -108,10 +101,12 @@ function ClinicalRecordsSection({
   appointmentId,
   patientId,
   patientName,
+  doctorName,
 }: {
   appointmentId: string;
   patientId: string;
   patientName: string;
+  doctorName: string;
 }) {
   const { state, actions } = useClinicalRecordsViewModel(appointmentId, patientId);
 
@@ -145,6 +140,8 @@ function ClinicalRecordsSection({
           saving={state.saving}
           apiError={state.apiError}
           isEdit={Boolean(state.editingRecord)}
+          patientName={patientName}
+          doctorName={doctorName}
           onFieldChange={actions.setFieldValue}
           onSubmit={actions.handleSubmit}
           onCancel={actions.closeForm}

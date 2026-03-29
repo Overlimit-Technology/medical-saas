@@ -247,6 +247,17 @@ model Clinic {
   fhirLinks       FhirLink[]
   formTemplates   FormTemplate[]
   clinicalRecords ClinicalRecord[]
+  settings        ClinicSettings?
+}
+
+model ClinicSettings {
+  id           String   @id @default(cuid())
+  clinicId     String   @unique
+  statusColors Json?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  clinic Clinic @relation(fields: [clinicId], references: [id], onDelete: Cascade)
 }
 
 model ClinicMembership {

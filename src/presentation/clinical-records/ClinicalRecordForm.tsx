@@ -1,5 +1,8 @@
 "use client";
 
+import { useState } from "react";
+import RecordPreview from "./RecordPreview";
+
 type FieldDef = {
   id: string;
   label: string;
@@ -16,6 +19,8 @@ type Props = {
   saving: boolean;
   apiError: string | null;
   isEdit: boolean;
+  patientName: string;
+  doctorName: string;
   onFieldChange: (fieldId: string, value: string) => void;
   onSubmit: (e: React.FormEvent) => void;
   onCancel: () => void;
@@ -28,52 +33,79 @@ export default function ClinicalRecordForm({
   saving,
   apiError,
   isEdit,
+  patientName,
+  doctorName,
   onFieldChange,
   onSubmit,
   onCancel,
 }: Props) {
+  const [showPreview, setShowPreview] = useState(false);
   const sortedFields = [...fields].sort((a, b) => a.position - b.position);
 
   return (
     <div className="rounded-2xl border border-slate-100 bg-white p-6 shadow-sm">
-      <h3 className="text-lg font-semibold text-slate-900">
-        {isEdit ? "Editar ficha" : "Nueva ficha"}: {templateName}
-      </h3>
+      <div className="flex items-center justify-between">
+        <h3 className="text-lg font-semibold text-slate-900">
+          {isEdit ? "Editar ficha" : "Nueva ficha"}: {templateName}
+        </h3>
+        <label className="flex items-center gap-2 cursor-pointer text-sm text-slate-600">
+          <input
+            type="checkbox"
+            checked={showPreview}
+            onChange={() => setShowPreview((p) => !p)}
+            className="rounded"
+          />
+          Previsualización
+        </label>
+      </div>
 
-      <form onSubmit={onSubmit} className="mt-4 grid gap-4">
-        {sortedFields.map((field) => (
-          <div key={field.id}>
-            <label className="mb-1 block text-[11px] font-medium uppercase tracking-wider text-slate-400">
-              {field.label}
-              {field.isRequired && <span className="text-rose-400"> *</span>}
-            </label>
-            {renderField(field, values[field.id] ?? "", onFieldChange)}
+      <div className={`mt-4 ${showPreview ? "flex gap-6 items-start" : ""}`}>
+        <form onSubmit={onSubmit} className={`grid gap-4 ${showPreview ? "w-1/2 min-w-0" : "w-full"}`}>
+          {sortedFields.map((field) => (
+            <div key={field.id}>
+              <label className="mb-1 block text-[11px] font-medium uppercase tracking-wider text-slate-400">
+                {field.label}
+                {field.isRequired && <span className="text-rose-400"> *</span>}
+              </label>
+              {renderField(field, values[field.id] ?? "", onFieldChange)}
+            </div>
+          ))}
+
+          {apiError && (
+            <div className="animate-fade-in rounded-xl border border-rose-200 bg-rose-50 px-3.5 py-2.5 text-sm text-rose-600">
+              {apiError}
+            </div>
+          )}
+
+          <div className="mt-2 flex gap-3">
+            <button
+              type="button"
+              onClick={onCancel}
+              className="flex-1 rounded-full border border-slate-200 py-2.5 text-sm font-medium text-slate-600 transition-colors hover:border-slate-300 hover:text-slate-800"
+            >
+              Cancelar
+            </button>
+            <button
+              type="submit"
+              disabled={saving}
+              className="flex-1 rounded-full bg-slate-900 py-2.5 text-sm font-semibold text-white transition-all hover:bg-slate-800 hover:shadow-lg hover:shadow-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-400 disabled:shadow-none"
+            >
+              {saving ? "Guardando..." : isEdit ? "Actualizar" : "Guardar"}
+            </button>
           </div>
-        ))}
-
-        {apiError && (
-          <div className="animate-fade-in rounded-xl border border-rose-200 bg-rose-50 px-3.5 py-2.5 text-sm text-rose-600">
-            {apiError}
+        </form>
+        {showPreview && (
+          <div className="w-1/2 min-w-0">
+            <RecordPreview
+              templateName={templateName}
+              fields={fields}
+              values={values}
+              patientName={patientName}
+              doctorName={doctorName}
+            />
           </div>
         )}
-
-        <div className="mt-2 flex gap-3">
-          <button
-            type="button"
-            onClick={onCancel}
-            className="flex-1 rounded-full border border-slate-200 py-2.5 text-sm font-medium text-slate-600 transition-colors hover:border-slate-300 hover:text-slate-800"
-          >
-            Cancelar
-          </button>
-          <button
-            type="submit"
-            disabled={saving}
-            className="flex-1 rounded-full bg-slate-900 py-2.5 text-sm font-semibold text-white transition-all hover:bg-slate-800 hover:shadow-lg hover:shadow-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-400 disabled:shadow-none"
-          >
-            {saving ? "Guardando..." : isEdit ? "Actualizar" : "Guardar"}
-          </button>
-        </div>
-      </form>
+      </div>
     </div>
   );
 }

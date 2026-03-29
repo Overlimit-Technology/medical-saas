@@ -138,7 +138,7 @@ export default function Login() {
         {/* Footer pequeño opcional */}
         <div className="mt-6 text-center">
           <p className="text-[11px] text-neutral-400">
-            © {new Date().getFullYear()} MediGest. Todos los derechos reservados.
+            © {new Date().getFullYear()} Zensya. Todos los derechos reservados.
           </p>
         </div>
       </div>

@@ -2,6 +2,15 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import InfoBanner from "./components/InfoBanner";
+import StatusColorsModal from "./StatusColorsModal";
+import {
+  APPOINTMENT_STATUSES,
+  resolveStatusColors,
+  getCardClasses,
+  STATUS_LABELS,
+  type AppointmentStatus as AgendaAppointmentStatus,
+  type StatusColorMap,
+} from "./statusColors";
 
 type Appointment = {
   id: string;
@@ -10,7 +19,7 @@ type Appointment = {
   boxId: string;
   startAt: string;
   endAt: string;
-  status: string;
+  status: AgendaAppointmentStatus;
   notes?: string | null;
   patient: { firstName: string; lastName: string; email?: string | null; phone?: string | null };
   doctor: { profile?: { firstName: string; lastName: string } | null };
@@ -36,7 +45,7 @@ const SLOT_HEIGHT = 22;
 const SERVICE_OPTIONS = ["Consulta general", "Control", "Telemedicina", "Procedimiento"];
 const NOTE_MAX_LENGTH = 250;
 const CANCEL_REASON_MAX_LENGTH = 250;
-const FINALIZE_CONFIRM_TEXT = "CITA FINALIZADA";
+const HIDDEN_APPOINTMENT_STATUSES: AgendaAppointmentStatus[] = [];
 
 // Retorna el lunes correspondiente a la fecha indicada (hora 00:00).
 function startOfWeek(date: Date) {
@@ -80,12 +89,17 @@ function minutesToLabel(minutes: number) {
   return rest === 0 ? `${hours} h` : `${hours} h ${rest} min`;
 }
 
+function isVisibleAgendaStatus(status: AgendaAppointmentStatus) {
+  return !HIDDEN_APPOINTMENT_STATUSES.includes(status);
+}
+
 // Página principal con la agenda semanal interactiva.
 export default function Agenda() {
   const [role, setRole] = useState<string | null>(null);
   const [roleLoading, setRoleLoading] = useState(true);
   const isDoctor = role === "DOCTOR";
-  const canEdit = role !== "DOCTOR";
+  const canEdit = role === "ADMIN" || role === "SECRETARY";
+  const canChangeStatus = role === "ADMIN" || role === "SECRETARY" || role === "DOCTOR";
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [patients, setPatients] = useState<Patient[]>([]);
   const [doctors, setDoctors] = useState<Doctor[]>([]);
@@ -105,11 +119,14 @@ export default function Agenda() {
   const [cancelConfirm, setCancelConfirm] = useState(false);
   const [cancelling, setCancelling] = useState(false);
   const [cancelReason, setCancelReason] = useState("");
-  const [finalizeConfirm, setFinalizeConfirm] = useState(false);
-  const [finalizing, setFinalizing] = useState(false);
-  const [finalizeChecked, setFinalizeChecked] = useState(false);
-  const [finalizePhrase, setFinalizePhrase] = useState("");
+  const [cancelTargetAppointment, setCancelTargetAppointment] = useState<Appointment | null>(null);
+  const [statusModalOpen, setStatusModalOpen] = useState(false);
+  const [selectedStatus, setSelectedStatus] = useState<AgendaAppointmentStatus | "">("");
+  const [statusUpdating, setStatusUpdating] = useState(false);
   const [now, setNow] = useState(() => new Date());
+  const [statusColorOverrides, setStatusColorOverrides] = useState<StatusColorMap | null>(null);
+  const [showColorSettings, setShowColorSettings] = useState(false);
+  const resolvedColors = useMemo(() => resolveStatusColors(statusColorOverrides), [statusColorOverrides]);
   const [form, setForm] = useState({
     patientId: "",
     patientFirstName: "",
@@ -155,7 +172,7 @@ export default function Agenda() {
   }, []);
 
   // Obtiene citas de la semana visible y filtra canceladas/finalizadas.
-  const loadAgenda = async () => {
+  const loadAgenda = useCallback(async () => {
     const from = new Date(weekStart);
     const to = new Date(weekStart);
     to.setDate(to.getDate() + 7);
@@ -163,11 +180,11 @@ export default function Agenda() {
     const data = await res.json();
     if (data.ok) {
       const visible = (data.items ?? []).filter(
-        (item: Appointment) => item.status !== "CANCELLED" && item.status !== "COMPLETED"
+        (item: Appointment) => isVisibleAgendaStatus(item.status)
       );
       setAppointments(visible);
     }
-  };
+  }, [weekStart]);
 
   // Carga listas de pacientes, doctores y boxes para los selects.
   const loadLookups = async () => {
@@ -184,12 +201,21 @@ export default function Agenda() {
     if (boxesData.ok) setBoxes(boxesData.items ?? []);
   };
 
+  const loadStatusColors = async () => {
+    try {
+      const res = await fetch("/api/clinic-settings/status-colors");
+      const data = await res.json();
+      if (data.ok) setStatusColorOverrides(data.item ?? null);
+    } catch { /* use defaults */ }
+  };
+
   useEffect(() => {
-    loadAgenda();
-  }, [weekStart]);
+    void loadAgenda();
+  }, [loadAgenda]);
 
   useEffect(() => {
     loadLookups();
+    loadStatusColors();
   }, []);
 
   useEffect(() => {
@@ -224,10 +250,10 @@ export default function Agenda() {
     setCancelConfirm(false);
     setCancelling(false);
     setCancelReason("");
-    setFinalizeConfirm(false);
-    setFinalizing(false);
-    setFinalizeChecked(false);
-    setFinalizePhrase("");
+    setCancelTargetAppointment(null);
+    setStatusModalOpen(false);
+    setSelectedStatus("");
+    setStatusUpdating(false);
   };
 
   // Prepara el formulario para crear cita en el rango seleccionado.
@@ -378,6 +404,8 @@ export default function Agenda() {
   // Muestra detalles rápidos al hacer clic en una cita.
   const handleAppointmentClick = (item: Appointment) => {
     setDetailAppointment(item);
+    setStatusModalOpen(false);
+    setSelectedStatus("");
     setErrorMessage(null);
   };
 
@@ -461,8 +489,8 @@ export default function Agenda() {
 
   // Cancela la cita seleccionada tras confirmación.
   const handleCancelAppointment = async () => {
-    if (!editingId) return;
-    if (!canEdit) return;
+    if (!cancelTargetAppointment) return;
+    if (!canChangeStatus) return;
     const cleanReason = cancelReason.slice(0, CANCEL_REASON_MAX_LENGTH).trim();
     if (!cleanReason) {
       setErrorMessage("Ingresa un motivo de cancelacion.");
@@ -470,7 +498,7 @@ export default function Agenda() {
     }
     setCancelling(true);
     setErrorMessage(null);
-    const res = await fetch(`/api/appointments/${editingId}`, {
+    const res = await fetch(`/api/appointments/${cancelTargetAppointment.id}`, {
       method: "DELETE",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ reason: cleanReason, cancelledBy: "STAFF" }),
@@ -482,46 +510,62 @@ export default function Agenda() {
       return;
     }
     setCancelling(false);
-    setAppointments((prev) => prev.filter((item) => item.id !== editingId));
+    setAppointments((prev) => prev.filter((item) => item.id !== cancelTargetAppointment.id));
     resetModal();
   };
 
-  // Finaliza una cita (COMPLETED) con doble verificacion en modal.
-  const handleFinalizeAppointment = async () => {
+  const handleStatusUpdate = async () => {
     if (!detailAppointment) return;
-    if (!canEdit) return;
-
-    const endAt = new Date(detailAppointment.endAt);
-    if (endAt.getTime() > Date.now()) {
-      setErrorMessage("Solo puedes finalizar una cita cuando su horario ya termino.");
+    if (!canChangeStatus) return;
+    if (!selectedStatus) {
+      setErrorMessage("Selecciona un estado.");
+      return;
+    }
+    if (selectedStatus === detailAppointment.status) {
+      setErrorMessage("Selecciona un estado distinto al actual.");
+      return;
+    }
+    if (selectedStatus === "CANCELLED") {
+      setStatusModalOpen(false);
+      setCancelReason("");
+      setCancelTargetAppointment(detailAppointment);
+      setCancelConfirm(true);
+      setErrorMessage(null);
       return;
     }
 
-    const typedPhrase = finalizePhrase.trim().toUpperCase();
-    if (!finalizeChecked || typedPhrase !== FINALIZE_CONFIRM_TEXT) {
-      setErrorMessage("Debes completar la doble verificacion para finalizar la cita.");
-      return;
-    }
-
-    setFinalizing(true);
+    setStatusUpdating(true);
     setErrorMessage(null);
 
     const res = await fetch(`/api/appointments/${detailAppointment.id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ status: "COMPLETED" }),
+      body: JSON.stringify({ status: selectedStatus }),
     });
     const data = await res.json();
 
     if (!data.ok) {
-      setErrorMessage(data.error ?? "No se pudo finalizar la cita.");
-      setFinalizing(false);
+      setErrorMessage(data.error ?? "No se pudo actualizar el estado de la cita.");
+      setStatusUpdating(false);
       return;
     }
 
-    setAppointments((prev) => prev.filter((item) => item.id !== detailAppointment.id));
-    setFinalizing(false);
-    resetModal();
+    const nextAppointment = data.item as Appointment;
+
+    if (!isVisibleAgendaStatus(nextAppointment.status)) {
+      setAppointments((prev) => prev.filter((item) => item.id !== detailAppointment.id));
+      setStatusUpdating(false);
+      resetModal();
+      return;
+    }
+
+    setAppointments((prev) =>
+      prev.map((item) => (item.id === nextAppointment.id ? nextAppointment : item))
+    );
+    setDetailAppointment(nextAppointment);
+    setStatusModalOpen(false);
+    setSelectedStatus("");
+    setStatusUpdating(false);
   };
 
   const todayIndex = days.findIndex((day) => day.toDateString() === now.toDateString());
@@ -563,12 +607,22 @@ export default function Agenda() {
             <h1 className="text-xl font-semibold tracking-tight text-slate-900">Calendario</h1>
             {isDoctor && (
               <span className="inline-flex rounded-full bg-amber-50 px-3 py-0.5 text-xs font-semibold text-amber-700">
-                Solo lectura
+                Sin edición de agenda
               </span>
             )}
           </div>
 
           <div className="flex items-center gap-2 text-sm">
+            {role === "ADMIN" && (
+              <button
+                type="button"
+                onClick={() => setShowColorSettings(true)}
+                className="flex h-8 w-8 items-center justify-center rounded-full text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600"
+                title="Colores de estado"
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.9 0 1.7-.1 2.5-.3C13.6 20.4 13 18.8 13 17c0-3.3 2.7-6 6-6 1.8 0 3.4.6 4.7 1.5.2-.8.3-1.6.3-2.5C24 6.5 19.5 2 14 2z" /><circle cx="7.5" cy="11.5" r="1.5" /><circle cx="12" cy="7.5" r="1.5" /><circle cx="16.5" cy="11.5" r="1.5" /></svg>
+              </button>
+            )}
             <button
               className="rounded-full border border-slate-200 px-3 py-1 font-medium text-slate-600 transition-colors hover:border-slate-300 hover:text-slate-800"
               onClick={() => setWeekStart(startOfWeek(new Date()))}
@@ -757,6 +811,7 @@ export default function Agenda() {
             );
             const doctorInitial = item.doctor.profile?.firstName?.charAt(0)?.toUpperCase() ?? "?";
             const isLarge = durationSlots >= 3;
+            const colors = getCardClasses(item.status, resolvedColors);
 
             return (
               <div
@@ -782,19 +837,19 @@ export default function Agenda() {
                   }}
                   onClick={() => handleAppointmentClick(item)}
                   onPointerDown={(event) => event.stopPropagation()}
-                  className={`group flex h-full flex-col overflow-hidden rounded-lg border border-blue-100/80 bg-blue-50/90 px-2 py-1.5 transition-all duration-200 hover:-translate-y-0.5 hover:border-blue-200 hover:bg-blue-100/70 hover:shadow-md hover:shadow-blue-100/60 ${
+                  className={`group flex h-full flex-col overflow-hidden rounded-lg border ${colors.card} px-2 py-1.5 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md ${colors.shadow} ${
                     canEdit ? "cursor-grab active:cursor-grabbing" : "cursor-pointer"
                   } ${draggingId && draggingId !== item.id ? "pointer-events-none opacity-40" : ""}`}
                 >
                   <p className="truncate text-[11px] font-semibold leading-tight text-slate-700">
                     {`${item.patient.firstName} ${item.patient.lastName}`}
                   </p>
-                  <p className="mt-0.5 truncate text-[10px] text-blue-400">
+                  <p className={`mt-0.5 truncate text-[10px] ${colors.time}`}>
                     {formatTimeLabel(start)} - {formatTimeLabel(end)}
                   </p>
                   {isLarge && (
                     <div className="mt-auto flex -space-x-1 pt-1">
-                      <div className="flex h-5 w-5 items-center justify-center rounded-full bg-blue-200/80 text-[9px] font-semibold text-blue-700 ring-1 ring-white">
+                      <div className={`flex h-5 w-5 items-center justify-center rounded-full ${colors.badge} text-[9px] font-semibold ring-1 ring-white`}>
                         {doctorInitial}
                       </div>
                     </div>
@@ -970,6 +1025,8 @@ export default function Agenda() {
                   type="button"
                   onClick={() => {
                     if (editingId) {
+                      const item = appointments.find((appointment) => appointment.id === editingId) ?? null;
+                      setCancelTargetAppointment(item);
                       setCancelReason("");
                       setErrorMessage(null);
                       setCancelConfirm(true);
@@ -1038,6 +1095,12 @@ export default function Agenda() {
                   {new Date(detailAppointment.startAt).toLocaleDateString("es-CL")}
                 </span>
               </div>
+              <div className="flex items-center gap-3 rounded-xl bg-slate-50/60 px-3.5 py-2.5">
+                <span className="text-slate-400">Estado</span>
+                <span className="ml-auto font-medium text-slate-700">
+                  {STATUS_LABELS[detailAppointment.status]}
+                </span>
+              </div>
               <div className="rounded-xl bg-slate-50/60 px-3.5 py-2.5">
                 <span className="text-slate-400">Descripción</span>
                 <p className="mt-1 font-medium text-slate-700">
@@ -1046,6 +1109,12 @@ export default function Agenda() {
               </div>
             </div>
 
+            {errorMessage && (
+              <div className="mt-4 animate-fade-in rounded-xl border border-rose-200 bg-rose-50 px-3.5 py-2.5 text-sm text-rose-600">
+                {errorMessage}
+              </div>
+            )}
+
             <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:justify-between">
               <a
                 href={`/appointments/${detailAppointment.id}`}
@@ -1053,31 +1122,34 @@ export default function Agenda() {
               >
                 Ficha clínica
               </a>
-              {canEdit && (
+              {(canChangeStatus || canEdit) && (
                 <div className="flex gap-3">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setFinalizeConfirm(true);
-                      setFinalizeChecked(false);
-                      setFinalizePhrase("");
-                      setErrorMessage(null);
-                    }}
-                    className="rounded-full border border-emerald-200 px-4 py-2.5 text-sm font-semibold text-emerald-700 transition-colors hover:border-emerald-300 hover:bg-emerald-50"
-                  >
-                    Finalizacion
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const item = detailAppointment;
-                      resetModal();
-                      openEditModal(item);
-                    }}
-                    className="rounded-full bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white transition-all hover:bg-slate-800 hover:shadow-lg hover:shadow-slate-900/20"
-                  >
-                    Editar
-                  </button>
+                  {canChangeStatus && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSelectedStatus(detailAppointment.status);
+                        setStatusModalOpen(true);
+                        setErrorMessage(null);
+                      }}
+                      className="rounded-full border border-emerald-200 px-4 py-2.5 text-sm font-semibold text-emerald-700 transition-colors hover:border-emerald-300 hover:bg-emerald-50"
+                    >
+                      Estado de Cita
+                    </button>
+                  )}
+                  {canEdit && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const item = detailAppointment;
+                        resetModal();
+                        openEditModal(item);
+                      }}
+                      className="rounded-full bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white transition-all hover:bg-slate-800 hover:shadow-lg hover:shadow-slate-900/20"
+                    >
+                      Editar
+                    </button>
+                  )}
                 </div>
               )}
             </div>
@@ -1085,44 +1157,35 @@ export default function Agenda() {
         </div>
       )}
 
-      {/* ── Modal: Finalizar cita ── */}
-      {finalizeConfirm && detailAppointment && (
+      {/* ── Modal: Estado de cita ── */}
+      {statusModalOpen && detailAppointment && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div
             className="absolute inset-0 bg-slate-900/30 backdrop-blur-sm transition-opacity"
             onClick={() => {
-              setFinalizeConfirm(false);
-              setFinalizeChecked(false);
-              setFinalizePhrase("");
+              setStatusModalOpen(false);
+              setSelectedStatus("");
               setErrorMessage(null);
             }}
           />
           <div className="relative w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl shadow-slate-900/10 animate-modal-in">
-            <h3 className="text-lg font-semibold text-slate-900">Finalizar cita</h3>
+            <h3 className="text-lg font-semibold text-slate-900">Estado de Cita</h3>
             <p className="mt-2 text-sm text-slate-500">
-              Esta accion marcara la cita como finalizada y la quitara de la agenda visible.
-            </p>
-            <p className="mt-2 text-sm text-slate-500">
-              Doble verificacion: marca la confirmacion y escribe <span className="font-semibold text-slate-700">{FINALIZE_CONFIRM_TEXT}</span>.
+              Estado actual: <span className="font-semibold text-slate-700">{STATUS_LABELS[detailAppointment.status]}</span>.
             </p>
 
-            <label className="mt-4 flex items-start gap-2.5 text-sm text-slate-600">
-              <input
-                type="checkbox"
-                checked={finalizeChecked}
-                onChange={(event) => setFinalizeChecked(event.target.checked)}
-                className="mt-1 h-4 w-4 rounded border-slate-300 text-blue-500 focus:ring-blue-200"
-              />
-              Confirmo que la atencion de esta cita fue realizada.
-            </label>
-
-            <input
-              type="text"
-              value={finalizePhrase}
-              onChange={(event) => setFinalizePhrase(event.target.value)}
-              placeholder={`Escribe: ${FINALIZE_CONFIRM_TEXT}`}
-              className="mt-3 w-full rounded-xl border border-slate-200 bg-slate-50/40 px-3.5 py-2.5 text-sm transition-colors focus:border-blue-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-100"
-            />
+            <select
+              value={selectedStatus}
+              onChange={(event) => setSelectedStatus(event.target.value as AgendaAppointmentStatus)}
+              className="mt-4 w-full rounded-xl border border-slate-200 bg-slate-50/40 px-3.5 py-2.5 text-sm transition-colors focus:border-blue-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-100"
+            >
+              <option value="">Selecciona un estado</option>
+              {APPOINTMENT_STATUSES.map((status) => (
+                <option key={status} value={status}>
+                  {STATUS_LABELS[status]}
+                </option>
+              ))}
+            </select>
 
             {errorMessage && (
               <div className="mt-4 animate-fade-in rounded-xl border border-rose-200 bg-rose-50 px-3.5 py-2.5 text-sm text-rose-600">
@@ -1134,26 +1197,21 @@ export default function Agenda() {
               <button
                 type="button"
                 onClick={() => {
-                  setFinalizeConfirm(false);
-                  setFinalizeChecked(false);
-                  setFinalizePhrase("");
+                  setStatusModalOpen(false);
+                  setSelectedStatus("");
                   setErrorMessage(null);
                 }}
                 className="rounded-full border border-slate-200 px-4 py-2.5 text-sm font-medium text-slate-600 transition-colors hover:border-slate-300 hover:text-slate-800"
               >
-                Cancelar
+                Volver
               </button>
               <button
                 type="button"
-                onClick={handleFinalizeAppointment}
+                onClick={handleStatusUpdate}
                 className="rounded-full bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white transition-all hover:bg-emerald-700 hover:shadow-lg hover:shadow-emerald-600/20 disabled:cursor-not-allowed disabled:bg-emerald-300 disabled:shadow-none"
-                disabled={
-                  finalizing ||
-                  !finalizeChecked ||
-                  finalizePhrase.trim().toUpperCase() !== FINALIZE_CONFIRM_TEXT
-                }
+                disabled={statusUpdating || !selectedStatus || selectedStatus === detailAppointment.status}
               >
-                {finalizing ? "Finalizando..." : "Finalizar cita"}
+                {statusUpdating ? "Actualizando..." : "Actualizar estado"}
               </button>
             </div>
           </div>
@@ -1168,14 +1226,16 @@ export default function Agenda() {
             onClick={() => {
               setCancelConfirm(false);
               setCancelReason("");
+              setCancelTargetAppointment(null);
               setErrorMessage(null);
             }}
           />
           <div className="relative w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl shadow-slate-900/10 animate-modal-in">
             <h3 className="text-lg font-semibold text-slate-900">Cancelar cita</h3>
             <p className="mt-2 text-sm text-slate-500">
-              Esta acción cancelará la cita de {form.patientFirstName} {form.patientLastName} y notificará a los
-              responsables correspondientes.
+              Esta acción cancelará la cita de {cancelTargetAppointment?.patient.firstName ?? form.patientFirstName}{" "}
+              {cancelTargetAppointment?.patient.lastName ?? form.patientLastName} y notificará a los responsables
+              correspondientes.
             </p>
             <div className="relative mt-4">
               <textarea
@@ -1200,6 +1260,7 @@ export default function Agenda() {
                 onClick={() => {
                   setCancelConfirm(false);
                   setCancelReason("");
+                  setCancelTargetAppointment(null);
                   setErrorMessage(null);
                 }}
                 className="rounded-full border border-slate-200 px-4 py-2.5 text-sm font-medium text-slate-600 transition-colors hover:border-slate-300 hover:text-slate-800"
@@ -1217,6 +1278,22 @@ export default function Agenda() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* ── Modal: Colores de estado ── */}
+      {showColorSettings && (
+        <StatusColorsModal
+          currentOverrides={statusColorOverrides}
+          onSave={(newOverrides) => {
+            setStatusColorOverrides(newOverrides);
+            setShowColorSettings(false);
+          }}
+          onReset={() => {
+            setStatusColorOverrides(null);
+            setShowColorSettings(false);
+          }}
+          onClose={() => setShowColorSettings(false)}
+        />
       )}
     </div>
   );

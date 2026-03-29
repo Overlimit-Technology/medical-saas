@@ -7,7 +7,6 @@ import type { LucideIcon } from "lucide-react";
 import {
   LayoutGrid,
   CalendarDays,
-  Stethoscope,
   HandCoins,
   Users,
   UserCog,
@@ -42,13 +41,6 @@ const NAV_ITEMS: NavItem[] = [
     label: "Agenda",
     icon: CalendarDays,
     roles: ["ADMIN", "SECRETARY", "DOCTOR"],
-    group: "escritorios",
-  },
-  {
-    href: "/clinical-visits",
-    label: "Cita clínica",
-    icon: Stethoscope,
-    roles: ["DOCTOR"],
     group: "escritorios",
   },
   {
@@ -95,7 +87,7 @@ const NAV_ITEMS: NavItem[] = [
   },
   {
     href: "/form-templates",
-    label: "Plantillas",
+    label: "Fichas Clínicas",
     icon: ClipboardList,
     roles: ["ADMIN", "DOCTOR"],
     group: "paginas",

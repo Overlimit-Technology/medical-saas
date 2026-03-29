@@ -6,6 +6,7 @@ import {
   FIELD_TYPE_LABELS,
   type FieldType,
 } from "./FormTemplatesViewModel";
+import TemplatePreview from "./TemplatePreview";
 
 export default function FormTemplates() {
   const { state, actions } = useFormTemplatesViewModel();
@@ -152,7 +153,7 @@ export default function FormTemplates() {
       {state.isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-slate-900/30 backdrop-blur-sm transition-opacity" onClick={actions.closeModal} />
-          <div className="relative w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl bg-white p-6 shadow-2xl shadow-slate-900/10 animate-modal-in">
+          <div className={`relative w-full ${state.showPreview ? "max-w-6xl" : "max-w-2xl"} max-h-[90vh] overflow-y-auto rounded-2xl bg-white p-6 shadow-2xl shadow-slate-900/10 animate-modal-in`}>
             <div className="mb-6 flex h-14 w-14 items-center justify-center rounded-full bg-slate-100">
               <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-slate-800"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" /><polyline points="17 21 17 13 7 13 7 21" /><polyline points="7 3 7 8 15 8" /></svg>
             </div>
@@ -168,7 +169,18 @@ export default function FormTemplates() {
                 : "Crea una nueva plantilla de ficha clínica con sus campos."}
             </p>
 
-            <form onSubmit={actions.handleSubmit} className="mt-5 grid gap-4">
+            <label className="mt-3 flex items-center gap-2 cursor-pointer text-sm text-slate-600">
+              <input
+                type="checkbox"
+                checked={state.showPreview}
+                onChange={actions.togglePreview}
+                className="rounded"
+              />
+              Previsualización
+            </label>
+
+            <div className={`mt-5 ${state.showPreview ? "flex gap-6 items-start" : ""}`}>
+              <form onSubmit={actions.handleSubmit} className={`grid gap-4 ${state.showPreview ? "w-1/2 min-w-0" : "w-full"}`}>
               <div>
                 <label className="mb-1 block text-[11px] font-medium uppercase tracking-wider text-slate-400">Nombre</label>
                 <input
@@ -277,7 +289,16 @@ export default function FormTemplates() {
                   {state.saving ? "Guardando..." : state.selected ? "Actualizar" : "Guardar"}
                 </button>
               </div>
-            </form>
+              </form>
+              {state.showPreview && (
+                <div className="w-1/2 min-w-0">
+                  <TemplatePreview
+                    templateName={state.form.name || "Nombre de plantilla"}
+                    fields={state.form.fields}
+                  />
+                </div>
+              )}
+            </div>
           </div>
         </div>
       )}

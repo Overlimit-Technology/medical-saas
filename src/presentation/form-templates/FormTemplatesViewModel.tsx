@@ -82,6 +82,7 @@ export function useFormTemplatesViewModel() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<FormTemplate | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [showPreview, setShowPreview] = useState(false);
 
   const filteredItems = useMemo(() => {
     if (!query.trim()) return items;
@@ -175,6 +176,7 @@ export function useFormTemplatesViewModel() {
     setForm(EMPTY_FORM);
     setErrors({});
     setApiError(null);
+    setShowPreview(false);
   };
 
   const handleFieldChange = (key: keyof Pick<FormState, "name" | "description">, value: string) => {
@@ -319,6 +321,7 @@ export function useFormTemplatesViewModel() {
       headerHint,
       isSubmitDisabled,
       hasRecords,
+      showPreview,
     },
     actions: {
       setQuery,
@@ -334,6 +337,7 @@ export function useFormTemplatesViewModel() {
       handleDelete,
       setDeleteTarget,
       dismissDeleteModal,
+      togglePreview: () => setShowPreview((p) => !p),
     },
   };
 }
