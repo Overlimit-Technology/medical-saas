@@ -66,7 +66,7 @@ export class DoctorsService {
       select: { id: true },
     });
     if (existingRut) {
-      throw new Error("El RUT ya está registrado.");
+      throw new Error("El RUN ya está registrado.");
     }
 
     const passwordHash = await hashPassword(input.password);
@@ -117,7 +117,7 @@ export class DoctorsService {
         select: { id: true },
       });
       if (exists) {
-        throw new Error("El RUT ya está registrado.");
+        throw new Error("El RUN ya está registrado.");
       }
 
       await prisma.doctorProfile.update({

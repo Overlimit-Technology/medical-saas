@@ -5,7 +5,7 @@ import { CrmService } from "@/server/crm/CrmService";
 export async function GET() {
   try {
     const session = await requireClinicSession();
-    requireRole(session.role, ["ADMIN", "SECRETARY"]);
+    requireRole(session.role, ["SECRETARY"]);
 
     const items = await CrmService.listTreatments();
     return NextResponse.json({ ok: true, items });

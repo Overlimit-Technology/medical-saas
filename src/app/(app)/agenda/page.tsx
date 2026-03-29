@@ -10,8 +10,16 @@ type Appointment = {
   startAt: string;
   endAt: string;
   status: string;
+  paymentStatus?: "PENDING" | "PAID" | "WAIVED";
   notes?: string | null;
-  patient: { firstName: string; lastName: string; email?: string | null; phone?: string | null };
+  patient: {
+    firstName: string;
+    lastName: string;
+    secondLastName?: string | null;
+    run?: string | null;
+    email?: string | null;
+    phone?: string | null;
+  };
   doctor: { profile?: { firstName: string; lastName: string } | null };
   box: { name: string };
 };
@@ -27,6 +35,46 @@ type Patient = {
 type Doctor = { id: string; profile?: { firstName: string; lastName: string } | null };
 
 type Box = { id: string; name: string };
+
+type Treatment = {
+  id: string;
+  name: string;
+  price: number;
+};
+
+type AgendaView = "agenda" | "dailyCash";
+
+type DailyCashItem = {
+  id: string;
+  recordedAt: string;
+  status: "PENDING" | "PAID" | "WAIVED";
+  amount: number;
+  notes?: string | null;
+  patientName: string;
+  treatmentName: string;
+};
+
+type DailyCashPayload = {
+  ok: boolean;
+  summary?: {
+    totalAmount: number;
+    totalCount: number;
+    paidCount: number;
+    pendingCount: number;
+    waivedCount: number;
+  };
+  items?: DailyCashItem[];
+  error?: string;
+};
+
+type PaymentStatus = "PENDING" | "PAID" | "WAIVED";
+
+type PaymentFormState = {
+  treatmentId: string;
+  status: PaymentStatus;
+  amount: string;
+  notes: string;
+};
 
 const START_HOUR = 0;
 const END_HOUR = 23;
@@ -71,6 +119,37 @@ function formatTimeLabel(date: Date) {
   });
 }
 
+function formatCurrency(value: number) {
+  return new Intl.NumberFormat("es-CL", {
+    style: "currency",
+    currency: "CLP",
+    maximumFractionDigits: 0,
+  }).format(value);
+}
+
+function formatDateTimeLabel(value: string) {
+  return new Intl.DateTimeFormat("es-CL", {
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(new Date(value));
+}
+
+function formatFullDateLabel(value: string) {
+  return new Intl.DateTimeFormat("es-CL", {
+    weekday: "short",
+    day: "2-digit",
+    month: "short",
+  }).format(new Date(value));
+}
+
+function getPatientFullName(patient: Appointment["patient"]) {
+  return [patient.firstName, patient.lastName, patient.secondLastName ?? ""].join(" ").trim();
+}
+
+function getDoctorFullName(doctor: Appointment["doctor"]) {
+  return [doctor.profile?.firstName ?? "", doctor.profile?.lastName ?? ""].join(" ").trim() || "Profesional";
+}
+
 // Convierte minutos en texto legible (ej. 90 -> "1 h 30 min").
 function minutesToLabel(minutes: number) {
   if (minutes < 60) return `${minutes} min`;
@@ -84,11 +163,14 @@ export default function AgendaPage() {
   const [role, setRole] = useState<string | null>(null);
   const [roleLoading, setRoleLoading] = useState(true);
   const isDoctor = role === "DOCTOR";
+  const isSecretary = role === "SECRETARY";
   const canEdit = role !== "DOCTOR";
+  const canManageDailyCash = role === "SECRETARY";
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [patients, setPatients] = useState<Patient[]>([]);
   const [doctors, setDoctors] = useState<Doctor[]>([]);
   const [boxes, setBoxes] = useState<Box[]>([]);
+  const [treatments, setTreatments] = useState<Treatment[]>([]);
   const [weekStart, setWeekStart] = useState(() => startOfWeek(new Date()));
   const [isSelecting, setIsSelecting] = useState(false);
   const [selection, setSelection] = useState<{
@@ -109,6 +191,20 @@ export default function AgendaPage() {
   const [finalizeChecked, setFinalizeChecked] = useState(false);
   const [finalizePhrase, setFinalizePhrase] = useState("");
   const [now, setNow] = useState(() => new Date());
+  const [activeView, setActiveView] = useState<AgendaView>("agenda");
+  const [dailyCashLoading, setDailyCashLoading] = useState(false);
+  const [dailyCashSummary, setDailyCashSummary] = useState<DailyCashPayload["summary"] | null>(null);
+  const [dailyCashItems, setDailyCashItems] = useState<DailyCashItem[]>([]);
+  const [selectedCashAppointment, setSelectedCashAppointment] = useState<Appointment | null>(null);
+  const [cashFormLoading, setCashFormLoading] = useState(false);
+  const [cashFormError, setCashFormError] = useState<string | null>(null);
+  const [cashFormSuccess, setCashFormSuccess] = useState<string | null>(null);
+  const [paymentForm, setPaymentForm] = useState<PaymentFormState>({
+    treatmentId: "",
+    status: "PAID",
+    amount: "",
+    notes: "",
+  });
   const [form, setForm] = useState({
     patientId: "",
     patientFirstName: "",
@@ -154,7 +250,7 @@ export default function AgendaPage() {
   }, []);
 
   // Obtiene citas de la semana visible y filtra canceladas/finalizadas.
-  const loadAgenda = async () => {
+  const loadAgenda = useCallback(async () => {
     const from = new Date(weekStart);
     const to = new Date(weekStart);
     to.setDate(to.getDate() + 7);
@@ -166,7 +262,7 @@ export default function AgendaPage() {
       );
       setAppointments(visible);
     }
-  };
+  }, [weekStart]);
 
   // Carga listas de pacientes, doctores y boxes para los selects.
   const loadLookups = async () => {
@@ -183,13 +279,120 @@ export default function AgendaPage() {
     if (boxesData.ok) setBoxes(boxesData.items ?? []);
   };
 
+  const loadTreatments = useCallback(async () => {
+    if (!canManageDailyCash) {
+      setTreatments([]);
+      return;
+    }
+
+    try {
+      const res = await fetch("/api/crm/treatments", { credentials: "include" });
+      const data = await res.json();
+      if (data.ok) {
+        setTreatments(data.items ?? []);
+        return;
+      }
+    } catch {
+      // Si falla, el panel derecho mostrará estado vacío.
+    }
+
+    setTreatments([]);
+  }, [canManageDailyCash]);
+
+  const loadDailyCash = useCallback(async () => {
+    if (!canManageDailyCash) {
+      setDailyCashSummary(null);
+      setDailyCashItems([]);
+      return;
+    }
+
+    setDailyCashLoading(true);
+
+    const from = new Date();
+    from.setHours(0, 0, 0, 0);
+    const to = new Date(from);
+    to.setDate(to.getDate() + 1);
+
+    try {
+      const res = await fetch(
+        `/api/crm/daily-cash?from=${encodeURIComponent(from.toISOString())}&to=${encodeURIComponent(
+          to.toISOString()
+        )}`,
+        { credentials: "include" }
+      );
+      const data = (await res.json()) as DailyCashPayload;
+
+      if (!data.ok) {
+        setDailyCashSummary(null);
+        setDailyCashItems([]);
+        return;
+      }
+
+      setDailyCashSummary(data.summary ?? null);
+      setDailyCashItems(data.items ?? []);
+    } catch {
+      setDailyCashSummary(null);
+      setDailyCashItems([]);
+    } finally {
+      setDailyCashLoading(false);
+    }
+  }, [canManageDailyCash]);
+
   useEffect(() => {
-    loadAgenda();
-  }, [weekStart]);
+    void loadAgenda();
+  }, [loadAgenda]);
 
   useEffect(() => {
     loadLookups();
   }, []);
+
+  useEffect(() => {
+    void loadTreatments();
+  }, [loadTreatments]);
+
+  useEffect(() => {
+    if (activeView !== "dailyCash") return;
+    void loadDailyCash();
+  }, [activeView, loadDailyCash]);
+
+  useEffect(() => {
+    if (!canManageDailyCash && activeView === "dailyCash") {
+      setActiveView("agenda");
+    }
+  }, [activeView, canManageDailyCash]);
+
+  useEffect(() => {
+    if (cashFormSuccess === null) return;
+    const timeout = window.setTimeout(() => setCashFormSuccess(null), 2800);
+    return () => window.clearTimeout(timeout);
+  }, [cashFormSuccess]);
+
+  useEffect(() => {
+    if (!selectedCashAppointment) return;
+    const nextSelected = appointments.find((item) => item.id === selectedCashAppointment.id) ?? null;
+    if (nextSelected === null) {
+      setSelectedCashAppointment(null);
+      return;
+    }
+    if (nextSelected !== selectedCashAppointment) {
+      setSelectedCashAppointment(nextSelected);
+    }
+  }, [appointments, selectedCashAppointment]);
+
+  useEffect(() => {
+    if (!treatments.length) return;
+    setPaymentForm((prev) => {
+      const selectedTreatment = treatments.find((item) => item.id === prev.treatmentId) ?? treatments[0];
+      if (!selectedTreatment) return prev;
+      const nextAmount = prev.amount.trim() ? prev.amount : `${Math.round(selectedTreatment.price)}`;
+      if (prev.treatmentId === selectedTreatment.id && prev.amount === nextAmount) return prev;
+      return {
+        ...prev,
+        treatmentId: selectedTreatment.id,
+        amount: nextAmount,
+      };
+    });
+  }, [treatments]);
 
   useEffect(() => {
     const id = window.setInterval(() => setNow(new Date()), 60000);
@@ -376,8 +579,101 @@ export default function AgendaPage() {
 
   // Muestra detalles rápidos al hacer clic en una cita.
   const handleAppointmentClick = (item: Appointment) => {
+    if (isSecretary) {
+      const initialTreatment = treatments[0];
+      setSelectedCashAppointment(item);
+      setDetailAppointment(null);
+      setCashFormError(null);
+      setCashFormSuccess(null);
+      setPaymentForm({
+        treatmentId: initialTreatment?.id ?? "",
+        status: item.paymentStatus ?? "PAID",
+        amount: initialTreatment ? `${Math.round(initialTreatment.price)}` : "",
+        notes: (item.notes ?? "").slice(0, NOTE_MAX_LENGTH),
+      });
+      return;
+    }
+
     setDetailAppointment(item);
     setErrorMessage(null);
+  };
+
+  const handleTreatmentChange = (treatmentId: string) => {
+    const treatment = treatments.find((item) => item.id === treatmentId);
+    setPaymentForm((prev) => ({
+      ...prev,
+      treatmentId,
+      amount: treatment ? `${Math.round(treatment.price)}` : prev.amount,
+    }));
+  };
+
+  const handleRegisterPayment = async (event: React.FormEvent) => {
+    event.preventDefault();
+    if (!selectedCashAppointment) {
+      setCashFormError("Selecciona una cita desde la agenda para registrar el movimiento.");
+      return;
+    }
+    if (!paymentForm.treatmentId) {
+      setCashFormError("Selecciona una prestación para registrar en caja diaria.");
+      return;
+    }
+
+    const amount = Number(paymentForm.amount);
+    if (!Number.isFinite(amount) || amount <= 0) {
+      setCashFormError("El monto debe ser mayor que cero.");
+      return;
+    }
+
+    setCashFormLoading(true);
+    setCashFormError(null);
+    setCashFormSuccess(null);
+
+    try {
+      const paymentRes = await fetch("/api/crm/payment-history", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          patientId: selectedCashAppointment.patientId,
+          treatmentId: paymentForm.treatmentId,
+          recordedAt: new Date().toISOString(),
+          performedAt: selectedCashAppointment.startAt,
+          status: paymentForm.status,
+          amount,
+          notes: paymentForm.notes.trim() || null,
+        }),
+      });
+      const paymentData = await paymentRes.json();
+
+      if (!paymentData.ok) {
+        setCashFormError(paymentData.error ?? "No se pudo registrar el movimiento en caja diaria.");
+        setCashFormLoading(false);
+        return;
+      }
+
+      const appointmentRes = await fetch(`/api/appointments/${selectedCashAppointment.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ paymentStatus: paymentForm.status }),
+      });
+      const appointmentData = await appointmentRes.json();
+
+      if (appointmentData.ok) {
+        setAppointments((prev) =>
+          prev.map((item) =>
+            item.id === selectedCashAppointment.id ? { ...item, paymentStatus: paymentForm.status } : item
+          )
+        );
+      }
+
+      await loadDailyCash();
+      setCashFormSuccess("Movimiento enviado a caja diaria.");
+      setActiveView("dailyCash");
+    } catch {
+      setCashFormError("No se pudo registrar el movimiento en caja diaria.");
+    } finally {
+      setCashFormLoading(false);
+    }
   };
 
   // Valida y crea/actualiza una cita según haya id de edición.
@@ -527,6 +823,29 @@ export default function AgendaPage() {
   const isCurrentWeek = todayIndex >= 0 && todayIndex <= 6;
   const isWithinHours = now.getHours() >= START_HOUR && now.getHours() < END_HOUR;
   const nowSlot = Math.max(0, Math.min(slots.length - 1, toSlotIndex(now)));
+  const todayAppointments = useMemo(
+    () => appointments.filter((item) => new Date(item.startAt).toDateString() === now.toDateString()),
+    [appointments, now]
+  );
+  const selectedTreatment = useMemo(
+    () => treatments.find((item) => item.id === paymentForm.treatmentId) ?? null,
+    [paymentForm.treatmentId, treatments]
+  );
+  const paidAmount = useMemo(
+    () =>
+      dailyCashItems.reduce((total, item) => (item.status === "PAID" ? total + item.amount : total), 0),
+    [dailyCashItems]
+  );
+  const pendingAmount = useMemo(
+    () =>
+      dailyCashItems.reduce((total, item) => (item.status === "PENDING" ? total + item.amount : total), 0),
+    [dailyCashItems]
+  );
+  const waivedAmount = useMemo(
+    () =>
+      dailyCashItems.reduce((total, item) => (item.status === "WAIVED" ? total + item.amount : total), 0),
+    [dailyCashItems]
+  );
 
   if (roleLoading) {
     return (
@@ -537,9 +856,88 @@ export default function AgendaPage() {
   }
 
   return (
-    <div className="grid grid-cols-1 gap-6 xl:grid-cols-[2.2fr_1fr]">
+    <div className="space-y-6">
       <div className="rounded-2xl border border-slate-100 bg-white p-6 shadow-sm">
-        <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <p className="text-sm text-slate-500">Agenda</p>
+            <h1 className="text-xl font-semibold text-slate-900">Calendario</h1>
+            {isDoctor && (
+              <span className="mt-2 inline-flex rounded-full bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-700">
+                Solo lectura
+              </span>
+            )}
+          </div>
+
+          {activeView === "agenda" && (
+            <div className="flex items-center gap-2 text-sm">
+              <button
+                className="rounded-full border border-slate-200 px-3 py-1 font-medium text-slate-700 transition hover:border-slate-300"
+                onClick={() => setWeekStart(startOfWeek(new Date()))}
+              >
+                Hoy
+              </button>
+              <div className="flex items-center gap-2 rounded-full border border-slate-200 px-2 py-1">
+                <button
+                  aria-label="Semana anterior"
+                  className="rounded-full px-2 py-1 text-slate-500 transition hover:bg-slate-100"
+                  onClick={() => {
+                    const prev = new Date(weekStart);
+                    prev.setDate(prev.getDate() - 7);
+                    setWeekStart(startOfWeek(prev));
+                  }}
+                >
+                  ←
+                </button>
+                <span className="text-slate-500">Semana</span>
+                <button
+                  aria-label="Semana siguiente"
+                  className="rounded-full px-2 py-1 text-slate-500 transition hover:bg-slate-100"
+                  onClick={() => {
+                    const next = new Date(weekStart);
+                    next.setDate(next.getDate() + 7);
+                    setWeekStart(startOfWeek(next));
+                  }}
+                >
+                  →
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+
+        <div className="mt-5 flex flex-wrap gap-2 border-b border-slate-100 pb-3">
+          <button
+            type="button"
+            onClick={() => setActiveView("agenda")}
+            className={`rounded-full px-4 py-2 text-sm font-medium transition ${
+              activeView === "agenda"
+                ? "bg-slate-900 text-white"
+                : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+            }`}
+          >
+            Agenda
+          </button>
+          {canManageDailyCash && (
+            <button
+              type="button"
+              onClick={() => setActiveView("dailyCash")}
+              className={`rounded-full px-4 py-2 text-sm font-medium transition ${
+                activeView === "dailyCash"
+                  ? "bg-slate-900 text-white"
+                  : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+              }`}
+            >
+              Caja del Dia
+            </button>
+          )}
+        </div>
+      </div>
+
+      {activeView === "agenda" && (
+        <div className="grid grid-cols-1 gap-6 xl:grid-cols-[2.2fr_1fr]">
+      <div className="rounded-2xl border border-slate-100 bg-white p-6 shadow-sm">
+        <div className="hidden">
           <div>
             <p className="text-sm text-slate-500">Agenda</p>
             <h1 className="text-xl font-semibold text-slate-900"> Calendario </h1>
@@ -585,7 +983,7 @@ export default function AgendaPage() {
         </div>
 
         <div
-          className="mt-6 relative text-xs"
+          className="relative text-xs"
           style={{
             display: "grid",
             gridTemplateColumns: "72px repeat(7, minmax(0,1fr))",
@@ -741,7 +1139,11 @@ export default function AgendaPage() {
                   }}
                   onClick={() => handleAppointmentClick(item)}
                   onPointerDown={(event) => event.stopPropagation()}
-                  className={`group flex h-full min-h-[24px] select-none items-center overflow-hidden rounded-lg border border-sky-200 bg-gradient-to-br from-sky-500 to-sky-600 px-2 text-[11px] text-white shadow-lg shadow-sky-500/30 transition hover:-translate-y-0.5 hover:shadow-sky-500/40 ${
+                  className={`group flex h-full min-h-[24px] select-none items-center overflow-hidden rounded-lg border px-2 text-[11px] text-white shadow-lg transition hover:-translate-y-0.5 ${
+                    selectedCashAppointment?.id === item.id
+                      ? "border-amber-300 bg-gradient-to-br from-amber-500 to-orange-500 shadow-amber-500/30 hover:shadow-amber-500/40"
+                      : "border-sky-200 bg-gradient-to-br from-sky-500 to-sky-600 shadow-sky-500/30 hover:shadow-sky-500/40"
+                  } ${
                     canEdit ? "cursor-grab active:cursor-grabbing" : "cursor-pointer"
                   } ${
                     draggingId && draggingId !== item.id ? "pointer-events-none" : ""
@@ -757,42 +1159,349 @@ export default function AgendaPage() {
         </div>
       </div>
 
-      <div className="rounded-2xl border border-slate-100 bg-white p-6 shadow-sm">
-        <div className="flex items-center justify-between">
-          <h2 className="text-lg font-semibold">Tips rápidos</h2>
-          <span className="rounded-full bg-sky-50 px-3 py-1 text-xs font-semibold text-sky-600">
-            {canEdit ? "Arrastra para crear" : "Solo lectura"}
-          </span>
-        </div>
-        <div className="mt-4 space-y-3 text-sm text-slate-600">
-          {canEdit ? (
-            <>
-              <div className="rounded-xl border border-slate-100 bg-slate-50 p-3">
-                Selecciona un bloque de tiempo y suelta para agendar una nueva cita en segundos.
+      <div className="rounded-2xl border border-slate-100 bg-white p-6 shadow-sm xl:sticky xl:top-6">
+        {isSecretary ? (
+          <>
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <p className="text-sm text-slate-500">Registro desde agenda</p>
+                <h2 className="text-lg font-semibold text-slate-900">Caja diaria</h2>
               </div>
-              <div className="rounded-xl border border-slate-100 bg-slate-50 p-3">
-                Haz clic sobre una cita existente para verla o editarla rapidamente.
-              </div>
-              <div className="rounded-xl border border-slate-100 bg-slate-50 p-3">
-                Los horarios se ajustan automaticamente a intervalos de 15 minutos.
-              </div>
-              <div className="rounded-xl border border-slate-100 bg-slate-50 p-3">
-                Los bloques en gris estan fuera de disponibilidad y no se pueden seleccionar.
-              </div>
-            </>
-          ) : (
-            <>
-              <div className="rounded-xl border border-slate-100 bg-slate-50 p-3">
-                Puedes visualizar tus citas asignadas y sus detalles.
-              </div>
-              <div className="rounded-xl border border-slate-100 bg-slate-50 p-3">
-                Para crear o editar citas, contacta a Secretaria o Administracion.
-              </div>
-            </>
-          )}
+              <button
+                type="button"
+                onClick={() => setActiveView("dailyCash")}
+                className="rounded-full border border-slate-200 px-3 py-1 text-xs font-medium text-slate-700 transition hover:border-slate-300"
+              >
+                Ver caja del día
+              </button>
+            </div>
 
-        </div>
+            {!selectedCashAppointment ? (
+              <div className="mt-4 rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-5 text-sm text-slate-500">
+                Selecciona una cita en la agenda y aquí aparecerá el formulario de cobro que se envía directo a caja diaria.
+              </div>
+            ) : (
+              <form onSubmit={handleRegisterPayment} className="mt-4 space-y-4">
+                <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <p className="text-xs uppercase tracking-[0.18em] text-slate-400">Paciente</p>
+                      <p className="mt-1 text-lg font-semibold text-slate-900">
+                        {getPatientFullName(selectedCashAppointment.patient)}
+                      </p>
+                      <p className="mt-1 text-sm text-slate-500">
+                        {getDoctorFullName(selectedCashAppointment.doctor)} · {selectedCashAppointment.box.name}
+                      </p>
+                    </div>
+                    <div className="rounded-xl bg-white px-3 py-2 text-right shadow-sm">
+                      <p className="text-xs uppercase tracking-wide text-slate-400">Hora</p>
+                      <p className="text-sm font-semibold text-slate-900">
+                        {formatTimeLabel(new Date(selectedCashAppointment.startAt))} -{" "}
+                        {formatTimeLabel(new Date(selectedCashAppointment.endAt))}
+                      </p>
+                      <p className="text-xs text-slate-400">{formatFullDateLabel(selectedCashAppointment.startAt)}</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="grid gap-3">
+                  <div>
+                    <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-500">
+                      Prestación
+                    </label>
+                    <select
+                      value={paymentForm.treatmentId}
+                      onChange={(event) => handleTreatmentChange(event.target.value)}
+                      className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
+                    >
+                      {treatments.length === 0 && <option value="">Sin prestaciones</option>}
+                      {treatments.map((treatment) => (
+                        <option key={treatment.id} value={treatment.id}>
+                          {treatment.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <p className="mb-2 text-xs font-medium uppercase tracking-wide text-slate-500">Estado del pago</p>
+                    <div className="grid grid-cols-3 gap-2">
+                      {([
+                        { value: "PAID", label: "Pagado" },
+                        { value: "PENDING", label: "Pendiente" },
+                        { value: "WAIVED", label: "Exento" },
+                      ] as Array<{ value: PaymentStatus; label: string }>).map((option) => (
+                        <button
+                          key={option.value}
+                          type="button"
+                          onClick={() => setPaymentForm((prev) => ({ ...prev, status: option.value }))}
+                          className={`rounded-xl border px-3 py-2 text-sm font-medium transition ${
+                            paymentForm.status === option.value
+                              ? "border-slate-900 bg-slate-900 text-white"
+                              : "border-slate-200 bg-white text-slate-600 hover:border-slate-300"
+                          }`}
+                        >
+                          {option.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-500">
+                      Monto total
+                    </label>
+                    <input
+                      type="number"
+                      min={1}
+                      step="1"
+                      value={paymentForm.amount}
+                      onChange={(event) => setPaymentForm((prev) => ({ ...prev, amount: event.target.value }))}
+                      className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
+                      placeholder={selectedTreatment ? `${Math.round(selectedTreatment.price)}` : "0"}
+                    />
+                    {selectedTreatment && (
+                      <p className="mt-1 text-xs text-slate-400">
+                        Precio base sugerido: {formatCurrency(Math.round(selectedTreatment.price))}
+                      </p>
+                    )}
+                  </div>
+
+                  <div>
+                    <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-500">
+                      Observaciones
+                    </label>
+                    <textarea
+                      value={paymentForm.notes}
+                      maxLength={NOTE_MAX_LENGTH}
+                      onChange={(event) => setPaymentForm((prev) => ({ ...prev, notes: event.target.value }))}
+                      className="min-h-[96px] w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
+                      placeholder="Notas administrativas del pago"
+                    />
+                  </div>
+                </div>
+
+                {cashFormError && (
+                  <div className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-600">
+                    {cashFormError}
+                  </div>
+                )}
+
+                {cashFormSuccess && (
+                  <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-700">
+                    {cashFormSuccess}
+                  </div>
+                )}
+
+                <div className="flex items-center justify-between gap-3">
+                  <button
+                    type="button"
+                    onClick={() => openEditModal(selectedCashAppointment)}
+                    className="rounded-full border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700 transition hover:border-slate-300"
+                  >
+                    Editar cita
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={cashFormLoading || treatments.length === 0}
+                    className="rounded-full bg-emerald-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:bg-slate-300"
+                  >
+                    {cashFormLoading ? "Registrando..." : "Registrar pago"}
+                  </button>
+                </div>
+              </form>
+            )}
+          </>
+        ) : (
+          <>
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-semibold">Tips rápidos</h2>
+              <span className="rounded-full bg-sky-50 px-3 py-1 text-xs font-semibold text-sky-600">
+                {canEdit ? "Arrastra para crear" : "Solo lectura"}
+              </span>
+            </div>
+            <div className="mt-4 space-y-3 text-sm text-slate-600">
+              {canEdit ? (
+                <>
+                  <div className="rounded-xl border border-slate-100 bg-slate-50 p-3">
+                    Selecciona un bloque de tiempo y suelta para agendar una nueva cita en segundos.
+                  </div>
+                  <div className="rounded-xl border border-slate-100 bg-slate-50 p-3">
+                    Haz clic sobre una cita existente para verla o editarla rapidamente.
+                  </div>
+                  <div className="rounded-xl border border-slate-100 bg-slate-50 p-3">
+                    Los horarios se ajustan automaticamente a intervalos de 15 minutos.
+                  </div>
+                  <div className="rounded-xl border border-slate-100 bg-slate-50 p-3">
+                    Los bloques en gris estan fuera de disponibilidad y no se pueden seleccionar.
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="rounded-xl border border-slate-100 bg-slate-50 p-3">
+                    Puedes visualizar tus citas asignadas y sus detalles.
+                  </div>
+                  <div className="rounded-xl border border-slate-100 bg-slate-50 p-3">
+                    Para crear o editar citas, contacta a Secretaria o Administracion.
+                  </div>
+                </>
+              )}
+            </div>
+          </>
+        )}
       </div>
+        </div>
+      )}
+
+      {activeView === "dailyCash" && canManageDailyCash && (
+        <div className="space-y-6">
+          <div className="rounded-2xl border border-slate-100 bg-white p-6 shadow-sm">
+            <div className="flex flex-wrap items-center justify-between gap-4">
+              <div>
+                <p className="text-sm text-slate-500">Caja del Día</p>
+                <h2 className="text-2xl font-semibold text-slate-900">Caja abierta</h2>
+                <p className="mt-1 text-sm text-slate-500">
+                  {dailyCashLoading
+                    ? "Actualizando movimientos..."
+                    : `${dailyCashSummary?.totalCount ?? 0} movimientos registrados hoy.`}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+            <div className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm">
+              <p className="text-xs uppercase tracking-[0.18em] text-slate-400">Saldo actual</p>
+              <p className="mt-2 text-3xl font-semibold text-emerald-600">{formatCurrency(paidAmount)}</p>
+            </div>
+            <div className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm">
+              <p className="text-xs uppercase tracking-[0.18em] text-slate-400">Pendiente por cobrar</p>
+              <p className="mt-2 text-3xl font-semibold text-amber-500">{formatCurrency(pendingAmount)}</p>
+            </div>
+            <div className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm">
+              <p className="text-xs uppercase tracking-[0.18em] text-slate-400">Exentos</p>
+              <p className="mt-2 text-3xl font-semibold text-slate-700">{formatCurrency(waivedAmount)}</p>
+            </div>
+            <div className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm">
+              <p className="text-xs uppercase tracking-[0.18em] text-slate-400">Citas de hoy</p>
+              <p className="mt-2 text-3xl font-semibold text-sky-600">{todayAppointments.length}</p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 gap-6 xl:grid-cols-[1.6fr_1fr]">
+            <div className="rounded-2xl border border-slate-100 bg-white shadow-sm">
+              <div className="border-b border-slate-100 px-6 py-4">
+                <h2 className="text-lg font-semibold text-slate-900">Movimientos del día</h2>
+              </div>
+
+              <div className="overflow-x-auto">
+                <table className="w-full min-w-[640px] text-left text-sm">
+                  <thead className="border-b border-slate-100 text-slate-500">
+                    <tr>
+                      <th className="px-6 py-3 font-medium">HORA</th>
+                      <th className="px-4 py-3 font-medium">TIPO</th>
+                      <th className="px-4 py-3 font-medium">DETALLE</th>
+                      <th className="px-6 py-3 text-right font-medium">MONTO</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {dailyCashLoading && (
+                      <tr>
+                        <td colSpan={4} className="px-6 py-5 text-slate-400">
+                          Cargando movimientos del día...
+                        </td>
+                      </tr>
+                    )}
+                    {!dailyCashLoading && dailyCashItems.length === 0 && (
+                      <tr>
+                        <td colSpan={4} className="px-6 py-5 text-slate-400">
+                          No hay movimientos registrados para hoy.
+                        </td>
+                      </tr>
+                    )}
+                    {!dailyCashLoading &&
+                      dailyCashItems.map((item) => (
+                        <tr key={item.id} className="border-b border-slate-100 last:border-b-0">
+                          <td className="px-6 py-4 text-slate-700">{formatDateTimeLabel(item.recordedAt)}</td>
+                          <td className="px-4 py-4">
+                            <span
+                              className={`rounded-full px-2 py-1 text-xs font-semibold ${
+                                item.status === "PAID"
+                                  ? "bg-emerald-50 text-emerald-700"
+                                  : item.status === "PENDING"
+                                    ? "bg-amber-50 text-amber-700"
+                                    : "bg-slate-100 text-slate-700"
+                              }`}
+                            >
+                              {item.status === "PAID" ? "Ingreso" : item.status === "PENDING" ? "Pendiente" : "Exento"}
+                            </span>
+                          </td>
+                          <td className="px-4 py-4">
+                            <p className="font-medium text-slate-900">{item.treatmentName}</p>
+                            <p className="text-slate-500">{item.patientName}</p>
+                          </td>
+                          <td
+                            className={`px-6 py-4 text-right font-semibold ${
+                              item.status === "PAID"
+                                ? "text-emerald-600"
+                                : item.status === "PENDING"
+                                  ? "text-amber-500"
+                                  : "text-slate-500"
+                            }`}
+                          >
+                            {formatCurrency(item.amount)}
+                          </td>
+                        </tr>
+                      ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <div className="space-y-6">
+              <div className="rounded-2xl border border-slate-100 bg-white shadow-sm">
+                <div className="border-b border-slate-100 px-5 py-4">
+                  <h3 className="font-semibold text-slate-900">Por estado</h3>
+                </div>
+                <div className="space-y-4 px-5 py-4 text-sm">
+                  <div className="flex items-center justify-between">
+                    <span className="text-slate-600">Pagados</span>
+                    <span className="font-semibold text-slate-900">{dailyCashSummary?.paidCount ?? 0}</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-slate-600">Pendientes</span>
+                    <span className="font-semibold text-slate-900">{dailyCashSummary?.pendingCount ?? 0}</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-slate-600">Exentos</span>
+                    <span className="font-semibold text-slate-900">{dailyCashSummary?.waivedCount ?? 0}</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="rounded-2xl border border-slate-100 bg-white shadow-sm">
+                <div className="border-b border-slate-100 px-5 py-4">
+                  <h3 className="font-semibold text-slate-900">Últimos pacientes</h3>
+                </div>
+                <div className="space-y-4 px-5 py-4 text-sm">
+                  {dailyCashItems.slice(0, 5).map((item) => (
+                    <div key={`patient-${item.id}`} className="flex items-center justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="truncate font-medium text-slate-900">{item.patientName}</p>
+                        <p className="truncate text-slate-500">{item.treatmentName}</p>
+                      </div>
+                      <span className="font-semibold text-slate-700">{formatCurrency(item.amount)}</span>
+                    </div>
+                  ))}
+                  {!dailyCashLoading && dailyCashItems.length === 0 && (
+                    <p className="text-slate-400">Todavía no hay pacientes registrados en la caja de hoy.</p>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">

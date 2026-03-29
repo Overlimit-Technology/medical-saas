@@ -10,9 +10,8 @@ const NAV_ITEMS = [
   { href: "/agenda", label: "Agenda", roles: ["ADMIN", "SECRETARY", "DOCTOR"] },
   { href: "/clinical-visits", label: "Cita clinica", roles: ["DOCTOR"] },
   { href: "/chat", label: "Chat", roles: ["ADMIN", "SECRETARY", "DOCTOR"] },
-  { href: "/crm", label: "Gestion de contactos y cobros", roles: ["ADMIN", "SECRETARY"] },
   { href: "/patients", label: "Pacientes", roles: ["ADMIN", "SECRETARY"] },
-  { href: "/doctors", label: "Usuario", roles: ["ADMIN"] },
+  { href: "/usuarios", label: "Usuario", roles: ["ADMIN"] },
   { href: "/treatments", label: "Tratamientos", roles: ["ADMIN", "DOCTOR"] },
   { href: "/boxes", label: "Boxes", roles: ["ADMIN"] },
 ];

@@ -90,6 +90,81 @@ export class CrmService {
     };
   }
 
+  static async getDailyCashSummary(clinicId: string, from: Date, to: Date) {
+    const rows = await prisma.paymentHistory.findMany({
+      where: {
+        recordedAt: {
+          gte: from,
+          lt: to,
+        },
+        patientTreatment: {
+          patient: {
+            clinicId,
+          },
+        },
+      },
+      include: {
+        patientTreatment: {
+          include: {
+            patient: {
+              select: {
+                firstName: true,
+                lastName: true,
+                secondLastName: true,
+              },
+            },
+            treatment: {
+              select: {
+                name: true,
+              },
+            },
+          },
+        },
+      },
+      orderBy: { recordedAt: "desc" },
+    });
+
+    const items = rows.map((row) => {
+      const patientName = [
+        row.patientTreatment.patient.firstName,
+        row.patientTreatment.patient.lastName,
+        row.patientTreatment.patient.secondLastName ?? "",
+      ]
+        .join(" ")
+        .trim();
+
+      return {
+        id: row.id,
+        recordedAt: row.recordedAt,
+        status: row.status,
+        amount: toNumber(row.amount),
+        notes: row.notes,
+        patientName,
+        treatmentName: row.patientTreatment.treatment.name,
+      };
+    });
+
+    const summary = items.reduce(
+      (acc, item) => {
+        acc.totalAmount += item.status === "PAID" ? item.amount : 0;
+        acc.totalCount += 1;
+        if (item.status === "PAID") acc.paidCount += 1;
+        if (item.status === "PENDING") acc.pendingCount += 1;
+        if (item.status === "WAIVED") acc.waivedCount += 1;
+        return acc;
+      },
+      {
+        totalAmount: 0,
+        totalCount: 0,
+        paidCount: 0,
+        pendingCount: 0,
+        waivedCount: 0,
+      }
+    );
+
+    return { summary, items };
+  }
+
   static async createPaymentEntry(input: CreateCrmPaymentInput) {
     const [patient, treatment] = await Promise.all([
       prisma.patient.findFirst({
