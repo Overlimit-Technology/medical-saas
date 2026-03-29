@@ -1,10 +1,12 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { generatePassword } from "@/lib/password";
 import { requireClinicSession, requireRole } from "@/server/auth/requireSession";
 import { resolveClinicLabels } from "@/server/clinics/clinicDisplay";
 import { DoctorsService } from "@/server/doctors/DoctorsService";
+import { sendEmail } from "@/server/notifications/email";
 
 const doctorCreateSchema = z.object({
   email: z.string().email(),
@@ -37,21 +39,39 @@ async function sendWelcomeEmail(
     "Por seguridad, cambia tu contrasena al iniciar sesion.",
   ].join("\n");
 
-  const res = await fetch(new URL("/api/email/send", origin), {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      to: payload.to,
-      subject,
-      text,
-    }),
+  const sent = await sendEmail({
+    origin,
+    to: payload.to,
+    subject,
+    text,
   });
 
-  if (!res.ok) {
-    const data = await res.json().catch(() => null);
-    const detail = data?.error ?? data?.message ?? "No se pudo enviar el correo de bienvenida.";
-    throw new Error(detail);
+  if (!sent.ok) {
+    throw new Error(sent.error);
   }
+}
+
+function getDoctorCreationErrorMessage(error: unknown) {
+  if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
+    const target = Array.isArray(error.meta?.target)
+      ? error.meta.target.join(", ").toLowerCase()
+      : String(error.meta?.target ?? "").toLowerCase();
+
+    if (target.includes("email")) {
+      return "Ya existe un usuario con ese correo.";
+    }
+    if (target.includes("rut")) {
+      return "El RUN ya está registrado.";
+    }
+
+    return "Ya existe un doctor con esos datos.";
+  }
+
+  if (error instanceof Error) {
+    return error.message;
+  }
+
+  return "No se pudo crear el doctor.";
 }
 
 export async function GET() {
@@ -78,7 +98,7 @@ export async function POST(req: Request) {
     const body = await req.json();
     const parsed = doctorCreateSchema.safeParse(body);
     if (!parsed.success) {
-      return NextResponse.json({ ok: false, error: "Datos invalidos." }, { status: 400 });
+      return NextResponse.json({ ok: false, error: "Los datos del doctor no son válidos." }, { status: 400 });
     }
 
     const generatedPassword = generatePassword();
@@ -113,8 +133,10 @@ export async function POST(req: Request) {
 
     return NextResponse.json({ ok: true, item }, { status: 201 });
   } catch (error) {
-    const message = error instanceof Error ? error.message : "No se pudo crear el doctor.";
-    const status = message.toLowerCase().includes("registrado") ? 409 : 400;
+    const message = getDoctorCreationErrorMessage(error);
+    const normalizedMessage = message.toLowerCase();
+    const status =
+      normalizedMessage.includes("registrado") || normalizedMessage.includes("ya existe") ? 409 : 400;
     return NextResponse.json({ ok: false, error: message }, { status });
   }
 }

@@ -38,6 +38,46 @@ type Doctor = { id: string; profile?: { firstName: string; lastName: string } | 
 
 type Box = { id: string; name: string };
 
+type Treatment = {
+  id: string;
+  name: string;
+  price: number;
+};
+
+type AgendaView = "agenda" | "dailyCash";
+
+type PaymentStatus = "PENDING" | "PAID" | "WAIVED";
+
+type DailyCashItem = {
+  id: string;
+  recordedAt: string;
+  status: PaymentStatus;
+  amount: number;
+  notes?: string | null;
+  patientName: string;
+  treatmentName: string;
+};
+
+type DailyCashPayload = {
+  ok: boolean;
+  summary?: {
+    totalAmount: number;
+    totalCount: number;
+    paidCount: number;
+    pendingCount: number;
+    waivedCount: number;
+  };
+  items?: DailyCashItem[];
+  error?: string;
+};
+
+type PaymentFormState = {
+  treatmentId: string;
+  status: PaymentStatus;
+  amount: string;
+  notes: string;
+};
+
 const START_HOUR = 8;
 const END_HOUR = 20;
 const SLOT_MINUTES = 15;
@@ -46,6 +86,11 @@ const SERVICE_OPTIONS = ["Consulta general", "Control", "Telemedicina", "Procedi
 const NOTE_MAX_LENGTH = 250;
 const CANCEL_REASON_MAX_LENGTH = 250;
 const HIDDEN_APPOINTMENT_STATUSES: AgendaAppointmentStatus[] = [];
+const PAYMENT_STATUS_LABELS: Record<PaymentStatus, string> = {
+  PENDING: "Pendiente",
+  PAID: "Pagado",
+  WAIVED: "Exento",
+};
 
 // Retorna el lunes correspondiente a la fecha indicada (hora 00:00).
 function startOfWeek(date: Date) {
@@ -89,6 +134,33 @@ function minutesToLabel(minutes: number) {
   return rest === 0 ? `${hours} h` : `${hours} h ${rest} min`;
 }
 
+function formatCurrency(value: number) {
+  return new Intl.NumberFormat("es-CL", {
+    style: "currency",
+    currency: "CLP",
+    maximumFractionDigits: 0,
+  }).format(value);
+}
+
+function formatDateTimeLabel(value: string) {
+  return new Intl.DateTimeFormat("es-CL", {
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(new Date(value));
+}
+
+function formatFullDateLabel(value: string) {
+  return new Intl.DateTimeFormat("es-CL", {
+    weekday: "short",
+    day: "2-digit",
+    month: "short",
+  }).format(new Date(value));
+}
+
+function getPatientFullName(patient: Appointment["patient"]) {
+  return `${patient.firstName} ${patient.lastName}`.trim();
+}
+
 function isVisibleAgendaStatus(status: AgendaAppointmentStatus) {
   return !HIDDEN_APPOINTMENT_STATUSES.includes(status);
 }
@@ -100,11 +172,14 @@ export default function Agenda() {
   const isDoctor = role === "DOCTOR";
   const canEdit = role === "ADMIN" || role === "SECRETARY";
   const canChangeStatus = role === "ADMIN" || role === "SECRETARY" || role === "DOCTOR";
+  const canManageDailyCash = role === "SECRETARY";
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [patients, setPatients] = useState<Patient[]>([]);
   const [doctors, setDoctors] = useState<Doctor[]>([]);
   const [boxes, setBoxes] = useState<Box[]>([]);
+  const [treatments, setTreatments] = useState<Treatment[]>([]);
   const [weekStart, setWeekStart] = useState(() => startOfWeek(new Date()));
+  const [activeView, setActiveView] = useState<AgendaView>("agenda");
   const [isSelecting, setIsSelecting] = useState(false);
   const [selection, setSelection] = useState<{
     dayIndex: number;
@@ -126,6 +201,20 @@ export default function Agenda() {
   const [now, setNow] = useState(() => new Date());
   const [statusColorOverrides, setStatusColorOverrides] = useState<StatusColorMap | null>(null);
   const [showColorSettings, setShowColorSettings] = useState(false);
+  const [dailyCashLoading, setDailyCashLoading] = useState(false);
+  const [dailyCashSummary, setDailyCashSummary] = useState<DailyCashPayload["summary"] | null>(null);
+  const [dailyCashItems, setDailyCashItems] = useState<DailyCashItem[]>([]);
+  const [paymentModalOpen, setPaymentModalOpen] = useState(false);
+  const [paymentSaving, setPaymentSaving] = useState(false);
+  const [paymentError, setPaymentError] = useState<string | null>(null);
+  const [paymentSuccess, setPaymentSuccess] = useState<string | null>(null);
+  const [paymentAppointment, setPaymentAppointment] = useState<Appointment | null>(null);
+  const [paymentForm, setPaymentForm] = useState<PaymentFormState>({
+    treatmentId: "",
+    status: "PAID",
+    amount: "",
+    notes: "",
+  });
   const resolvedColors = useMemo(() => resolveStatusColors(statusColorOverrides), [statusColorOverrides]);
   const [form, setForm] = useState({
     patientId: "",
@@ -209,6 +298,69 @@ export default function Agenda() {
     } catch { /* use defaults */ }
   };
 
+  const loadTreatments = useCallback(async () => {
+    if (!canManageDailyCash) {
+      setTreatments([]);
+      return;
+    }
+
+    try {
+      const res = await fetch("/api/crm/treatments", {
+        credentials: "include",
+        cache: "no-store",
+      });
+      const data = await res.json();
+      if (data.ok) {
+        setTreatments(data.items ?? []);
+        return;
+      }
+    } catch {
+      // keep empty state
+    }
+
+    setTreatments([]);
+  }, [canManageDailyCash]);
+
+  const loadDailyCash = useCallback(async () => {
+    if (!canManageDailyCash) {
+      setDailyCashSummary(null);
+      setDailyCashItems([]);
+      return;
+    }
+
+    setDailyCashLoading(true);
+
+    const from = new Date();
+    from.setHours(0, 0, 0, 0);
+    const to = new Date(from);
+    to.setDate(to.getDate() + 1);
+
+    try {
+      const res = await fetch(
+        `/api/crm/daily-cash?from=${encodeURIComponent(from.toISOString())}&to=${encodeURIComponent(
+          to.toISOString()
+        )}`,
+        {
+          credentials: "include",
+          cache: "no-store",
+        }
+      );
+      const data = (await res.json()) as DailyCashPayload;
+      if (!data.ok) {
+        setDailyCashSummary(null);
+        setDailyCashItems([]);
+        return;
+      }
+      setDailyCashSummary(data.summary ?? null);
+      setDailyCashItems(data.items ?? []);
+    } catch {
+      setDailyCashSummary(null);
+      setDailyCashItems([]);
+    } finally {
+      setDailyCashLoading(false);
+    }
+  }, [canManageDailyCash]);
+
   useEffect(() => {
     void loadAgenda();
   }, [loadAgenda]);
@@ -219,9 +371,45 @@ export default function Agenda() {
   }, []);
 
   useEffect(() => {
+    void loadTreatments();
+  }, [loadTreatments]);
+
+  useEffect(() => {
+    if (activeView !== "dailyCash") return;
+    void loadDailyCash();
+  }, [activeView, loadDailyCash]);
+
+  useEffect(() => {
+    if (!canManageDailyCash && activeView === "dailyCash") {
+      setActiveView("agenda");
+    }
+  }, [activeView, canManageDailyCash]);
+
+  useEffect(() => {
     const id = window.setInterval(() => setNow(new Date()), 60000);
     return () => window.clearInterval(id);
   }, []);
+
+  useEffect(() => {
+    if (!paymentSuccess) return;
+    const timeout = window.setTimeout(() => setPaymentSuccess(null), 2800);
+    return () => window.clearTimeout(timeout);
+  }, [paymentSuccess]);
+
+  useEffect(() => {
+    if (!treatments.length) return;
+    setPaymentForm((prev) => {
+      const selectedTreatment = treatments.find((item) => item.id === prev.treatmentId) ?? treatments[0];
+      if (!selectedTreatment) return prev;
+      const nextAmount = prev.amount.trim() ? prev.amount : `${Math.round(selectedTreatment.price)}`;
+      if (prev.treatmentId === selectedTreatment.id && prev.amount === nextAmount) return prev;
+      return {
+        ...prev,
+        treatmentId: selectedTreatment.id,
+        amount: nextAmount,
+      };
+    });
+  }, [treatments]);
 
   // Convierte índice de día y slot en objeto Date exacto.
   const slotToDate = useCallback(
@@ -254,6 +442,10 @@ export default function Agenda() {
     setStatusModalOpen(false);
     setSelectedStatus("");
     setStatusUpdating(false);
+    setPaymentModalOpen(false);
+    setPaymentSaving(false);
+    setPaymentError(null);
+    setPaymentAppointment(null);
   };
 
   // Prepara el formulario para crear cita en el rango seleccionado.
@@ -409,6 +601,20 @@ export default function Agenda() {
     setErrorMessage(null);
   };
 
+  const openPaymentModal = (item: Appointment) => {
+    const defaultTreatment = treatments[0];
+    setPaymentAppointment(item);
+    setPaymentError(null);
+    setPaymentSuccess(null);
+    setPaymentForm({
+      treatmentId: defaultTreatment?.id ?? "",
+      status: "PAID",
+      amount: defaultTreatment ? `${Math.round(defaultTreatment.price)}` : "",
+      notes: (item.notes ?? "").slice(0, NOTE_MAX_LENGTH),
+    });
+    setPaymentModalOpen(true);
+  };
+
   // Valida y crea/actualiza una cita según haya id de edición.
   const createOrUpdateAppointment = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -510,8 +716,56 @@ export default function Agenda() {
       return;
     }
     setCancelling(false);
-    setAppointments((prev) => prev.filter((item) => item.id !== cancelTargetAppointment.id));
+    await loadAgenda();
     resetModal();
+  };
+
+  const handleRegisterPayment = async () => {
+    if (!paymentAppointment) return;
+    if (!canManageDailyCash) return;
+
+    const amount = Number(paymentForm.amount);
+    if (!paymentForm.treatmentId) {
+      setPaymentError("Selecciona un tratamiento.");
+      return;
+    }
+    if (!Number.isFinite(amount) || amount <= 0) {
+      setPaymentError("Ingresa un monto válido.");
+      return;
+    }
+
+    setPaymentSaving(true);
+    setPaymentError(null);
+
+    try {
+      const res = await fetch("/api/crm/payment-history", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          patientId: paymentAppointment.patientId,
+          treatmentId: paymentForm.treatmentId,
+          performedAt: paymentAppointment.startAt,
+          status: paymentForm.status,
+          amount,
+          notes: paymentForm.notes.trim() || null,
+        }),
+      });
+      const data = await res.json();
+      if (!data.ok) {
+        setPaymentError(data.error ?? "No se pudo registrar el cobro.");
+        setPaymentSaving(false);
+        return;
+      }
+
+      setPaymentSaving(false);
+      setPaymentModalOpen(false);
+      setPaymentSuccess("Cobro registrado correctamente.");
+      await loadDailyCash();
+    } catch {
+      setPaymentError("No se pudo registrar el cobro.");
+      setPaymentSaving(false);
+    }
   };
 
   const handleStatusUpdate = async () => {
@@ -604,7 +858,9 @@ export default function Agenda() {
         {/* Encabezado */}
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-baseline gap-3">
-            <h1 className="text-xl font-semibold tracking-tight text-slate-900">Calendario</h1>
+            <h1 className="text-xl font-semibold tracking-tight text-slate-900">
+              {activeView === "agenda" ? "Calendario" : "Caja del día"}
+            </h1>
             {isDoctor && (
               <span className="inline-flex rounded-full bg-amber-50 px-3 py-0.5 text-xs font-semibold text-amber-700">
                 Sin edición de agenda
@@ -612,61 +868,100 @@ export default function Agenda() {
             )}
           </div>
 
-          <div className="flex items-center gap-2 text-sm">
-            {role === "ADMIN" && (
+          <div className="flex flex-wrap items-center gap-2 text-sm">
+            {canManageDailyCash && (
+              <div className="flex items-center rounded-full border border-slate-200 bg-slate-50 p-1">
+                <button
+                  type="button"
+                  onClick={() => setActiveView("agenda")}
+                  className={`rounded-full px-3 py-1 font-medium transition-colors ${
+                    activeView === "agenda"
+                      ? "bg-slate-900 text-white"
+                      : "text-slate-600 hover:text-slate-900"
+                  }`}
+                >
+                  Agenda
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setActiveView("dailyCash")}
+                  className={`rounded-full px-3 py-1 font-medium transition-colors ${
+                    activeView === "dailyCash"
+                      ? "bg-slate-900 text-white"
+                      : "text-slate-600 hover:text-slate-900"
+                  }`}
+                >
+                  Caja del día
+                </button>
+              </div>
+            )}
+
+            {activeView === "agenda" ? (
+              <>
+                {role === "ADMIN" && (
+                  <button
+                    type="button"
+                    onClick={() => setShowColorSettings(true)}
+                    className="flex h-8 w-8 items-center justify-center rounded-full text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600"
+                    title="Colores de estado"
+                  >
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.9 0 1.7-.1 2.5-.3C13.6 20.4 13 18.8 13 17c0-3.3 2.7-6 6-6 1.8 0 3.4.6 4.7 1.5.2-.8.3-1.6.3-2.5C24 6.5 19.5 2 14 2z" /><circle cx="7.5" cy="11.5" r="1.5" /><circle cx="12" cy="7.5" r="1.5" /><circle cx="16.5" cy="11.5" r="1.5" /></svg>
+                  </button>
+                )}
+                <button
+                  className="rounded-full border border-slate-200 px-3 py-1 font-medium text-slate-600 transition-colors hover:border-slate-300 hover:text-slate-800"
+                  onClick={() => setWeekStart(startOfWeek(new Date()))}
+                >
+                  Hoy
+                </button>
+                <div className="flex items-center gap-1 rounded-full border border-slate-200 px-1 py-0.5">
+                  <button
+                    aria-label="Semana anterior"
+                    className="flex h-7 w-7 items-center justify-center rounded-full text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600"
+                    onClick={() => {
+                      const prev = new Date(weekStart);
+                      prev.setDate(prev.getDate() - 7);
+                      setWeekStart(startOfWeek(prev));
+                    }}
+                  >
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6" /></svg>
+                  </button>
+                  <span className="min-w-[120px] text-center text-sm font-medium text-slate-700">{weekLabel}</span>
+                  <button
+                    aria-label="Semana siguiente"
+                    className="flex h-7 w-7 items-center justify-center rounded-full text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600"
+                    onClick={() => {
+                      const next = new Date(weekStart);
+                      next.setDate(next.getDate() + 7);
+                      setWeekStart(startOfWeek(next));
+                    }}
+                  >
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6" /></svg>
+                  </button>
+                </div>
+              </>
+            ) : (
               <button
                 type="button"
-                onClick={() => setShowColorSettings(true)}
-                className="flex h-8 w-8 items-center justify-center rounded-full text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600"
-                title="Colores de estado"
+                onClick={() => void loadDailyCash()}
+                className="rounded-full border border-slate-200 px-3 py-1 font-medium text-slate-600 transition-colors hover:border-slate-300 hover:text-slate-800"
               >
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.9 0 1.7-.1 2.5-.3C13.6 20.4 13 18.8 13 17c0-3.3 2.7-6 6-6 1.8 0 3.4.6 4.7 1.5.2-.8.3-1.6.3-2.5C24 6.5 19.5 2 14 2z" /><circle cx="7.5" cy="11.5" r="1.5" /><circle cx="12" cy="7.5" r="1.5" /><circle cx="16.5" cy="11.5" r="1.5" /></svg>
+                {dailyCashLoading ? "Actualizando..." : "Actualizar caja"}
               </button>
             )}
-            <button
-              className="rounded-full border border-slate-200 px-3 py-1 font-medium text-slate-600 transition-colors hover:border-slate-300 hover:text-slate-800"
-              onClick={() => setWeekStart(startOfWeek(new Date()))}
-            >
-              Hoy
-            </button>
-            <div className="flex items-center gap-1 rounded-full border border-slate-200 px-1 py-0.5">
-              <button
-                aria-label="Semana anterior"
-                className="flex h-7 w-7 items-center justify-center rounded-full text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600"
-                onClick={() => {
-                  const prev = new Date(weekStart);
-                  prev.setDate(prev.getDate() - 7);
-                  setWeekStart(startOfWeek(prev));
-                }}
-              >
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6" /></svg>
-              </button>
-              <span className="min-w-[120px] text-center text-sm font-medium text-slate-700">{weekLabel}</span>
-              <button
-                aria-label="Semana siguiente"
-                className="flex h-7 w-7 items-center justify-center rounded-full text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600"
-                onClick={() => {
-                  const next = new Date(weekStart);
-                  next.setDate(next.getDate() + 7);
-                  setWeekStart(startOfWeek(next));
-                }}
-              >
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6" /></svg>
-              </button>
-            </div>
           </div>
         </div>
 
-        {/* ── Grilla semanal ── */}
-        <div
-          key={weekStart.getTime()}
-          className="animate-grid-fade mt-5 relative select-none text-xs"
-          style={{
-            display: "grid",
-            gridTemplateColumns: "56px repeat(7, minmax(0,1fr))",
-            gridTemplateRows: `48px repeat(${slots.length}, ${SLOT_HEIGHT}px)`,
-          }}
-        >
+        {activeView === "agenda" ? (
+          <div
+            key={weekStart.getTime()}
+            className="animate-grid-fade mt-5 relative select-none text-xs"
+            style={{
+              display: "grid",
+              gridTemplateColumns: "56px repeat(7, minmax(0,1fr))",
+              gridTemplateRows: `48px repeat(${slots.length}, ${SLOT_HEIGHT}px)`,
+            }}
+          >
           {/* Celda vacía superior-izquierda */}
           <div className="border-b border-slate-100" />
 
@@ -798,8 +1093,8 @@ export default function Agenda() {
             </div>
           )}
 
-          {/* Tarjetas de citas */}
-          {appointments.map((item, idx) => {
+            {/* Tarjetas de citas */}
+            {appointments.map((item, idx) => {
             const start = new Date(item.startAt);
             const end = new Date(item.endAt);
             const dayIndex = Math.floor((start.getTime() - weekStart.getTime()) / (24 * 60 * 60 * 1000));
@@ -857,8 +1152,122 @@ export default function Agenda() {
                 </div>
               </div>
             );
-          })}
-        </div>
+            })}
+          </div>
+        ) : (
+          <div className="mt-5 grid gap-5 xl:grid-cols-[minmax(0,1.5fr)_320px]">
+            <div className="rounded-2xl border border-slate-100 bg-slate-50/50 p-4">
+              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                <div className="rounded-2xl border border-slate-100 bg-white px-4 py-4 shadow-sm">
+                  <p className="text-xs uppercase tracking-[0.18em] text-slate-400">Recaudado hoy</p>
+                  <p className="mt-2 text-2xl font-semibold text-slate-900">
+                    {formatCurrency(dailyCashSummary?.totalAmount ?? 0)}
+                  </p>
+                </div>
+                <div className="rounded-2xl border border-slate-100 bg-white px-4 py-4 shadow-sm">
+                  <p className="text-xs uppercase tracking-[0.18em] text-slate-400">Movimientos</p>
+                  <p className="mt-2 text-2xl font-semibold text-slate-900">
+                    {dailyCashSummary?.totalCount ?? 0}
+                  </p>
+                </div>
+                <div className="rounded-2xl border border-slate-100 bg-white px-4 py-4 shadow-sm">
+                  <p className="text-xs uppercase tracking-[0.18em] text-slate-400">Pagados</p>
+                  <p className="mt-2 text-2xl font-semibold text-emerald-700">
+                    {dailyCashSummary?.paidCount ?? 0}
+                  </p>
+                </div>
+                <div className="rounded-2xl border border-slate-100 bg-white px-4 py-4 shadow-sm">
+                  <p className="text-xs uppercase tracking-[0.18em] text-slate-400">Pendientes / Exentos</p>
+                  <p className="mt-2 text-2xl font-semibold text-slate-900">
+                    {(dailyCashSummary?.pendingCount ?? 0) + (dailyCashSummary?.waivedCount ?? 0)}
+                  </p>
+                </div>
+              </div>
+
+              <div className="mt-4 overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-sm">
+                <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3">
+                  <div>
+                    <h3 className="font-semibold text-slate-900">Movimientos del día</h3>
+                    <p className="text-xs text-slate-400">Resumen de cobros registrados hoy</p>
+                  </div>
+                </div>
+
+                <div className="divide-y divide-slate-100">
+                  {dailyCashLoading && (
+                    <div className="px-4 py-6 text-sm text-slate-500">Cargando caja del día...</div>
+                  )}
+
+                  {!dailyCashLoading && dailyCashItems.length === 0 && (
+                    <div className="px-4 py-8 text-center text-sm text-slate-400">
+                      Todavía no hay cobros registrados en la caja de hoy.
+                    </div>
+                  )}
+
+                  {!dailyCashLoading &&
+                    dailyCashItems.map((item) => (
+                      <div key={item.id} className="flex flex-col gap-3 px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
+                        <div className="min-w-0">
+                          <p className="truncate text-sm font-semibold text-slate-900">{item.patientName}</p>
+                          <p className="truncate text-sm text-slate-500">{item.treatmentName}</p>
+                          <p className="mt-1 text-xs text-slate-400">
+                            {formatFullDateLabel(item.recordedAt)} · {formatDateTimeLabel(item.recordedAt)}
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <span className="text-sm font-semibold text-slate-900">
+                            {formatCurrency(item.amount)}
+                          </span>
+                          <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-600">
+                            {PAYMENT_STATUS_LABELS[item.status]}
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <div className="rounded-2xl border border-slate-100 bg-white shadow-sm">
+                <div className="border-b border-slate-100 px-5 py-4">
+                  <h3 className="font-semibold text-slate-900">Por estado</h3>
+                </div>
+                <div className="space-y-4 px-5 py-4 text-sm">
+                  <div className="flex items-center justify-between">
+                    <span className="text-slate-600">Pagados</span>
+                    <span className="font-semibold text-slate-900">{dailyCashSummary?.paidCount ?? 0}</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-slate-600">Pendientes</span>
+                    <span className="font-semibold text-slate-900">{dailyCashSummary?.pendingCount ?? 0}</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-slate-600">Exentos</span>
+                    <span className="font-semibold text-slate-900">{dailyCashSummary?.waivedCount ?? 0}</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="rounded-2xl border border-slate-100 bg-white shadow-sm">
+                <div className="border-b border-slate-100 px-5 py-4">
+                  <h3 className="font-semibold text-slate-900">Registrar cobro</h3>
+                </div>
+                <div className="space-y-3 px-5 py-4 text-sm text-slate-600">
+                  <p>
+                    Abre una cita clínica desde la agenda para registrar su tratamiento y estado de pago.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => setActiveView("agenda")}
+                    className="rounded-full border border-slate-200 px-4 py-2 font-medium text-slate-700 transition-colors hover:border-slate-300 hover:text-slate-900"
+                  >
+                    Volver a la agenda
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* ── Modal: Crear / Editar cita ── */}
@@ -1124,6 +1533,15 @@ export default function Agenda() {
               </a>
               {(canChangeStatus || canEdit) && (
                 <div className="flex gap-3">
+                  {canManageDailyCash && (
+                    <button
+                      type="button"
+                      onClick={() => openPaymentModal(detailAppointment)}
+                      className="rounded-full border border-violet-200 px-4 py-2.5 text-sm font-semibold text-violet-700 transition-colors hover:border-violet-300 hover:bg-violet-50"
+                    >
+                      Registrar cobro
+                    </button>
+                  )}
                   {canChangeStatus && (
                     <button
                       type="button"
@@ -1280,6 +1698,149 @@ export default function Agenda() {
         </div>
       )}
 
+      {paymentModalOpen && paymentAppointment && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div
+            className="absolute inset-0 bg-slate-900/30 backdrop-blur-sm transition-opacity"
+            onClick={() => {
+              setPaymentModalOpen(false);
+              setPaymentError(null);
+              setPaymentAppointment(null);
+            }}
+          />
+          <div className="relative w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl shadow-slate-900/10 animate-modal-in">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <p className="text-[11px] uppercase tracking-[0.2em] text-slate-400">Cobro asociado a cita</p>
+                <h3 className="mt-1 text-xl font-semibold text-slate-900">
+                  {getPatientFullName(paymentAppointment.patient)}
+                </h3>
+                <p className="mt-1 text-sm text-slate-500">
+                  {formatFullDateLabel(paymentAppointment.startAt)} ·{" "}
+                  {formatTimeLabel(new Date(paymentAppointment.startAt))}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setPaymentModalOpen(false);
+                  setPaymentError(null);
+                  setPaymentAppointment(null);
+                }}
+                className="flex h-8 w-8 items-center justify-center rounded-full text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600"
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
+              </button>
+            </div>
+
+            <div className="mt-6 grid gap-4">
+              <div>
+                <label className="mb-1 block text-[11px] font-medium uppercase tracking-wider text-slate-400">Tratamiento</label>
+                <select
+                  value={paymentForm.treatmentId}
+                  onChange={(event) => {
+                    const nextTreatment = treatments.find((item) => item.id === event.target.value);
+                    setPaymentForm((prev) => ({
+                      ...prev,
+                      treatmentId: event.target.value,
+                      amount: nextTreatment ? `${Math.round(nextTreatment.price)}` : prev.amount,
+                    }));
+                  }}
+                  className="w-full rounded-xl border border-slate-200 bg-slate-50/40 px-3.5 py-2.5 text-sm transition-colors focus:border-blue-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-100"
+                >
+                  <option value="">Selecciona un tratamiento</option>
+                  {treatments.map((treatment) => (
+                    <option key={treatment.id} value={treatment.id}>
+                      {treatment.name} · {formatCurrency(treatment.price)}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="grid gap-3 md:grid-cols-2">
+                <div>
+                  <label className="mb-1 block text-[11px] font-medium uppercase tracking-wider text-slate-400">Estado de pago</label>
+                  <select
+                    value={paymentForm.status}
+                    onChange={(event) =>
+                      setPaymentForm((prev) => ({
+                        ...prev,
+                        status: event.target.value as PaymentStatus,
+                      }))
+                    }
+                    className="w-full rounded-xl border border-slate-200 bg-slate-50/40 px-3.5 py-2.5 text-sm transition-colors focus:border-blue-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-100"
+                  >
+                    {Object.entries(PAYMENT_STATUS_LABELS).map(([value, label]) => (
+                      <option key={value} value={value}>
+                        {label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="mb-1 block text-[11px] font-medium uppercase tracking-wider text-slate-400">Monto</label>
+                  <input
+                    type="number"
+                    min="1"
+                    value={paymentForm.amount}
+                    onChange={(event) =>
+                      setPaymentForm((prev) => ({
+                        ...prev,
+                        amount: event.target.value,
+                      }))
+                    }
+                    className="w-full rounded-xl border border-slate-200 bg-slate-50/40 px-3.5 py-2.5 text-sm transition-colors focus:border-blue-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-100"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="mb-1 block text-[11px] font-medium uppercase tracking-wider text-slate-400">Notas</label>
+                <textarea
+                  value={paymentForm.notes}
+                  onChange={(event) =>
+                    setPaymentForm((prev) => ({
+                      ...prev,
+                      notes: event.target.value.slice(0, NOTE_MAX_LENGTH),
+                    }))
+                  }
+                  className="min-h-[96px] w-full rounded-xl border border-slate-200 bg-slate-50/40 px-3.5 py-2.5 text-sm transition-colors focus:border-blue-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-100"
+                />
+              </div>
+
+              {paymentError && (
+                <div className="animate-fade-in rounded-xl border border-rose-200 bg-rose-50 px-3.5 py-2.5 text-sm text-rose-600">
+                  {paymentError}
+                </div>
+              )}
+
+              <div className="flex flex-col gap-3 sm:flex-row sm:justify-end">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setPaymentModalOpen(false);
+                    setPaymentError(null);
+                    setPaymentAppointment(null);
+                  }}
+                  className="rounded-full border border-slate-200 px-4 py-2.5 text-sm font-medium text-slate-600 transition-colors hover:border-slate-300 hover:text-slate-800"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  onClick={handleRegisterPayment}
+                  className="rounded-full bg-violet-600 px-4 py-2.5 text-sm font-semibold text-white transition-all hover:bg-violet-700 hover:shadow-lg hover:shadow-violet-600/20 disabled:cursor-not-allowed disabled:bg-violet-300 disabled:shadow-none"
+                  disabled={paymentSaving || treatments.length === 0}
+                >
+                  {paymentSaving ? "Guardando..." : "Registrar cobro"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* ── Modal: Colores de estado ── */}
       {showColorSettings && (
         <StatusColorsModal
@@ -1294,6 +1855,12 @@ export default function Agenda() {
           }}
           onClose={() => setShowColorSettings(false)}
         />
+      )}
+
+      {paymentSuccess && (
+        <div className="fixed bottom-6 right-6 z-50 rounded-2xl bg-emerald-500 px-4 py-3 text-sm font-medium text-white shadow-lg shadow-emerald-500/30">
+          {paymentSuccess}
+        </div>
       )}
     </div>
   );

@@ -72,26 +72,36 @@ async function readSignedCookiePayload(
 }
 
 function isValidSessionPayload(
-  p: SignedPayload | null
-): p is { userId: string; exp: number; role?: unknown; mustChangePassword?: unknown } {
-  return !!p && typeof p.userId === "string" && typeof p.exp === "number";
+  payload: SignedPayload | null
+): payload is { userId: string; exp: number; role?: unknown; mustChangePassword?: unknown } {
+  return !!payload && typeof payload.userId === "string" && typeof payload.exp === "number";
 }
 
 function isValidClinicPayload(
-  p: SignedPayload | null,
+  payload: SignedPayload | null,
   expectedUserId: string
-): p is { userId: string; clinicId: string; exp: number; setAt?: unknown } {
+): payload is { userId: string; clinicId: string; exp: number; setAt?: unknown } {
   return (
-    !!p &&
-    typeof p.userId === "string" &&
-    p.userId === expectedUserId &&
-    typeof p.clinicId === "string" &&
-    p.clinicId.length > 0 &&
-    typeof p.exp === "number"
+    !!payload &&
+    typeof payload.userId === "string" &&
+    payload.userId === expectedUserId &&
+    typeof payload.clinicId === "string" &&
+    payload.clinicId.length > 0 &&
+    typeof payload.exp === "number"
   );
 }
 
-const PROTECTED_PREFIXES = ["/dashboard", "/agenda", "/crm", "/patients", "/doctors", "/boxes", "/appointments", "/form-templates"];
+const PROTECTED_PREFIXES = [
+  "/dashboard",
+  "/agenda",
+  "/crm",
+  "/patients",
+  "/usuarios",
+  "/doctors",
+  "/boxes",
+  "/appointments",
+  "/form-templates",
+];
 
 function roleHomePath(role: unknown) {
   switch (role) {
@@ -204,39 +214,52 @@ export async function middleware(req: NextRequest) {
       url.pathname = roleHome;
       return NextResponse.redirect(url);
     }
+
     if (pathname.startsWith("/boxes") && sessionPayload?.role !== "ADMIN") {
       const url = req.nextUrl.clone();
       url.pathname = roleHome;
       return NextResponse.redirect(url);
     }
-    const canAccessCrmOption =
+
+    const canAccessCrmOption = sessionPayload?.role === "SECRETARY";
+    const canAccessPatients =
       sessionPayload?.role === "ADMIN" || sessionPayload?.role === "SECRETARY";
+
     if (pathname.startsWith("/crm") && !canAccessCrmOption) {
       const url = req.nextUrl.clone();
       url.pathname = sessionPayload?.role === "DOCTOR" ? "/agenda" : roleHome;
       return NextResponse.redirect(url);
     }
-    if (pathname.startsWith("/patients") && !canAccessCrmOption) {
+
+    if (pathname.startsWith("/patients") && !canAccessPatients) {
       const url = req.nextUrl.clone();
       url.pathname = sessionPayload?.role === "DOCTOR" ? "/agenda" : roleHome;
       return NextResponse.redirect(url);
     }
+
     const canAccessUsers = sessionPayload?.role === "ADMIN";
-    if (pathname.startsWith("/doctors") && !canAccessUsers) {
+    if ((pathname.startsWith("/usuarios") || pathname.startsWith("/doctors")) && !canAccessUsers) {
       const url = req.nextUrl.clone();
       url.pathname = sessionPayload?.role === "DOCTOR" ? "/agenda" : roleHome;
       return NextResponse.redirect(url);
     }
-    if (pathname.startsWith("/form-templates") && sessionPayload?.role !== "ADMIN" && sessionPayload?.role !== "DOCTOR") {
+
+    if (
+      pathname.startsWith("/form-templates") &&
+      sessionPayload?.role !== "ADMIN" &&
+      sessionPayload?.role !== "DOCTOR"
+    ) {
       const url = req.nextUrl.clone();
       url.pathname = roleHome;
       return NextResponse.redirect(url);
     }
+
     if (pathname.startsWith("/clinical-visits") && sessionPayload?.role !== "DOCTOR") {
       const url = req.nextUrl.clone();
       url.pathname = roleHome;
       return NextResponse.redirect(url);
     }
+
     return NextResponse.next();
   }
 
@@ -253,6 +276,7 @@ export const config = {
     "/agenda/:path*",
     "/crm/:path*",
     "/patients/:path*",
+    "/usuarios/:path*",
     "/doctors/:path*",
     "/boxes/:path*",
     "/appointments/:path*",

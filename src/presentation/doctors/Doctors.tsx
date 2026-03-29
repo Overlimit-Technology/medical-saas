@@ -103,7 +103,7 @@ export default function Doctors() {
                     key={user.id}
                     style={{ animationDelay: `${idx * 25}ms` }}
                     className="animate-card-in group cursor-pointer border-b border-slate-50 transition-colors last:border-b-0 hover:bg-slate-50/70"
-                    onClick={() => router.push(`/doctors/${user.id}`)}
+                    onClick={() => router.push(`/usuarios/${user.id}`)}
                   >
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-3">

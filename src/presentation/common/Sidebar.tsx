@@ -27,6 +27,7 @@ type NavItem = {
   icon: LucideIcon;
   roles?: Role[];
   group: "escritorios" | "paginas";
+  matchPrefixes?: string[];
 };
 
 const NAV_ITEMS: NavItem[] = [
@@ -65,11 +66,12 @@ const NAV_ITEMS: NavItem[] = [
     group: "paginas",
   },
   {
-    href: "/doctors",
+    href: "/usuarios",
     label: "Usuario",
     icon: UserCog,
     roles: ["ADMIN"],
     group: "paginas",
+    matchPrefixes: ["/usuarios", "/doctors"],
   },
   {
     href: "/treatments",
@@ -189,8 +191,10 @@ export default function Sidebar() {
   const paginaItems = visibleItems.filter((item) => item.group === "paginas");
 
   const renderItem = (item: NavItem) => {
-    const active =
-      pathname === item.href || pathname.startsWith(`${item.href}/`);
+    const matchPrefixes = item.matchPrefixes ?? [item.href];
+    const active = matchPrefixes.some(
+      (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`)
+    );
     const Icon = item.icon;
 
     return (
@@ -235,41 +239,31 @@ export default function Sidebar() {
 
         {!collapsed && (
           <div className="min-w-0 flex-1">
-            <p className="truncate text-sm font-semibold text-slate-900">
-              {displayName}
-            </p>
-            <p className="truncate text-xs text-slate-500">
-              {clinicLabel}
-            </p>
+            <p className="truncate text-sm font-semibold text-slate-900">{displayName}</p>
+            <p className="truncate text-xs text-slate-500">{clinicLabel}</p>
             {email ? <p className="truncate text-[11px] text-slate-400">{email}</p> : null}
           </div>
         )}
 
         <button
           type="button"
-          onClick={() => setCollapsed((v) => !v)}
+          onClick={() => setCollapsed((value) => !value)}
           className="ml-auto flex h-7 w-7 items-center justify-center rounded-full text-slate-400 hover:bg-slate-100 hover:text-slate-700"
           aria-label={collapsed ? "Expandir menú" : "Colapsar menú"}
         >
           <ChevronsUpDown
-            className={`h-4 w-4 transition-transform duration-200 ${
-              collapsed ? "rotate-90" : ""
-            }`}
+            className={`h-4 w-4 transition-transform duration-200 ${collapsed ? "rotate-90" : ""}`}
           />
         </button>
       </div>
 
       <div className="mt-8">
-        {!collapsed && (
-          <p className="px-2 text-xs font-medium text-slate-400">Escritorios</p>
-        )}
+        {!collapsed && <p className="px-2 text-xs font-medium text-slate-400">Escritorios</p>}
         <nav className="mt-2 flex flex-col gap-1">{escritorioItems.map(renderItem)}</nav>
       </div>
 
       <div className="mt-6">
-        {!collapsed && (
-          <p className="px-2 text-xs font-medium text-slate-400">Páginas</p>
-        )}
+        {!collapsed && <p className="px-2 text-xs font-medium text-slate-400">Páginas</p>}
         <nav className="mt-2 flex flex-col gap-1">{paginaItems.map(renderItem)}</nav>
       </div>
 
