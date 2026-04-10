@@ -3,19 +3,20 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
+import { hasPermission, type UserPermission } from "@/lib/permissions";
 
 const NAV_ITEMS = [
   { href: "/profile", label: "Mi perfil", roles: ["ADMIN", "SECRETARY", "DOCTOR"] },
   { href: "/dashboard", label: "Vista General" },
-  { href: "/agenda", label: "Agenda", roles: ["ADMIN", "SECRETARY", "DOCTOR"] },
-  { href: "/clinical-visits", label: "Cita clinica", roles: ["DOCTOR"] },
-  { href: "/chat", label: "Chat", roles: ["ADMIN", "SECRETARY", "DOCTOR"] },
-  { href: "/chat-meta", label: "Chat Meta", roles: ["ADMIN", "SECRETARY"] },
-  { href: "/formulario-chat", label: "Formulario Chat", roles: ["ADMIN"] },
-  { href: "/patients", label: "Pacientes", roles: ["ADMIN", "SECRETARY"] },
-  { href: "/usuarios", label: "Usuario", roles: ["ADMIN"] },
-  { href: "/treatments", label: "Tratamientos", roles: ["ADMIN", "DOCTOR"] },
-  { href: "/boxes", label: "Boxes", roles: ["ADMIN"] },
+  { href: "/agenda", label: "Agenda", roles: ["ADMIN"], permission: "AGENDA" },
+  { href: "/clinical-visits", label: "Cita clinica", roles: [], permission: "CLINICAL_VISITS" },
+  { href: "/chat", label: "Chat", roles: ["ADMIN"], permission: "CHAT" },
+  { href: "/chat-meta", label: "Chat Meta", roles: ["ADMIN"], permission: "CHAT_META" },
+  { href: "/formulario-chat", label: "Formulario Chat", roles: ["ADMIN"], permission: "CHAT_FORM" },
+  { href: "/patients", label: "Pacientes", roles: ["ADMIN"], permission: "PATIENTS" },
+  { href: "/usuarios", label: "Usuario", roles: ["ADMIN"], permission: "USERS" },
+  { href: "/treatments", label: "Tratamientos", roles: ["ADMIN"], permission: "TREATMENTS" },
+  { href: "/boxes", label: "Boxes", roles: ["ADMIN"], permission: "BOXES" },
 ];
 
 type SidebarProfile = {
@@ -27,6 +28,8 @@ type SidebarProfile = {
     lastName: string;
     image: string | null;
     role: string;
+    isSuperAdmin: boolean;
+    permissions: string[];
   };
 };
 
@@ -42,6 +45,8 @@ function getInitials(firstName: string, lastName: string, email: string) {
 export default function Sidebar() {
   const pathname = usePathname();
   const [role, setRole] = useState<string | null>(null);
+  const [isSuperAdmin, setIsSuperAdmin] = useState(false);
+  const [permissions, setPermissions] = useState<string[]>([]);
   const [displayName, setDisplayName] = useState("Medigest");
   const [clinicLabel, setClinicLabel] = useState("Panel clinico");
   const [email, setEmail] = useState("");
@@ -59,10 +64,14 @@ export default function Sidebar() {
 
         if (!data.ok || !data.item) {
           setRole(null);
+          setIsSuperAdmin(false);
+          setPermissions([]);
           return;
         }
 
         setRole(data.item.role);
+        setIsSuperAdmin(data.item.isSuperAdmin === true);
+        setPermissions(data.item.permissions ?? []);
         setEmail(data.item.email);
         setImage(data.item.image ?? null);
         setDisplayName(`${data.item.firstName} ${data.item.lastName}`.trim() || data.item.email);
@@ -70,6 +79,8 @@ export default function Sidebar() {
         setInitials(getInitials(data.item.firstName, data.item.lastName, data.item.email));
       } catch {
         setRole(null);
+        setIsSuperAdmin(false);
+        setPermissions([]);
       }
     };
 
@@ -115,6 +126,17 @@ export default function Sidebar() {
           {NAV_ITEMS.filter((item) => {
             if (!item.roles) return true;
             if (role === null) return false;
+            if (item.permission === "CLINICAL_VISITS") {
+              return role === "DOCTOR" && permissions.includes("CLINICAL_VISITS");
+            }
+            if (item.permission) {
+              return hasPermission(
+                role,
+                permissions,
+                item.permission as UserPermission,
+                isSuperAdmin
+              );
+            }
             return item.roles.includes(role);
           }).map((item) => {
             const active = pathname === item.href || pathname.startsWith(`${item.href}/`);

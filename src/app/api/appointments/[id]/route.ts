@@ -40,6 +40,7 @@ function formatDateTime(value: Date) {
 export async function GET(_req: Request, { params }: { params: { id: string } }) {
   try {
     const session = await requireClinicSession();
+    requireRole(session, ["ADMIN"], ["AGENDA", "CLINICAL_VISITS"]);
     const item = await prisma.appointment.findFirst({
       where: {
         id: params.id,
@@ -67,7 +68,7 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
 export async function PATCH(req: Request, { params }: { params: { id: string } }) {
   try {
     const session = await requireClinicSession();
-    requireRole(session.role, ["ADMIN", "SECRETARY"]);
+    requireRole(session, ["ADMIN"], "AGENDA");
 
     const body = await req.json();
     const parsed = appointmentUpdateSchema.safeParse(body);
@@ -245,7 +246,7 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
 export async function DELETE(req: Request, { params }: { params: { id: string } }) {
   try {
     const session = await requireClinicSession();
-    requireRole(session.role, ["ADMIN", "SECRETARY"]);
+    requireRole(session, ["ADMIN"], "AGENDA");
 
     const body = await req.json().catch(() => ({}));
     const parsed = appointmentCancelSchema.safeParse(body);

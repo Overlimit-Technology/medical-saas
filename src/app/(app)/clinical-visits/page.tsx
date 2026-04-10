@@ -2,6 +2,7 @@
 
 import { Suspense, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
+import { hasPermission } from "@/lib/permissions";
 
 type Patient = { id: string; firstName: string; lastName: string };
 type Appointment = {
@@ -24,6 +25,8 @@ function ClinicalVisitPageContent() {
   const qsPatientId = searchParams.get("patientId");
 
   const [role, setRole] = useState<string | null>(null);
+  const [isSuperAdmin, setIsSuperAdmin] = useState(false);
+  const [permissions, setPermissions] = useState<string[]>([]);
   const [patients, setPatients] = useState<Patient[]>([]);
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [visits, setVisits] = useState<ClinicalVisit[]>([]);
@@ -38,9 +41,15 @@ function ClinicalVisitPageContent() {
       try {
         const res = await fetch("/api/auth/me", { credentials: "include" });
         const data = await res.json();
-        if (data.ok) setRole(data.session?.role ?? null);
+        if (data.ok) {
+          setRole(data.session?.role ?? null);
+          setIsSuperAdmin(data.session?.isSuperAdmin === true);
+          setPermissions(data.session?.permissions ?? []);
+        }
       } catch {
         setRole(null);
+        setIsSuperAdmin(false);
+        setPermissions([]);
       }
     };
     loadSession();
@@ -91,7 +100,7 @@ function ClinicalVisitPageContent() {
     setError(null);
     setSuccess(null);
 
-    if (role !== "DOCTOR") {
+    if (role !== "DOCTOR" || !hasPermission(role, permissions, "CLINICAL_VISITS", isSuperAdmin)) {
       setError("Solo el rol Doctor puede iniciar una cita clínica.");
       return;
     }
@@ -132,11 +141,11 @@ function ClinicalVisitPageContent() {
             </p>
           </div>
           <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700">
-            Solo Doctor
+            Cita clinica
           </span>
         </div>
 
-        {role && role !== "DOCTOR" && (
+        {role && (role !== "DOCTOR" || !hasPermission(role, permissions, "CLINICAL_VISITS", isSuperAdmin)) && (
           <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
             Esta funcionalidad es exclusiva para el rol Doctor. Inicia sesión como doctor para continuar.
           </div>

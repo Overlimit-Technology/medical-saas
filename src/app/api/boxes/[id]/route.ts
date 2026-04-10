@@ -26,7 +26,7 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
 export async function PATCH(req: Request, { params }: { params: { id: string } }) {
   try {
     const session = await requireClinicSession();
-    requireRole(session.role, ["ADMIN"]);
+    requireRole(session, ["ADMIN"], "BOXES");
 
     const body = await req.json();
     const parsed = boxSchema.safeParse(body);
@@ -44,7 +44,7 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
 export async function DELETE(_req: Request, { params }: { params: { id: string } }) {
   try {
     const session = await requireClinicSession();
-    requireRole(session.role, ["ADMIN"]);
+    requireRole(session, ["ADMIN"], "BOXES");
 
     const result = await BoxesService.remove(params.id, session.clinicId);
     return NextResponse.json({ ok: true, result });

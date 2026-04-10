@@ -7,7 +7,7 @@ export const dynamic = "force-dynamic";
 export async function GET() {
   try {
     const session = await requireClinicSession();
-    requireRole(session.role, ["ADMIN", "SECRETARY"]);
+    requireRole(session, ["ADMIN"], "CHAT_META");
 
     const data = await MetaChatService.listConversations(session.clinicId, session.userId);
     return NextResponse.json({ ok: true, items: data.items, summary: data.summary });

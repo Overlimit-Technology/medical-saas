@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { hasPermission } from "@/lib/permissions";
 
 type Box = {
   id: string;
@@ -11,7 +12,10 @@ export default function BoxesPage() {
   const [items, setItems] = useState<Box[]>([]);
   const [name, setName] = useState("");
   const [role, setRole] = useState<string | null>(null);
+  const [isSuperAdmin, setIsSuperAdmin] = useState(false);
+  const [permissions, setPermissions] = useState<string[]>([]);
   const [roleLoading, setRoleLoading] = useState(true);
+  const canUseBoxes = hasPermission(role, permissions, "BOXES", isSuperAdmin);
 
   useEffect(() => {
     const loadRole = async () => {
@@ -19,8 +23,12 @@ export default function BoxesPage() {
         const res = await fetch("/api/auth/me", { credentials: "include" });
         const data = await res.json();
         setRole(data.ok ? data.session?.role ?? null : null);
+        setIsSuperAdmin(data.ok ? data.session?.isSuperAdmin === true : false);
+        setPermissions(data.ok ? data.session?.permissions ?? [] : []);
       } catch {
         setRole(null);
+        setIsSuperAdmin(false);
+        setPermissions([]);
       } finally {
         setRoleLoading(false);
       }
@@ -36,10 +44,10 @@ export default function BoxesPage() {
 
   useEffect(() => {
     if (roleLoading) return;
-    if (role !== "ADMIN") {
+    if (!canUseBoxes) {
       window.location.assign("/dashboard");
     }
-  }, [role, roleLoading]);
+  }, [canUseBoxes, roleLoading]);
 
   useEffect(() => {
     load();
@@ -53,7 +61,7 @@ export default function BoxesPage() {
     );
   }
 
-  if (role !== "ADMIN") {
+  if (!canUseBoxes) {
     return (
       <div className="rounded-2xl border border-amber-200 bg-amber-50 p-6 text-sm text-amber-800 shadow-sm">
         No tienes acceso a esta sección. Redirigiendo...

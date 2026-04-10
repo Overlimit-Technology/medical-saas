@@ -3,6 +3,8 @@ import crypto from "crypto";
 type SessionPayload = {
   userId: string;
   role: string;
+  isSuperAdmin?: boolean;
+  permissions?: string[];
   exp: number; // epoch seconds
   mustChangePassword?: boolean;
 };

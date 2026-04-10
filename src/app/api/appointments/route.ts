@@ -39,6 +39,7 @@ function formatDateTime(value: Date) {
 export async function GET(req: Request) {
   try {
     const session = await requireClinicSession();
+    requireRole(session, ["ADMIN"], ["AGENDA", "CLINICAL_VISITS"]);
     const { searchParams } = new URL(req.url);
 
     const from = parseDate(searchParams.get("from"));
@@ -68,7 +69,7 @@ export async function GET(req: Request) {
 export async function POST(req: Request) {
   try {
     const session = await requireClinicSession();
-    requireRole(session.role, ["ADMIN", "SECRETARY"]);
+    requireRole(session, ["ADMIN"], ["AGENDA", "CLINICAL_VISITS"]);
 
     const body = await req.json();
     const parsed = appointmentCreateSchema.safeParse(body);

@@ -13,7 +13,7 @@ const sendMetaMessageSchema = z.object({
 export async function GET(req: NextRequest) {
   try {
     const session = await requireClinicSession();
-    requireRole(session.role, ["ADMIN", "SECRETARY"]);
+    requireRole(session, ["ADMIN"], "CHAT_META");
 
     const conversationId = req.nextUrl.searchParams.get("conversationId")?.trim() ?? "";
     const data = await MetaChatService.listMessages(
@@ -38,7 +38,7 @@ export async function GET(req: NextRequest) {
 export async function POST(req: Request) {
   try {
     const session = await requireClinicSession();
-    requireRole(session.role, ["ADMIN", "SECRETARY"]);
+    requireRole(session, ["ADMIN"], "CHAT_META");
 
     const body = await req.json();
     const parsed = sendMetaMessageSchema.safeParse(body);

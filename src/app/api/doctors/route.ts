@@ -81,7 +81,7 @@ export async function GET() {
       const items = await DoctorsService.listForUser(session.clinicId, session.userId);
       return NextResponse.json({ ok: true, items });
     }
-    requireRole(session.role, ["ADMIN", "SECRETARY"]);
+    requireRole(session, ["ADMIN"], "AGENDA");
 
     const items = await DoctorsService.list(session.clinicId);
     return NextResponse.json({ ok: true, items });
@@ -93,7 +93,7 @@ export async function GET() {
 export async function POST(req: Request) {
   try {
     const session = await requireClinicSession();
-    requireRole(session.role, ["ADMIN"]);
+    requireRole(session, ["ADMIN"], "USERS");
 
     const body = await req.json();
     const parsed = doctorCreateSchema.safeParse(body);

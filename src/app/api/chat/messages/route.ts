@@ -13,7 +13,7 @@ const sendMessageSchema = z.object({
 export async function GET(req: NextRequest) {
   try {
     const session = await requireClinicSession();
-    requireRole(session.role, ["ADMIN", "DOCTOR", "SECRETARY"]);
+    requireRole(session, ["ADMIN"], "CHAT");
 
     const contactId = req.nextUrl.searchParams.get("contactId")?.trim() ?? "";
     const data = await ChatService.listMessages(session.clinicId, session.userId, contactId);
@@ -34,7 +34,7 @@ export async function GET(req: NextRequest) {
 export async function POST(req: Request) {
   try {
     const session = await requireClinicSession();
-    requireRole(session.role, ["ADMIN", "DOCTOR", "SECRETARY"]);
+    requireRole(session, ["ADMIN"], "CHAT");
 
     const body = await req.json();
     const parsed = sendMessageSchema.safeParse(body);

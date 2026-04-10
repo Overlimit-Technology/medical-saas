@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
+import { hasPermission, type UserPermission } from "@/lib/permissions";
 
 function base64urlToUint8Array(b64url: string) {
   const b64 = b64url.replaceAll("-", "+").replaceAll("_", "/");
@@ -35,6 +36,8 @@ type SignedPayload = {
   exp?: unknown;
   userId?: unknown;
   role?: unknown;
+  isSuperAdmin?: unknown;
+  permissions?: unknown;
   clinicId?: unknown;
   setAt?: unknown;
   mustChangePassword?: unknown;
@@ -91,7 +94,39 @@ function isValidClinicPayload(
   );
 }
 
-const PROTECTED_PREFIXES = ["/dashboard", "/agenda", "/crm", "/patients", "/usuarios", "/doctors", "/boxes", "/appointments"];
+const PROTECTED_PREFIXES = [
+  "/dashboard",
+  "/agenda",
+  "/chat",
+  "/chat-meta",
+  "/formulario-chat",
+  "/crm",
+  "/patients",
+  "/usuarios",
+  "/doctors",
+  "/treatments",
+  "/boxes",
+  "/appointments",
+  "/clinical-visits",
+];
+
+function getPermissions(value: unknown) {
+  return Array.isArray(value) ? value.filter((item): item is string => typeof item === "string") : [];
+}
+
+function canAccess(
+  role: unknown,
+  isSuperAdmin: boolean,
+  permissions: readonly string[],
+  roles: string[],
+  permission: UserPermission
+) {
+  return (
+    typeof role === "string" &&
+    ((role === "ADMIN" && isSuperAdmin && roles.includes(role)) ||
+      hasPermission(role, permissions, permission, isSuperAdmin))
+  );
+}
 
 function roleHomePath(role: unknown) {
   switch (role) {
@@ -124,6 +159,8 @@ export async function middleware(req: NextRequest) {
     : false;
 
   const roleHome = roleHomePath(sessionPayload?.role);
+  const isSuperAdmin = sessionPayload?.isSuperAdmin === true;
+  const permissions = getPermissions(sessionPayload?.permissions);
   const mustChangePassword = hasValidSession && sessionPayload?.mustChangePassword === true;
 
   if (pathname === "/" || pathname === "/login") {
@@ -204,14 +241,19 @@ export async function middleware(req: NextRequest) {
       url.pathname = roleHome;
       return NextResponse.redirect(url);
     }
-    if (pathname.startsWith("/boxes") && sessionPayload?.role !== "ADMIN") {
+    if (!canAccess(sessionPayload?.role, isSuperAdmin, permissions, ["ADMIN"], "BOXES") && pathname.startsWith("/boxes")) {
       const url = req.nextUrl.clone();
       url.pathname = roleHome;
       return NextResponse.redirect(url);
     }
-    const canAccessCrmOption = sessionPayload?.role === "SECRETARY";
-    const canAccessPatients =
-      sessionPayload?.role === "ADMIN" || sessionPayload?.role === "SECRETARY";
+    const canAccessCrmOption = canAccess(sessionPayload?.role, isSuperAdmin, permissions, ["ADMIN"], "TREATMENTS");
+    const canAccessPatients = canAccess(
+      sessionPayload?.role,
+      isSuperAdmin,
+      permissions,
+      ["ADMIN"],
+      "PATIENTS"
+    );
     if (pathname.startsWith("/crm") && !canAccessCrmOption) {
       const url = req.nextUrl.clone();
       url.pathname = sessionPayload?.role === "DOCTOR" ? "/agenda" : roleHome;
@@ -222,13 +264,57 @@ export async function middleware(req: NextRequest) {
       url.pathname = sessionPayload?.role === "DOCTOR" ? "/agenda" : roleHome;
       return NextResponse.redirect(url);
     }
-    const canAccessUsers = sessionPayload?.role === "ADMIN";
+    const canAccessUsers = canAccess(sessionPayload?.role, isSuperAdmin, permissions, ["ADMIN"], "USERS");
     if ((pathname.startsWith("/usuarios") || pathname.startsWith("/doctors")) && !canAccessUsers) {
       const url = req.nextUrl.clone();
       url.pathname = sessionPayload?.role === "DOCTOR" ? "/agenda" : roleHome;
       return NextResponse.redirect(url);
     }
-    if (pathname.startsWith("/clinical-visits") && sessionPayload?.role !== "DOCTOR") {
+    if (
+      pathname.startsWith("/agenda") &&
+      !canAccess(sessionPayload?.role, isSuperAdmin, permissions, ["ADMIN"], "AGENDA")
+    ) {
+      const url = req.nextUrl.clone();
+      url.pathname = roleHome;
+      return NextResponse.redirect(url);
+    }
+    if (
+      pathname.startsWith("/chat") &&
+      !pathname.startsWith("/chat-meta") &&
+      !canAccess(sessionPayload?.role, isSuperAdmin, permissions, ["ADMIN"], "CHAT")
+    ) {
+      const url = req.nextUrl.clone();
+      url.pathname = roleHome;
+      return NextResponse.redirect(url);
+    }
+    if (
+      pathname.startsWith("/chat-meta") &&
+      !canAccess(sessionPayload?.role, isSuperAdmin, permissions, ["ADMIN"], "CHAT_META")
+    ) {
+      const url = req.nextUrl.clone();
+      url.pathname = roleHome;
+      return NextResponse.redirect(url);
+    }
+    if (
+      pathname.startsWith("/formulario-chat") &&
+      !canAccess(sessionPayload?.role, isSuperAdmin, permissions, ["ADMIN"], "CHAT_FORM")
+    ) {
+      const url = req.nextUrl.clone();
+      url.pathname = roleHome;
+      return NextResponse.redirect(url);
+    }
+    if (
+      pathname.startsWith("/treatments") &&
+      !canAccess(sessionPayload?.role, isSuperAdmin, permissions, ["ADMIN"], "TREATMENTS")
+    ) {
+      const url = req.nextUrl.clone();
+      url.pathname = roleHome;
+      return NextResponse.redirect(url);
+    }
+    if (
+      pathname.startsWith("/clinical-visits") &&
+      !(sessionPayload?.role === "DOCTOR" && permissions.includes("CLINICAL_VISITS"))
+    ) {
       const url = req.nextUrl.clone();
       url.pathname = roleHome;
       return NextResponse.redirect(url);
@@ -247,11 +333,16 @@ export const config = {
     "/select-clinic",
     "/dashboard/:path*",
     "/agenda/:path*",
+    "/chat/:path*",
+    "/chat-meta/:path*",
+    "/formulario-chat/:path*",
     "/crm/:path*",
     "/patients/:path*",
     "/usuarios/:path*",
     "/doctors/:path*",
+    "/treatments/:path*",
     "/boxes/:path*",
     "/appointments/:path*",
+    "/clinical-visits/:path*",
   ],
 };

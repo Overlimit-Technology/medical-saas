@@ -2,8 +2,9 @@
 
 import { useEffect, useState } from "react";
 import { DeleteIconButton } from "@/presentation/common/DeleteIconButton";
+import { USER_PERMISSIONS, type UserPermission } from "@/lib/permissions";
 
-type UserRole = "DOCTOR" | "SECRETARY";
+type UserRole = "ADMIN" | "DOCTOR" | "SECRETARY";
 
 type Clinic = {
   id: string;
@@ -15,6 +16,8 @@ type User = {
   id: string;
   email: string;
   role: UserRole;
+  isSuperAdmin: boolean;
+  permissions: string[];
   profile?: { firstName: string; lastName: string; rut?: string | null } | null;
   doctorProfile?: { rut: string; specialty?: string | null } | null;
 };
@@ -29,6 +32,7 @@ export default function UsersPage() {
     lastName: "",
     rut: "",
     clinicIds: [] as string[],
+    permissions: [] as UserPermission[],
   });
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [apiError, setApiError] = useState<string | null>(null);
@@ -87,6 +91,7 @@ export default function UsersPage() {
       lastName: form.lastName,
       rut: form.rut,
       clinicIds: form.clinicIds.length > 0 ? form.clinicIds : undefined,
+      permissions: form.permissions,
     };
 
     try {
@@ -107,6 +112,7 @@ export default function UsersPage() {
         lastName: "",
         rut: "",
         clinicIds: form.clinicIds,
+        permissions: [],
       });
       setSuccessMessage("Usuario creado.");
       await loadUsers();
@@ -159,6 +165,18 @@ export default function UsersPage() {
     });
   };
 
+  const togglePermission = (permission: UserPermission) => {
+    setForm((current) => {
+      const isSelected = current.permissions.includes(permission);
+      return {
+        ...current,
+        permissions: isSelected
+          ? current.permissions.filter((item) => item !== permission)
+          : [...current.permissions, permission],
+      };
+    });
+  };
+
   return (
     <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1.6fr_1fr]">
       <div className="rounded-2xl border border-slate-100 bg-white p-6 shadow-sm">
@@ -186,7 +204,23 @@ export default function UsersPage() {
               </div>
               <p className="text-xs text-slate-500">{user.email}</p>
               <p className="text-xs text-slate-500">
-                {user.role === "DOCTOR" ? "Doctor" : "Secretaria"}
+                {user.role === "ADMIN"
+                  ? "Admin"
+                  : user.role === "DOCTOR"
+                    ? "Doctor"
+                    : "Secretaria"}
+              </p>
+              <p className="text-xs text-slate-400">
+                Permisos:{" "}
+                {user.permissions.length > 0
+                  ? user.permissions
+                      .map(
+                        (permission) =>
+                          USER_PERMISSIONS.find((item) => item.key === permission)?.label ??
+                          permission
+                      )
+                      .join(", ")
+                  : "Mi perfil y Vista General"}
               </p>
               <p className="text-xs text-slate-400">
                 {user.doctorProfile?.rut ?? user.profile?.rut}
@@ -209,6 +243,7 @@ export default function UsersPage() {
             }
             className="rounded-xl border border-slate-200 px-3 py-2 text-sm"
           >
+            <option value="ADMIN">Admin</option>
             <option value="DOCTOR">Doctor</option>
             <option value="SECRETARY">Secretaria</option>
           </select>
@@ -237,6 +272,33 @@ export default function UsersPage() {
                       type="checkbox"
                       checked={checked}
                       onChange={() => toggleClinic(clinic.id)}
+                      className="h-4 w-4 accent-slate-900"
+                    />
+                  </label>
+                );
+              })}
+            </div>
+          </div>
+          <div className="rounded-xl border border-slate-200 bg-slate-50/60 p-3">
+            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+              Permisos
+            </p>
+            <p className="mt-1 text-xs text-slate-400">
+              Por defecto solo tendra Mi perfil y Vista General.
+            </p>
+            <div className="mt-3 grid gap-2 sm:grid-cols-2">
+              {USER_PERMISSIONS.map((permission) => {
+                const checked = form.permissions.includes(permission.key);
+                return (
+                  <label
+                    key={permission.key}
+                    className="flex items-center justify-between rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700"
+                  >
+                    <span>{permission.label}</span>
+                    <input
+                      type="checkbox"
+                      checked={checked}
+                      onChange={() => togglePermission(permission.key)}
                       className="h-4 w-4 accent-slate-900"
                     />
                   </label>

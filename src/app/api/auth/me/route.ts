@@ -8,7 +8,7 @@ export const runtime = "nodejs";
  * GET /api/auth/me
  * - Revisa la cookie mg_session
  * - Verifica firma y expiración usando SESSION_SECRET
- * - Responde { ok: true, session: { userId, role, exp } } si es válida
+ * - Responde { ok: true, session: { userId, role, permissions, exp } } si es válida
  */
 export async function GET() {
   const secret = process.env.SESSION_SECRET;

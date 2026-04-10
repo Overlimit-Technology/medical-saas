@@ -17,7 +17,7 @@ function isUserOnline(lastLoginAt: Date | string | null, onlineThreshold: Date) 
 export async function GET() {
   try {
     const session = await requireClinicSession();
-    requireRole(session.role, ["ADMIN", "DOCTOR", "SECRETARY"]);
+    requireRole(session, ["ADMIN"], "CHAT");
 
     const clinic = await prisma.clinic.findFirst({
       where: { id: session.clinicId, isActive: true },

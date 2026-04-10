@@ -164,6 +164,8 @@ export async function requireFhirClinicSession(req: Request): Promise<FhirSessio
       userId: technical.userId || `svc:${technical.clientId}`,
       clinicId: technical.clinicId,
       role: technical.role,
+      isSuperAdmin: false,
+      permissions: [],
       authType: "service",
       clientId: technical.clientId,
       rateLimitPerMinute: technical.rateLimitPerMinute ?? getServiceRateLimitPerMinute(),

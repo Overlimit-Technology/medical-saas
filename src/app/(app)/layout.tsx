@@ -6,7 +6,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     <div className="flex h-screen overflow-hidden bg-slate-50 text-slate-900">
       <PresenceTracker />
       <Sidebar />
-      <main className="min-h-0 flex-1 overflow-hidden px-8 py-8">
+      <main className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto px-8 py-8">
         {children}
       </main>
     </div>

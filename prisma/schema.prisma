@@ -105,6 +105,12 @@ model User {
   // Rol del usuario (por defecto ADMIN mientras estás en MVP)
   role UserRole @default(ADMIN)
 
+  // Admin real: conserva acceso total aunque no tenga permisos marcados
+  isSuperAdmin Boolean @default(false)
+
+  // Permisos de navegación/acciones adicionales asignados por el administrador
+  permissions String[] @default([])
+
   // Estado del usuario (por defecto ACTIVE)
   status UserStatus @default(ACTIVE)
 

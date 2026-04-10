@@ -38,7 +38,7 @@ export async function POST(req: Request) {
 
     const user = await prisma.user.findUnique({
       where: { id: session.userId },
-      select: { passwordHash: true },
+      select: { passwordHash: true, isSuperAdmin: true, permissions: true },
     });
 
     if (!user || !user.passwordHash) {
@@ -62,7 +62,14 @@ export async function POST(req: Request) {
     const exp = Math.floor(Date.now() / 1000) + 60 * 60 * 8;
     const secret = getSessionSecret();
     const value = createSessionCookieValue(
-      { userId: session.userId, role: session.role, exp, mustChangePassword: false },
+      {
+        userId: session.userId,
+        role: session.role,
+        isSuperAdmin: user.isSuperAdmin,
+        permissions: user.permissions,
+        exp,
+        mustChangePassword: false,
+      },
       secret
     );
 

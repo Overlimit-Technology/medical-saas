@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { DeleteIconButton } from "@/presentation/common/DeleteIconButton";
+import { hasPermission } from "@/lib/permissions";
 
 type Treatment = {
   id: string;
@@ -59,6 +60,8 @@ export default function TreatmentsPage() {
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
   const [errors, setErrors] = useState<FormErrors>({});
   const [role, setRole] = useState<string | null>(null);
+  const [isSuperAdmin, setIsSuperAdmin] = useState(false);
+  const [permissions, setPermissions] = useState<string[]>([]);
   const [roleLoading, setRoleLoading] = useState(true);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -70,6 +73,7 @@ export default function TreatmentsPage() {
     () => items.find((item) => item.id === selectedId) ?? null,
     [items, selectedId]
   );
+  const canUseTreatments = hasPermission(role, permissions, "TREATMENTS", isSuperAdmin);
 
   const filteredItems = useMemo(() => {
     if (!query.trim()) return items;
@@ -84,8 +88,12 @@ export default function TreatmentsPage() {
       const res = await fetch("/api/auth/me", { credentials: "include" });
       const data = await res.json();
       setRole(data.ok ? data.session?.role ?? null : null);
+      setIsSuperAdmin(data.ok ? data.session?.isSuperAdmin === true : false);
+      setPermissions(data.ok ? data.session?.permissions ?? [] : []);
     } catch {
       setRole(null);
+      setIsSuperAdmin(false);
+      setPermissions([]);
     } finally {
       setRoleLoading(false);
     }
@@ -121,12 +129,12 @@ export default function TreatmentsPage() {
 
   useEffect(() => {
     if (roleLoading) return;
-    if (role !== "ADMIN" && role !== "DOCTOR") {
+    if (!canUseTreatments) {
       window.location.assign("/dashboard");
       return;
     }
     loadTreatments();
-  }, [role, roleLoading]);
+  }, [canUseTreatments, roleLoading]);
 
   useEffect(() => {
     if (selectedTreatment) {
@@ -239,7 +247,7 @@ export default function TreatmentsPage() {
     );
   }
 
-  if (role !== "ADMIN" && role !== "DOCTOR") {
+  if (!canUseTreatments) {
     return (
       <div className="rounded-2xl border border-amber-200 bg-amber-50 p-6 text-sm text-amber-800 shadow-sm">
         No tienes acceso a esta seccion. Redirigiendo...
