@@ -2,6 +2,7 @@ import type { AuthRepository } from "@/domain/auth/repositories/AuthRepository";
 import type { LoginInput } from "@/domain/auth/schemas/login.schema";
 import type { User } from "@/domain/auth/entities/User";
 import type { AuthSession } from "@/domain/auth/entities/Session";
+import { normalizePermissions } from "@/lib/permissions";
 
 /**
  * Repo HTTP (se usa en el browser).
@@ -49,6 +50,8 @@ export class AuthRepositoryHttp implements AuthRepository {
       return {
         userId: null,
         role: null,
+        isSuperAdmin: false,
+        permissions: [],
         mustChangePassword: false,
       };
     }
@@ -56,6 +59,8 @@ export class AuthRepositoryHttp implements AuthRepository {
     return {
       userId: data.session?.userId ?? null,
       role: data.session?.role ?? null,
+      isSuperAdmin: data.session?.isSuperAdmin === true,
+      permissions: normalizePermissions(data.session?.permissions),
       mustChangePassword: Boolean(data.session?.mustChangePassword),
     };
   }

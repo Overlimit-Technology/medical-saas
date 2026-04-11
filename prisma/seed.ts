@@ -6,6 +6,12 @@ type FieldErrors = Partial<Record<"email" | "password", string>>;
 type UserRole = "ADMIN" | "DOCTOR" | "SECRETARY";
 type UserStatus = "ACTIVE" | "SUSPENDED" | "PENDING";
 
+const DEFAULT_ROLE_PERMISSIONS: Record<UserRole, string[]> = {
+  ADMIN: [],
+  DOCTOR: ["AGENDA", "CLINICAL_VISITS", "CHAT", "TREATMENTS"],
+  SECRETARY: ["AGENDA", "CHAT", "CHAT_META", "PATIENTS"],
+};
+
 /**
  * Seeder MVP:
  * - Crea usuarios base (admin/doctor/secretary)
@@ -31,6 +37,8 @@ async function upsertUser(params: {
     where: { email: params.email },
     update: {
       role: params.role,
+      isSuperAdmin: params.role === "ADMIN",
+      permissions: DEFAULT_ROLE_PERMISSIONS[params.role],
       status: params.status ?? "ACTIVE",
       mustChangePassword: false,
       passwordHash,
@@ -56,6 +64,8 @@ async function upsertUser(params: {
       email: params.email,
       passwordHash,
       role: params.role,
+      isSuperAdmin: params.role === "ADMIN",
+      permissions: DEFAULT_ROLE_PERMISSIONS[params.role],
       status: params.status ?? "ACTIVE",
       mustChangePassword: false,
       name: params.name ?? `${params.firstName} ${params.lastName}`,

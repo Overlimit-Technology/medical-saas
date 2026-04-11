@@ -9,7 +9,7 @@ export default function Boxes() {
   const {
     filteredItems,
     query,
-    role,
+    canUseBoxes,
     roleLoading,
     loading,
     isModalOpen,
@@ -28,6 +28,7 @@ export default function Boxes() {
   const {
     setQuery,
     setName,
+    setNameError,
     openCreateModal,
     openEditModal,
     closeModal,
@@ -48,7 +49,7 @@ export default function Boxes() {
     );
   }
 
-  if (role !== "ADMIN") {
+  if (!canUseBoxes) {
     return (
       <div className="mx-auto max-w-6xl">
         <div className="rounded-2xl border border-amber-200 bg-amber-50 p-6 text-sm text-amber-800 shadow-sm">
@@ -192,7 +193,7 @@ export default function Boxes() {
                   value={name}
                   onChange={(e) => {
                     setName(e.target.value);
-                    if (nameError) setName(e.target.value);
+                    if (nameError) setNameError(null);
                   }}
                   placeholder="Ej: Box 1"
                   className={`w-full rounded-xl border bg-slate-50/40 px-3 py-2.5 text-sm transition-colors focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-100 ${nameError ? "border-rose-300 focus:border-rose-400 focus:ring-rose-100" : "border-slate-200 focus:border-blue-400"}`}

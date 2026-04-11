@@ -11,7 +11,7 @@ const createTreatmentSchema = z.object({
 export async function GET() {
   try {
     const session = await requireClinicSession();
-    requireRole(session.role, ["ADMIN", "DOCTOR"]);
+    requireRole(session, ["ADMIN"], "TREATMENTS");
 
     const items = await TreatmentsService.list();
     return NextResponse.json({ ok: true, items });
@@ -24,7 +24,7 @@ export async function GET() {
 export async function POST(req: Request) {
   try {
     const session = await requireClinicSession();
-    requireRole(session.role, ["ADMIN", "DOCTOR"]);
+    requireRole(session, ["ADMIN"], "TREATMENTS");
 
     const body = await req.json();
     const parsed = createTreatmentSchema.safeParse(body);

@@ -5,6 +5,7 @@ import { ProfileRepositoryHttp } from "@/data/profile/ProfileRepository";
 import { ClinicsRepositoryHttp } from "@/data/clinics/ClinicsRepository";
 import { GetMyProfileUseCase } from "@/domain/profile/usecases/ProfileUseCases";
 import { ClearSelectedClinicUseCase } from "@/domain/clinics/usecases/ClearSelectedClinicUseCase";
+import { normalizePermissions } from "@/lib/permissions";
 
 type Role = "ADMIN" | "SECRETARY" | "DOCTOR";
 
@@ -29,6 +30,8 @@ export function useSidebarViewModel() {
   }, []);
 
   const [role, setRole] = useState<Role | null>(null);
+  const [isSuperAdmin, setIsSuperAdmin] = useState(false);
+  const [permissions, setPermissions] = useState<string[]>([]);
   const [displayName, setDisplayName] = useState("Medigest");
   const [clinicLabel, setClinicLabel] = useState("Panel clínico");
   const [email, setEmail] = useState("");
@@ -40,6 +43,8 @@ export function useSidebarViewModel() {
       try {
         const profile = await getMyProfileUseCase.execute();
         setRole(profile.role as Role);
+        setIsSuperAdmin(profile.isSuperAdmin === true);
+        setPermissions(normalizePermissions(profile.permissions));
         setEmail(profile.email);
         setImage(profile.image ?? null);
         setDisplayName(`${profile.firstName} ${profile.lastName}`.trim() || profile.email);
@@ -47,6 +52,8 @@ export function useSidebarViewModel() {
         setInitials(getInitials(profile.firstName, profile.lastName, profile.email));
       } catch {
         setRole(null);
+        setIsSuperAdmin(false);
+        setPermissions([]);
       }
     };
 
@@ -72,6 +79,8 @@ export function useSidebarViewModel() {
   return {
     state: {
       role,
+      isSuperAdmin,
+      permissions,
       displayName,
       clinicLabel,
       email,

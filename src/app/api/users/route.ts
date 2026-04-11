@@ -9,14 +9,16 @@ import { resolveClinicLabels } from "@/server/clinics/clinicDisplay";
 import { requireClinicSession, requireRole } from "@/server/auth/requireSession";
 import { DoctorsService } from "@/server/doctors/DoctorsService";
 import { sendEmail } from "@/server/notifications/email";
+import { normalizePermissions } from "@/lib/permissions";
 
 const userCreateSchema = z.object({
   email: z.string().email(),
-  role: z.enum(["DOCTOR", "SECRETARY"]),
+  role: z.enum(["ADMIN", "DOCTOR", "SECRETARY"]),
   firstName: z.string().min(1),
   lastName: z.string().min(1),
   rut: z.string().min(1),
   specialty: z.string().optional().nullable(),
+  permissions: z.array(z.string()).optional(),
   clinicId: z.string().optional(),
   clinicIds: z.array(z.string().min(1)).optional(),
 });
@@ -103,11 +105,12 @@ async function sendWelcomeEmail(
 export async function GET() {
   try {
     const session = await requireClinicSession();
-    requireRole(session.role, ["ADMIN"]);
+    requireRole(session, ["ADMIN"], "USERS");
 
     const items = await prisma.user.findMany({
       where: {
-        role: { in: ["DOCTOR", "SECRETARY"] },
+        role: { in: ["ADMIN", "DOCTOR", "SECRETARY"] },
+        isSuperAdmin: false,
         status: "ACTIVE",
         clinicMemberships: {
           some: { clinicId: session.clinicId, status: "ACTIVE" },
@@ -129,7 +132,7 @@ export async function GET() {
 export async function POST(req: Request) {
   try {
     const session = await requireClinicSession();
-    requireRole(session.role, ["ADMIN"]);
+    requireRole(session, ["ADMIN"], "USERS");
 
     const body = await req.json();
     const parsed = userCreateSchema.safeParse(body);
@@ -148,6 +151,7 @@ export async function POST(req: Request) {
     );
     const clinicLabels = await resolveClinicLabels(clinicIds);
     await ensureRutAvailable(parsed.data.rut);
+    const permissions = normalizePermissions(parsed.data.permissions);
 
     const generatedPassword = generatePassword();
     let item: { id: string; email: string };
@@ -161,6 +165,7 @@ export async function POST(req: Request) {
         phone: null,
         rut: parsed.data.rut,
         specialty: parsed.data.specialty ?? null,
+        permissions,
         clinicIds,
       });
     } else {
@@ -170,7 +175,9 @@ export async function POST(req: Request) {
           email: parsed.data.email,
           passwordHash,
           mustChangePassword: true,
-          role: "SECRETARY",
+          role: parsed.data.role,
+          isSuperAdmin: false,
+          permissions,
           status: "ACTIVE",
           profile: {
             create: {

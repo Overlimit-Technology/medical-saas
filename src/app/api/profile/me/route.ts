@@ -17,6 +17,8 @@ function mapProfile(item: {
   id: string;
   email: string;
   role: string;
+  isSuperAdmin: boolean;
+  permissions: string[];
   image: string | null;
   profile: {
     firstName: string;
@@ -28,6 +30,8 @@ function mapProfile(item: {
     id: item.id,
     email: item.email,
     role: item.role,
+    isSuperAdmin: item.isSuperAdmin,
+    permissions: item.permissions,
     image: item.image,
     firstName: item.profile?.firstName ?? "",
     lastName: item.profile?.lastName ?? "",
@@ -44,6 +48,8 @@ export async function GET() {
         id: true,
         email: true,
         role: true,
+        isSuperAdmin: true,
+        permissions: true,
         image: true,
         profile: {
           select: {
@@ -106,6 +112,8 @@ export async function PUT(req: Request) {
         id: true,
         email: true,
         role: true,
+        isSuperAdmin: true,
+        permissions: true,
         image: true,
         profile: {
           select: {

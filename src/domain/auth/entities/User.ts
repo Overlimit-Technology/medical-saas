@@ -13,6 +13,8 @@ export type User = {
   id: string;
   email: string;
   role: UserRole;
+  isSuperAdmin?: boolean;
+  permissions?: string[];
   status: UserStatus;
   name?: string | null;
   mustChangePassword?: boolean;

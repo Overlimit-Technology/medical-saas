@@ -7,7 +7,7 @@ import { DoctorsService } from "@/server/doctors/DoctorsService";
 export async function DELETE(_req: Request, { params }: { params: { id: string } }) {
   try {
     const session = await requireClinicSession();
-    requireRole(session.role, ["ADMIN"]);
+    requireRole(session, ["ADMIN"], "USERS");
 
     if (params.id === session.userId) {
       return NextResponse.json(
@@ -19,7 +19,8 @@ export async function DELETE(_req: Request, { params }: { params: { id: string }
     const target = await prisma.user.findFirst({
       where: {
         id: params.id,
-        role: { in: ["DOCTOR", "SECRETARY"] },
+        role: { in: ["ADMIN", "DOCTOR", "SECRETARY"] },
+        isSuperAdmin: false,
         clinicMemberships: {
           some: { clinicId: session.clinicId, status: "ACTIVE" },
         },

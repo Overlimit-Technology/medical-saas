@@ -1,11 +1,14 @@
 import type { Clinic } from "@/domain/clinics/entities/Clinic";
+import type { UserPermission } from "@/lib/permissions";
 
-export type UserRole = "DOCTOR" | "SECRETARY";
+export type UserRole = "ADMIN" | "DOCTOR" | "SECRETARY";
 
 export type User = {
   id: string;
   email: string;
   role: UserRole;
+  isSuperAdmin?: boolean;
+  permissions?: string[];
   createdAt: string;
   profile?: {
     firstName: string;
@@ -33,6 +36,7 @@ export type CreateUserInput = {
   rut: string;
   specialty?: string;
   clinicIds?: string[];
+  permissions?: UserPermission[];
 };
 
 export type UpdateUserDetailInput = {

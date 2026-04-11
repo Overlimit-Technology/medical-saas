@@ -6,6 +6,7 @@ import { AuthRepositoryHttp } from "@/data/auth/AuthRepository";
 import { BoxesRepositoryHttp } from "@/data/boxes/BoxesRepository";
 import { GetCurrentSessionUseCase } from "@/domain/auth/usecases/GetCurrentSessionUseCase";
 import { DeleteBoxUseCase, GetBoxesUseCase, SaveBoxUseCase } from "@/domain/boxes/usecases/BoxesUseCases";
+import { hasPermission } from "@/lib/permissions";
 
 export function useBoxesViewModel() {
   const { getCurrentSessionUseCase, getBoxesUseCase, saveBoxUseCase, deleteBoxUseCase } = useMemo(() => {
@@ -22,6 +23,8 @@ export function useBoxesViewModel() {
   const [items, setItems] = useState<Box[]>([]);
   const [query, setQuery] = useState("");
   const [role, setRole] = useState<string | null>(null);
+  const [isSuperAdmin, setIsSuperAdmin] = useState(false);
+  const [permissions, setPermissions] = useState<string[]>([]);
   const [roleLoading, setRoleLoading] = useState(true);
   const [loading, setLoading] = useState(true);
 
@@ -43,8 +46,12 @@ export function useBoxesViewModel() {
       try {
         const session = await getCurrentSessionUseCase.execute();
         setRole(session.role ?? null);
+        setIsSuperAdmin(session.isSuperAdmin === true);
+        setPermissions(session.permissions ?? []);
       } catch {
         setRole(null);
+        setIsSuperAdmin(false);
+        setPermissions([]);
       } finally {
         setRoleLoading(false);
       }
@@ -64,14 +71,16 @@ export function useBoxesViewModel() {
     }
   }, [getBoxesUseCase]);
 
+  const canUseBoxes = hasPermission(role, permissions, "BOXES", isSuperAdmin);
+
   useEffect(() => {
     if (roleLoading) return;
-    if (role !== "ADMIN") {
+    if (!canUseBoxes) {
       window.location.assign("/dashboard");
       return;
     }
-    loadBoxes();
-  }, [role, roleLoading, loadBoxes]);
+    void loadBoxes();
+  }, [canUseBoxes, roleLoading, loadBoxes]);
 
   useEffect(() => {
     if (!successMessage) return;
@@ -168,6 +177,7 @@ export function useBoxesViewModel() {
       filteredItems,
       query,
       role,
+      canUseBoxes,
       roleLoading,
       loading,
       isModalOpen,
@@ -185,6 +195,7 @@ export function useBoxesViewModel() {
     actions: {
       setQuery,
       setName,
+      setNameError,
       openCreateModal,
       openEditModal,
       closeModal,

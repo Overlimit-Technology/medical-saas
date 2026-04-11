@@ -53,7 +53,14 @@ export async function POST(req: Request) {
     const exp = Math.floor(Date.now() / 1000) + 60 * 60 * 8; // 8 horas de expiración
     const secret = getSessionSecret();
     const value = createSessionCookieValue(
-      { userId: user.id, role: user.role, exp, mustChangePassword: user.mustChangePassword ?? false },
+      {
+        userId: user.id,
+        role: user.role,
+        isSuperAdmin: user.isSuperAdmin ?? false,
+        permissions: user.permissions ?? [],
+        exp,
+        mustChangePassword: user.mustChangePassword ?? false,
+      },
       secret
     );
 
@@ -70,13 +77,13 @@ export async function POST(req: Request) {
     return NextResponse.json({ ok: true, user });
   } catch (e) {
     console.error("[POST /api/auth/login] Error real:", e);
-    const msg = e instanceof Error ? e.message : "No se pudo iniciar sesi?n.";
+    const msg = e instanceof Error ? e.message : "No se pudo iniciar sesión.";
 
     // Si las credenciales son inv?lidas, devolvemos un error 401
     const status = msg.includes("Credenciales") ? 401 : 400;
 
     return NextResponse.json(
-      { message: "No se pudo iniciar sesi?n. Revisa tus credenciales." },
+      { message: "No se pudo iniciar sesión. Revisa tus credenciales." },
       { status }
     );
   }

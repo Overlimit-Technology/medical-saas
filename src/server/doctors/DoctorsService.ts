@@ -11,6 +11,7 @@ export type DoctorInput = {
   phone?: string | null;
   rut: string;
   specialty?: string | null;
+  permissions?: string[];
   clinicIds: string[];
 };
 
@@ -77,6 +78,7 @@ export class DoctorsService {
         passwordHash,
         mustChangePassword: true,
         role: "DOCTOR",
+        permissions: input.permissions ?? [],
         status: "ACTIVE",
         profile: {
           create: {

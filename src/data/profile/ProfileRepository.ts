@@ -7,6 +7,8 @@ type ProfilePayload = {
     id: string;
     email: string;
     role: string;
+    isSuperAdmin: boolean;
+    permissions: string[];
     image: string | null;
     firstName: string;
     lastName: string;
@@ -31,6 +33,8 @@ function mapProfile(data: ProfilePayload): UserProfile {
     id: data.item.id,
     email: data.item.email,
     role: data.item.role,
+    isSuperAdmin: data.item.isSuperAdmin === true,
+    permissions: data.item.permissions ?? [],
     image: data.item.image ?? null,
     firstName: data.item.firstName,
     lastName: data.item.lastName,

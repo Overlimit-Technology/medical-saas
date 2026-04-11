@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { UsersRepositoryHttp } from "@/data/users/UsersRepository";
 import type { User, UserRole } from "@/domain/users/entities/User";
+import { USER_PERMISSIONS, type UserPermission } from "@/lib/permissions";
 import {
   CreateUserUseCase,
   DeleteUserUseCase,
@@ -19,6 +20,7 @@ export type FormState = {
   rut: string;
   specialty: string;
   clinicIds: string[];
+  permissions: UserPermission[];
 };
 
 export type FormErrors = Partial<Record<keyof FormState, string>>;
@@ -31,6 +33,7 @@ const EMPTY_FORM: FormState = {
   rut: "",
   specialty: "",
   clinicIds: [],
+  permissions: [],
 };
 
 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -89,7 +92,7 @@ export function useDoctorsViewModel() {
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
-  const loadUsers = async () => {
+  const loadUsers = useCallback(async () => {
     setLoading(true);
     setApiError(null);
     try {
@@ -100,9 +103,9 @@ export function useDoctorsViewModel() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [getUsersUseCase]);
 
-  const loadClinics = async () => {
+  const loadClinics = useCallback(async () => {
     const data = await getUserClinicsUseCase.execute();
     setClinics(data.clinics ?? []);
     const preferredClinicId = data.activeClinicId ?? (data.clinics[0]?.id ?? "");
@@ -112,12 +115,12 @@ export function useDoctorsViewModel() {
         clinicIds: current.clinicIds.length > 0 ? current.clinicIds : [preferredClinicId],
       }));
     }
-  };
+  }, [getUserClinicsUseCase]);
 
   useEffect(() => {
     void loadUsers();
     void loadClinics();
-  }, [getUserClinicsUseCase, getUsersUseCase]);
+  }, [loadClinics, loadUsers]);
 
   useEffect(() => {
     if (!successMessage) return;
@@ -161,6 +164,18 @@ export function useDoctorsViewModel() {
     });
   };
 
+  const togglePermission = (permission: UserPermission) => {
+    setForm((current) => {
+      const isSelected = current.permissions.includes(permission);
+      return {
+        ...current,
+        permissions: isSelected
+          ? current.permissions.filter((item) => item !== permission)
+          : [...current.permissions, permission],
+      };
+    });
+  };
+
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
     const nextErrors = validateForm(form);
@@ -178,6 +193,7 @@ export function useDoctorsViewModel() {
       rut: form.rut.trim(),
       specialty: form.role === "DOCTOR" && form.specialty.trim() ? form.specialty.trim() : undefined,
       clinicIds: form.clinicIds.length > 0 ? form.clinicIds : undefined,
+      permissions: form.permissions,
     };
 
     try {
@@ -245,6 +261,7 @@ export function useDoctorsViewModel() {
       saving,
       query,
       form,
+      availablePermissions: USER_PERMISSIONS,
       errors,
       apiError,
       successMessage,
@@ -261,6 +278,7 @@ export function useDoctorsViewModel() {
       closeModal,
       handleFieldChange,
       toggleClinic,
+      togglePermission,
       handleSubmit,
       handleDelete,
       setDeleteTarget,

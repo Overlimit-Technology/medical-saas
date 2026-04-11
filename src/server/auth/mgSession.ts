@@ -4,6 +4,8 @@ import { verifyPayload } from '@/server/security/signedCookie'
 export type MgSessionPayload = {
   userId: string
   role: string
+  isSuperAdmin?: boolean
+  permissions?: string[]
   exp: number // unix seconds
   mustChangePassword?: boolean
 }

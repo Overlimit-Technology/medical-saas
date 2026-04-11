@@ -18,6 +18,7 @@ import {
   UserCircle,
   MessageCircle,
 } from "lucide-react";
+import { hasPermission, type UserPermission } from "@/lib/permissions";
 import { useSidebarViewModel } from "./SidebarViewModel";
 
 type Role = "ADMIN" | "SECRETARY" | "DOCTOR";
@@ -26,81 +27,52 @@ type NavItem = {
   href: string;
   label: string;
   icon: LucideIcon;
-  roles?: Role[];
   group: "escritorios" | "paginas";
   matchPrefixes?: string[];
+  roles?: Role[];
+  permission?: UserPermission;
+  doctorOnlyWithPermission?: boolean;
 };
 
 const NAV_ITEMS: NavItem[] = [
-  {
-    href: "/dashboard",
-    label: "Vista General",
-    icon: LayoutGrid,
-    group: "escritorios",
-  },
-  {
-    href: "/agenda",
-    label: "Agenda",
-    icon: CalendarDays,
-    roles: ["ADMIN", "SECRETARY", "DOCTOR"],
-    group: "escritorios",
-  },
-  {
-    href: "/chat",
-    label: "Chat",
-    icon: MessageCircle,
-    roles: ["ADMIN", "SECRETARY", "DOCTOR"],
-    group: "escritorios",
-  },
-  {
-    href: "/crm",
-    label: "Gestion de contactos y cobros",
-    icon: HandCoins,
-    roles: ["ADMIN", "SECRETARY"],
-    group: "escritorios",
-  },
-  {
-    href: "/patients",
-    label: "Pacientes",
-    icon: Users,
-    roles: ["ADMIN", "SECRETARY"],
-    group: "paginas",
-  },
+  { href: "/dashboard", label: "Vista General", icon: LayoutGrid, group: "escritorios" },
+  { href: "/agenda", label: "Agenda", icon: CalendarDays, group: "escritorios", permission: "AGENDA" },
+  { href: "/chat", label: "Chat", icon: MessageCircle, group: "escritorios", permission: "CHAT" },
+  { href: "/chat-meta", label: "Chat Meta", icon: MessageCircle, group: "escritorios", permission: "CHAT_META" },
+  { href: "/formulario-chat", label: "Formulario Chat", icon: MessageCircle, group: "escritorios", permission: "CHAT_FORM" },
+  { href: "/crm", label: "Gestion de contactos y cobros", icon: HandCoins, group: "escritorios", permission: "TREATMENTS" },
+  { href: "/patients", label: "Pacientes", icon: Users, group: "paginas", permission: "PATIENTS" },
   {
     href: "/usuarios",
     label: "Usuario",
     icon: UserCog,
-    roles: ["ADMIN"],
     group: "paginas",
+    permission: "USERS",
     matchPrefixes: ["/usuarios", "/doctors"],
   },
+  { href: "/treatments", label: "Tratamientos", icon: Pill, group: "paginas", permission: "TREATMENTS" },
+  { href: "/boxes", label: "Boxes", icon: DoorOpen, group: "paginas", permission: "BOXES" },
   {
-    href: "/treatments",
-    label: "Tratamientos",
-    icon: Pill,
-    roles: ["ADMIN", "DOCTOR"],
+    href: "/clinical-visits",
+    label: "Cita clinica",
+    icon: ClipboardList,
     group: "paginas",
-  },
-  {
-    href: "/boxes",
-    label: "Boxes",
-    icon: DoorOpen,
-    roles: ["ADMIN"],
-    group: "paginas",
+    permission: "CLINICAL_VISITS",
+    doctorOnlyWithPermission: true,
   },
   {
     href: "/form-templates",
     label: "Fichas Clínicas",
     icon: ClipboardList,
-    roles: ["ADMIN", "DOCTOR"],
     group: "paginas",
+    roles: ["ADMIN", "DOCTOR"],
   },
   {
     href: "/profile",
     label: "Mi perfil",
     icon: UserCircle,
-    roles: ["ADMIN", "SECRETARY", "DOCTOR"],
     group: "paginas",
+    roles: ["ADMIN", "SECRETARY", "DOCTOR"],
   },
 ];
 
@@ -110,8 +82,20 @@ export default function Sidebar() {
   const [collapsed, setCollapsed] = useState(false);
 
   const visibleItems = NAV_ITEMS.filter((item) => {
-    if (!item.roles) return true;
     if (state.role === null) return false;
+
+    if (item.doctorOnlyWithPermission) {
+      return (
+        state.role === "DOCTOR" &&
+        hasPermission(state.role, state.permissions, "CLINICAL_VISITS", state.isSuperAdmin)
+      );
+    }
+
+    if (item.permission) {
+      return hasPermission(state.role, state.permissions, item.permission, state.isSuperAdmin);
+    }
+
+    if (!item.roles) return true;
     return item.roles.includes(state.role);
   });
 
@@ -136,9 +120,7 @@ export default function Sidebar() {
         }`}
       >
         <Icon
-          className={`h-[18px] w-[18px] shrink-0 ${
-            active ? "text-slate-900" : "text-slate-500"
-          }`}
+          className={`h-[18px] w-[18px] shrink-0 ${active ? "text-slate-900" : "text-slate-500"}`}
           strokeWidth={2}
         />
         {!collapsed && <span className="min-w-0 truncate">{item.label}</span>}
