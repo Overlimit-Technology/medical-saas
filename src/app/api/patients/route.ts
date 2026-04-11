@@ -22,14 +22,15 @@ const patientCreateSchema = z.object({
 
 export async function GET(req: Request) {
   try {
-    const { clinicId } = await requireClinicSession();
+    const session = await requireClinicSession();
+    requireRole(session, ["ADMIN"], ["PATIENTS", "CLINICAL_VISITS"]);
     const { searchParams } = new URL(req.url);
     const q = searchParams.get("q");
     const page = Number(searchParams.get("page") ?? "1");
     const pageSize = Number(searchParams.get("pageSize") ?? "20");
 
     const data = await PatientsService.list({
-      clinicId,
+      clinicId: session.clinicId,
       q,
       page: Number.isFinite(page) ? page : 1,
       pageSize: Number.isFinite(pageSize) ? pageSize : 20,
@@ -44,7 +45,7 @@ export async function GET(req: Request) {
 export async function POST(req: Request) {
   try {
     const session = await requireClinicSession();
-    requireRole(session.role, ["ADMIN", "SECRETARY"]);
+    requireRole(session, ["ADMIN"], "PATIENTS");
 
     const body = await req.json();
     const parsed = patientCreateSchema.safeParse(body);

@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState, useCallback } from "react";
 import { DeleteIconButton } from "@/presentation/common/DeleteIconButton";
+import { hasPermission } from "@/lib/permissions";
 
 type Box = {
   id: string;
@@ -12,10 +13,10 @@ export default function BoxesPage() {
   const [items, setItems] = useState<Box[]>([]);
   const [query, setQuery] = useState("");
   const [role, setRole] = useState<string | null>(null);
+  const [isSuperAdmin, setIsSuperAdmin] = useState(false);
+  const [permissions, setPermissions] = useState<string[]>([]);
   const [roleLoading, setRoleLoading] = useState(true);
   const [loading, setLoading] = useState(true);
-
-  // Modal state
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selected, setSelected] = useState<Box | null>(null);
   const [name, setName] = useState("");
@@ -23,10 +24,10 @@ export default function BoxesPage() {
   const [saving, setSaving] = useState(false);
   const [apiError, setApiError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
-
-  // Delete modal state
   const [deleteTarget, setDeleteTarget] = useState<Box | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
+
+  const canUseBoxes = hasPermission(role, permissions, "BOXES", isSuperAdmin);
 
   useEffect(() => {
     const loadRole = async () => {
@@ -34,8 +35,12 @@ export default function BoxesPage() {
         const res = await fetch("/api/auth/me", { credentials: "include" });
         const data = await res.json();
         setRole(data.ok ? data.session?.role ?? null : null);
+        setIsSuperAdmin(data.ok ? data.session?.isSuperAdmin === true : false);
+        setPermissions(data.ok ? data.session?.permissions ?? [] : []);
       } catch {
         setRole(null);
+        setIsSuperAdmin(false);
+        setPermissions([]);
       } finally {
         setRoleLoading(false);
       }
@@ -50,7 +55,7 @@ export default function BoxesPage() {
       const data = await res.json();
       if (data.ok) setItems(data.items ?? []);
     } catch {
-      /* ignore */
+      // ignore
     } finally {
       setLoading(false);
     }
@@ -58,12 +63,12 @@ export default function BoxesPage() {
 
   useEffect(() => {
     if (roleLoading) return;
-    if (role !== "ADMIN") {
+    if (!canUseBoxes) {
       window.location.assign("/dashboard");
       return;
     }
-    loadBoxes();
-  }, [role, roleLoading, loadBoxes]);
+    void loadBoxes();
+  }, [canUseBoxes, roleLoading, loadBoxes]);
 
   useEffect(() => {
     if (!successMessage) return;
@@ -74,7 +79,7 @@ export default function BoxesPage() {
   const filteredItems = useMemo(() => {
     if (!query.trim()) return items;
     const term = query.toLowerCase();
-    return items.filter((b) => b.name.toLowerCase().includes(term));
+    return items.filter((item) => item.name.toLowerCase().includes(term));
   }, [items, query]);
 
   const totalLabel = `${items.length} box${items.length === 1 ? "" : "es"}`;
@@ -83,7 +88,6 @@ export default function BoxesPage() {
     return `${filteredItems.length} resultado${filteredItems.length === 1 ? "" : "s"} para "${query}"`;
   }, [filteredItems.length, query]);
 
-  // Modal actions
   const openCreateModal = () => {
     setSelected(null);
     setName("");
@@ -114,6 +118,7 @@ export default function BoxesPage() {
       setNameError("Nombre obligatorio.");
       return;
     }
+
     setNameError(null);
     setSaving(true);
     setApiError(null);
@@ -178,7 +183,7 @@ export default function BoxesPage() {
     );
   }
 
-  if (role !== "ADMIN") {
+  if (!canUseBoxes) {
     return (
       <div className="mx-auto max-w-6xl">
         <div className="rounded-2xl border border-amber-200 bg-amber-50 p-6 text-sm text-amber-800 shadow-sm">
@@ -190,17 +195,13 @@ export default function BoxesPage() {
 
   return (
     <div className="mx-auto max-w-6xl">
-      {/* ── Panel principal ── */}
       <div className="rounded-2xl border border-slate-100 bg-white px-6 pb-6 pt-5 shadow-sm">
-        {/* Encabezado */}
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
             <h1 className="text-xl font-semibold tracking-tight text-slate-900">Boxes</h1>
             <div className="mt-1 flex items-center gap-2">
               <span className="text-xs text-slate-400">{totalLabel}</span>
-              {headerHint && (
-                <span className="text-xs text-slate-400">&middot; {headerHint}</span>
-              )}
+              {headerHint && <span className="text-xs text-slate-400">&middot; {headerHint}</span>}
             </div>
           </div>
           <div className="flex items-center gap-2">
@@ -208,7 +209,7 @@ export default function BoxesPage() {
               <svg className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-300" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></svg>
               <input
                 value={query}
-                onChange={(e) => setQuery(e.target.value)}
+                onChange={(event) => setQuery(event.target.value)}
                 placeholder="Buscar"
                 className="w-48 rounded-full border border-slate-200 bg-slate-50/60 py-2 pl-9 pr-4 text-sm outline-none transition-all focus:w-64 focus:border-blue-300 focus:bg-white focus:ring-2 focus:ring-blue-100"
               />
@@ -216,7 +217,6 @@ export default function BoxesPage() {
           </div>
         </div>
 
-        {/* Toolbar */}
         <div className="mt-4 flex items-center gap-2 border-b border-slate-100 pb-3">
           <button
             onClick={openCreateModal}
@@ -227,7 +227,6 @@ export default function BoxesPage() {
           </button>
         </div>
 
-        {/* Tabla */}
         <div className="mt-0 overflow-x-auto">
           <table className="w-full text-left text-sm">
             <thead>
@@ -258,12 +257,12 @@ export default function BoxesPage() {
                   </td>
                 </tr>
               )}
-              {filteredItems.map((box, idx) => {
+              {filteredItems.map((box, index) => {
                 const initial = box.name.charAt(0).toUpperCase();
                 return (
                   <tr
                     key={box.id}
-                    style={{ animationDelay: `${idx * 25}ms` }}
+                    style={{ animationDelay: `${index * 25}ms` }}
                     className="animate-card-in group cursor-pointer border-b border-slate-50 transition-colors last:border-b-0 hover:bg-slate-50/70"
                     onClick={() => openEditModal(box)}
                   >
@@ -276,7 +275,7 @@ export default function BoxesPage() {
                       </div>
                     </td>
                     <td className="px-4 py-3 text-right">
-                      <div className="flex items-center justify-end gap-1 opacity-0 transition-opacity group-hover:opacity-100" onClick={(e) => e.stopPropagation()}>
+                      <div className="flex items-center justify-end gap-1 opacity-0 transition-opacity group-hover:opacity-100" onClick={(event) => event.stopPropagation()}>
                         <button
                           className="rounded-full border border-slate-200 px-3 py-1 text-xs font-medium text-slate-600 transition-colors hover:border-slate-300 hover:text-slate-800"
                           onClick={() => openEditModal(box)}
@@ -297,7 +296,6 @@ export default function BoxesPage() {
         </div>
       </div>
 
-      {/* ── Modal: Crear / Editar box ── */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-slate-900/30 backdrop-blur-sm transition-opacity" onClick={closeModal} />
@@ -306,13 +304,9 @@ export default function BoxesPage() {
               <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-slate-800"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" /><polyline points="9 22 9 12 15 12 15 22" /></svg>
             </div>
 
-            <h2 className="text-lg font-semibold text-slate-900">
-              {selected ? "Editar box" : "Nuevo box"}
-            </h2>
+            <h2 className="text-lg font-semibold text-slate-900">{selected ? "Editar box" : "Nuevo box"}</h2>
             <p className="mt-1 text-xs text-slate-500">
-              {selected
-                ? "Modifica el nombre del box."
-                : "Agrega un nuevo box o sala de atención."}
+              {selected ? "Modifica el nombre del box." : "Agrega un nuevo box o sala de atención."}
             </p>
 
             <form onSubmit={handleSubmit} className="mt-5 grid gap-4">
@@ -320,8 +314,8 @@ export default function BoxesPage() {
                 <label className="mb-1 block text-[11px] font-medium uppercase tracking-wider text-slate-400">Nombre</label>
                 <input
                   value={name}
-                  onChange={(e) => {
-                    setName(e.target.value);
+                  onChange={(event) => {
+                    setName(event.target.value);
                     if (nameError) setNameError(null);
                   }}
                   placeholder="Ej: Box 1"
@@ -349,14 +343,12 @@ export default function BoxesPage() {
         </div>
       )}
 
-      {/* ── Toast de éxito ── */}
       {successMessage && (
         <div className="animate-fade-in fixed bottom-6 right-6 z-50 rounded-2xl bg-emerald-500 px-4 py-3 text-sm font-medium text-white shadow-lg shadow-emerald-500/30">
           {successMessage}
         </div>
       )}
 
-      {/* ── Modal: Eliminar box ── */}
       {deleteTarget && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-slate-900/30 backdrop-blur-sm transition-opacity" onClick={dismissDeleteModal} />

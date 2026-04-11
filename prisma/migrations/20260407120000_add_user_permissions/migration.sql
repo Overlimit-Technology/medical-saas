@@ -1,0 +1,9 @@
+ALTER TABLE "User" ADD COLUMN "permissions" TEXT[] NOT NULL DEFAULT ARRAY[]::TEXT[];
+
+UPDATE "User"
+SET "permissions" = ARRAY['AGENDA', 'CLINICAL_VISITS', 'CHAT', 'TREATMENTS']::TEXT[]
+WHERE "role" = 'DOCTOR';
+
+UPDATE "User"
+SET "permissions" = ARRAY['AGENDA', 'CHAT', 'CHAT_META', 'PATIENTS']::TEXT[]
+WHERE "role" = 'SECRETARY';

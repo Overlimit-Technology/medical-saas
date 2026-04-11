@@ -36,14 +36,11 @@ function formatDateTime(value: Date) {
   });
 }
 
-function canManageAppointment(sessionRole: string) {
-  return ["ADMIN", "SECRETARY", "DOCTOR"].includes(sessionRole);
-}
-
 // GET /api/appointments/:id -> detalle; si es doctor, solo sus citas.
 export async function GET(_req: Request, { params }: { params: { id: string } }) {
   try {
     const session = await requireClinicSession();
+    requireRole(session, ["ADMIN"], ["AGENDA", "CLINICAL_VISITS"]);
     const item = await prisma.appointment.findFirst({
       where: {
         id: params.id,
@@ -71,9 +68,7 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
 export async function PATCH(req: Request, { params }: { params: { id: string } }) {
   try {
     const session = await requireClinicSession();
-    if (!canManageAppointment(session.role)) {
-      throw new Error("Acceso denegado.");
-    }
+    requireRole(session, ["ADMIN"], "AGENDA");
 
     const body = await req.json();
     const parsed = appointmentUpdateSchema.safeParse(body);
@@ -293,9 +288,7 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
 export async function DELETE(req: Request, { params }: { params: { id: string } }) {
   try {
     const session = await requireClinicSession();
-    if (!canManageAppointment(session.role)) {
-      throw new Error("Acceso denegado.");
-    }
+    requireRole(session, ["ADMIN"], "AGENDA");
 
     const body = await req.json().catch(() => ({}));
     const parsed = appointmentCancelSchema.safeParse(body);

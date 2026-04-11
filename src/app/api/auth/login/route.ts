@@ -53,7 +53,14 @@ export async function POST(req: Request) {
     const exp = Math.floor(Date.now() / 1000) + 60 * 60 * 8; // 8 horas de expiración
     const secret = getSessionSecret();
     const value = createSessionCookieValue(
-      { userId: user.id, role: user.role, exp, mustChangePassword: user.mustChangePassword ?? false },
+      {
+        userId: user.id,
+        role: user.role,
+        isSuperAdmin: user.isSuperAdmin ?? false,
+        permissions: user.permissions ?? [],
+        exp,
+        mustChangePassword: user.mustChangePassword ?? false,
+      },
       secret
     );
 

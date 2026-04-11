@@ -102,10 +102,31 @@ function formatMessageTime(value: string) {
   }).format(date);
 }
 
+function formatMessageDayLabel(value: string) {
+  const date = new Date(value);
+  const today = new Date();
+  const yesterday = new Date();
+  yesterday.setDate(yesterday.getDate() - 1);
+
+  const sameDay = (left: Date, right: Date) =>
+    left.getFullYear() === right.getFullYear() &&
+    left.getMonth() === right.getMonth() &&
+    left.getDate() === right.getDate();
+
+  if (sameDay(date, today)) return "Hoy";
+  if (sameDay(date, yesterday)) return "Ayer";
+
+  return new Intl.DateTimeFormat("es-CL", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  }).format(date);
+}
+
 function ContactAvatar({
   contact,
   selected = false,
-  className = "h-12 w-12 rounded-2xl text-sm",
+  className = "h-12 w-12 rounded-[18px] text-sm",
 }: {
   contact: Contact;
   selected?: boolean;
@@ -124,11 +145,31 @@ function ContactAvatar({
   return (
     <div
       className={`flex items-center justify-center font-semibold ${
-        selected ? "bg-white/15 text-white" : "bg-sky-100 text-sky-700"
+        selected
+          ? "bg-[linear-gradient(135deg,#f8fafc,#e2e8f0)] text-slate-800"
+          : "bg-[linear-gradient(135deg,#dbeafe,#eff6ff)] text-sky-700"
       } ${className}`}
     >
       {getInitials(contact)}
     </div>
+  );
+}
+
+function SearchIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-4 w-4">
+      <circle cx="11" cy="11" r="7" />
+      <path d="m20 20-3.5-3.5" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function SendIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-4 w-4">
+      <path d="M21 3 10 14" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="m21 3-7 18-4-7-7-4 18-7Z" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
   );
 }
 
@@ -378,6 +419,7 @@ export default function ChatPage() {
       fileSize: file.size,
     };
   };
+  const onlineCount = contacts.filter((contact) => contact.isOnline).length;
 
   const handleSendMessage = async () => {
     if (!selectedContact) return;
@@ -428,42 +470,66 @@ export default function ChatPage() {
   };
 
   return (
-    <div className="space-y-6">
-      <div>
-        <p className="text-sm text-slate-500">Comunicacion interna</p>
-        <h1 className="text-2xl font-semibold text-slate-900">Chat en tiempo real</h1>
+    <div className="flex h-full min-h-0 flex-col gap-6 overflow-hidden">
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+        <div>
+          <p className="text-xs font-medium uppercase tracking-[0.34em] text-slate-400">
+            Comunicacion interna
+          </p>
+          <h1 className="mt-2 text-3xl font-semibold tracking-tight text-slate-900">
+            Centro de mensajes
+          </h1>
+        </div>
+
+        <div className="grid grid-cols-2 gap-3 sm:w-auto">
+          <div className="rounded-[26px] border border-white/70 bg-white/80 px-4 py-3 shadow-[0_18px_45px_-30px_rgba(15,23,42,0.4)] backdrop-blur">
+            <p className="text-xs uppercase tracking-[0.22em] text-slate-400">Contactos</p>
+            <p className="mt-2 text-2xl font-semibold text-slate-900">{contacts.length}</p>
+          </div>
+          <div className="rounded-[26px] border border-white/70 bg-white/80 px-4 py-3 shadow-[0_18px_45px_-30px_rgba(15,23,42,0.4)] backdrop-blur">
+            <p className="text-xs uppercase tracking-[0.22em] text-slate-400">En linea</p>
+            <p className="mt-2 text-2xl font-semibold text-slate-900">{onlineCount}</p>
+          </div>
+        </div>
       </div>
 
       {error && (
-        <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+        <div className="rounded-[24px] border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
           {error}
         </div>
       )}
 
-      <div className="grid h-[calc(100vh-9rem)] min-h-[640px] grid-cols-1 gap-5 xl:grid-cols-[360px_minmax(0,1fr)]">
-        <section className="flex min-h-0 flex-col overflow-hidden rounded-[28px] border border-slate-200 bg-white shadow-sm">
-          <div className="border-b border-slate-100 bg-slate-950 px-5 py-5 text-white">
-            <p className="text-xs uppercase tracking-[0.28em] text-slate-300">Contactos</p>
-            <p className="mt-2 text-lg font-semibold">Usuarios de la sede</p>
-            <p className="mt-1 text-sm text-slate-300">{clinicLabel}</p>
+      <div className="grid min-h-0 flex-1 grid-cols-1 gap-5 overflow-hidden xl:grid-cols-[320px_minmax(0,1fr)_320px]">
+        <section className="flex min-h-0 flex-col overflow-hidden rounded-[34px] border border-white/70 bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(248,250,252,0.96))] shadow-[0_30px_80px_-45px_rgba(15,23,42,0.45)]">
+          <div className="border-b border-slate-100 px-5 pb-5 pt-6">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <p className="text-xs uppercase tracking-[0.26em] text-slate-400">Bandeja</p>
+                <p className="mt-2 text-lg font-semibold text-slate-900">Usuarios de la sede</p>
+              </div>
+              <div className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs text-slate-500">
+                {clinicLabel}
+              </div>
+            </div>
+
+            <label className="mt-5 flex items-center gap-3 rounded-[22px] border border-slate-200 bg-slate-50/80 px-4 py-3 text-slate-400 transition focus-within:border-slate-300 focus-within:bg-white">
+              <SearchIcon />
+              <input
+                value={search}
+                onChange={(event) => setSearch(event.target.value)}
+                placeholder="Buscar por nombre, correo o rol"
+                className="w-full bg-transparent text-sm text-slate-700 outline-none placeholder:text-slate-400"
+              />
+            </label>
           </div>
 
-          <div className="border-b border-slate-100 px-4 py-4">
-            <input
-              value={search}
-              onChange={(event) => setSearch(event.target.value)}
-              placeholder="Buscar por nombre, correo o rol"
-              className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700 outline-none transition focus:border-slate-400 focus:bg-white"
-            />
-          </div>
-
-          <div className="min-h-0 flex-1 overflow-y-auto p-3">
+            <div className="min-h-0 flex-1 overflow-y-auto p-3">
             {loading && (
               <div className="space-y-3">
                 {[1, 2, 3, 4].map((item) => (
                   <div
                     key={item}
-                    className="animate-pulse rounded-2xl border border-slate-100 px-4 py-4"
+                    className="animate-pulse rounded-[26px] border border-slate-100 bg-white px-4 py-4"
                   >
                     <div className="h-4 w-32 rounded bg-slate-200" />
                     <div className="mt-2 h-3 w-24 rounded bg-slate-100" />
@@ -473,7 +539,7 @@ export default function ChatPage() {
             )}
 
             {!loading && filteredContacts.length === 0 && (
-              <div className="rounded-3xl border border-dashed border-slate-200 bg-slate-50 px-4 py-10 text-center">
+              <div className="rounded-[28px] border border-dashed border-slate-200 bg-slate-50 px-4 py-10 text-center">
                 <p className="text-sm font-medium text-slate-700">Sin contactos para mostrar</p>
                 <p className="mt-2 text-sm text-slate-500">
                   Cuando existan mas usuarios activos en esta sede apareceran aqui.
@@ -489,46 +555,36 @@ export default function ChatPage() {
                     key={contact.id}
                     type="button"
                     onClick={() => setSelectedId(contact.id)}
-                    className={`w-full rounded-3xl border px-4 py-4 text-left transition ${
+                    className={`w-full rounded-[28px] border px-4 py-4 text-left transition ${
                       selected
-                        ? "border-slate-900 bg-slate-900 text-white shadow-lg shadow-slate-900/10"
-                        : "border-slate-100 bg-white text-slate-900 hover:border-slate-200 hover:bg-slate-50"
+                        ? "border-slate-200 bg-[linear-gradient(135deg,#ffffff,#f8fafc)] shadow-[0_20px_45px_-35px_rgba(15,23,42,0.4)]"
+                        : "border-transparent bg-transparent hover:border-slate-200 hover:bg-white"
                     }`}
                   >
                     <div className="flex items-center gap-3">
-                      <ContactAvatar contact={contact} selected={selected} />
+                      <div className="relative">
+                        <ContactAvatar contact={contact} selected={selected} />
+                        <span
+                          className={`absolute -bottom-1 -right-1 h-3.5 w-3.5 rounded-full border-2 border-white ${
+                            contact.isOnline ? "bg-emerald-500" : "bg-slate-300"
+                          }`}
+                        />
+                      </div>
+
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center justify-between gap-3">
-                          <p className="truncate text-sm font-semibold">
+                          <p className="truncate text-sm font-semibold text-slate-900">
                             {getDisplayName(contact)}
                           </p>
-                          <span
-                            className={`h-2.5 w-2.5 rounded-full ${
-                              contact.isOnline
-                                ? selected
-                                  ? "bg-emerald-300"
-                                  : "bg-emerald-500"
-                                : selected
-                                  ? "bg-slate-400"
-                                  : "bg-slate-300"
-                            }`}
-                          />
+                          <span className="text-[11px] text-slate-400">
+                            {contact.isOnline ? "Activo" : "Offline"}
+                          </span>
                         </div>
-                        <p
-                          className={`mt-1 truncate text-xs ${
-                            selected ? "text-slate-200" : "text-slate-500"
-                          }`}
-                        >
+                        <p className="mt-1 truncate text-xs text-slate-500">
                           {ROLE_LABELS[contact.role]}
                           {contact.specialty ? ` - ${contact.specialty}` : ""}
                         </p>
-                        <p
-                          className={`mt-1 truncate text-xs ${
-                            selected ? "text-slate-300" : "text-slate-400"
-                          }`}
-                        >
-                          {contact.email}
-                        </p>
+                        <p className="mt-1 truncate text-xs text-slate-400">{contact.email}</p>
                       </div>
                     </div>
                   </button>
@@ -539,7 +595,7 @@ export default function ChatPage() {
         </section>
 
         <section
-          className="relative flex min-h-0 flex-col overflow-hidden rounded-[32px] border border-slate-200 bg-white shadow-sm"
+          className="relative flex min-h-0 flex-col overflow-hidden rounded-[36px] border border-white/70 bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(246,248,252,0.96))] shadow-[0_30px_80px_-45px_rgba(15,23,42,0.45)]"
           onDragEnter={selectedContact ? handleDragEnter : undefined}
           onDragLeave={selectedContact ? handleDragLeave : undefined}
           onDragOver={selectedContact ? handleDragOver : undefined}
@@ -556,108 +612,153 @@ export default function ChatPage() {
           )}
           {selectedContact ? (
             <>
-              <div className="border-b border-slate-100 bg-[radial-gradient(circle_at_top_left,_rgba(14,165,233,0.18),_transparent_40%),linear-gradient(135deg,#ffffff,#eff6ff)] px-6 py-5">
-                <div className="flex items-center gap-4">
-                  <ContactAvatar
-                    contact={selectedContact}
-                    className="h-14 w-14 rounded-[20px] text-base"
-                  />
-                  <div className="min-w-0 flex-1">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <h2 className="text-lg font-semibold text-slate-900">
-                        {getDisplayName(selectedContact)}
-                      </h2>
+              <div className="border-b border-slate-100 px-6 py-6">
+                <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
+                  <div className="flex items-center gap-4">
+                    <div className="relative">
+                      <ContactAvatar
+                        contact={selectedContact}
+                        className="h-16 w-16 rounded-[22px] text-base"
+                      />
                       <span
-                        className={`rounded-full px-2.5 py-1 text-xs font-medium ${
-                          selectedContact.isOnline
-                            ? "bg-emerald-100 text-emerald-700"
-                            : "bg-slate-200 text-slate-600"
+                        className={`absolute -bottom-1 -right-1 h-4 w-4 rounded-full border-[3px] border-white ${
+                          selectedContact.isOnline ? "bg-emerald-500" : "bg-slate-300"
                         }`}
-                      >
-                        {selectedContact.isOnline ? "En linea" : "Desconectado"}
-                      </span>
+                      />
                     </div>
-                    <p className="mt-1 text-sm text-slate-500">
-                      {ROLE_LABELS[selectedContact.role]}
-                      {selectedContact.specialty ? ` - ${selectedContact.specialty}` : ""}
-                    </p>
+
+                    <div className="min-w-0">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <h2 className="text-2xl font-semibold tracking-tight text-slate-900">
+                          {getDisplayName(selectedContact)}
+                        </h2>
+                        <span
+                          className={`rounded-full px-3 py-1 text-xs font-medium ${
+                            selectedContact.isOnline
+                              ? "bg-emerald-100 text-emerald-700"
+                              : "bg-slate-200 text-slate-600"
+                          }`}
+                        >
+                          {selectedContact.isOnline ? "En linea" : "Desconectado"}
+                        </span>
+                      </div>
+                      <p className="mt-1 text-sm text-slate-500">
+                        {ROLE_LABELS[selectedContact.role]}
+                        {selectedContact.specialty ? ` - ${selectedContact.specialty}` : ""}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3 sm:w-auto">
+                    <div className="rounded-[24px] border border-slate-200 bg-white px-4 py-3">
+                      <p className="text-xs uppercase tracking-[0.2em] text-slate-400">Mensajes</p>
+                      <p className="mt-2 text-xl font-semibold text-slate-900">{messages.length}</p>
+                    </div>
+                    <div className="rounded-[24px] border border-slate-200 bg-white px-4 py-3">
+                      <p className="text-xs uppercase tracking-[0.2em] text-slate-400">Estado</p>
+                      <p className="mt-2 text-sm font-semibold text-slate-900">
+                        {selectedContact.isOnline ? "Disponible" : "Sin actividad"}
+                      </p>
+                    </div>
                   </div>
                 </div>
               </div>
 
-              <div className="min-h-0 flex-1 bg-[linear-gradient(180deg,#f8fbff_0%,#ffffff_28%)] px-6 py-6">
-                <div className="mx-auto flex h-full min-h-0 max-w-3xl flex-col gap-6">
+              <div className="min-h-0 flex-1 overflow-hidden bg-[radial-gradient(circle_at_top_left,rgba(148,163,184,0.12),transparent_26%),linear-gradient(180deg,#fcfcfd_0%,#f8fafc_100%)] px-5 py-5">
+                <div className="flex h-full min-h-0 flex-col gap-4">
                   <div className="min-h-0 flex-1 overflow-y-auto pr-1">
                     <div className="space-y-4">
                       {messagesLoading && (
-                        <div className="rounded-3xl border border-slate-200 bg-white px-4 py-5 text-sm text-slate-500">
+                        <div className="rounded-[28px] border border-slate-200 bg-white px-4 py-5 text-sm text-slate-500">
                           Cargando mensajes...
                         </div>
                       )}
 
                       {!messagesLoading && messages.length === 0 && (
-                        <div className="rounded-3xl border border-dashed border-slate-200 bg-white px-4 py-8 text-sm text-slate-500">
+                        <div className="rounded-[28px] border border-dashed border-slate-200 bg-white px-4 py-10 text-center text-sm text-slate-500">
                           Aun no hay mensajes con este usuario.
                         </div>
                       )}
 
-                      {messages.map((message) => {
+                      {messages.map((message, index) => {
                         const own = message.senderId === currentUserId;
+                        const previousMessage = messages[index - 1];
+                        const showDayDivider =
+                          !previousMessage ||
+                          new Date(previousMessage.createdAt).toDateString() !==
+                            new Date(message.createdAt).toDateString();
+
                         return (
-                          <div
-                            key={message.id}
-                            className={`flex ${own ? "justify-end" : "justify-start"}`}
-                          >
+                          <div key={message.id} className="space-y-4">
+                            {showDayDivider && (
+                              <div className="flex items-center gap-3 py-2">
+                                <div className="h-px flex-1 bg-slate-200" />
+                                <span className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-medium text-slate-500">
+                                  {formatMessageDayLabel(message.createdAt)}
+                                </span>
+                                <div className="h-px flex-1 bg-slate-200" />
+                              </div>
+                            )}
+
                             <div
-                              className={`max-w-[78%] rounded-[24px] px-4 py-3 shadow-sm ${
-                                own
-                                  ? "bg-slate-900 text-white"
-                                  : "border border-slate-200 bg-white text-slate-700"
-                              }`}
+                              className={`flex items-end gap-3 ${own ? "justify-end" : "justify-start"}`}
                             >
-                              {message.attachmentUrl && isImageType(message.attachmentType) && (
-                                <a href={message.attachmentUrl} target="_blank" rel="noopener noreferrer">
-                                  <img
-                                    src={message.attachmentUrl}
-                                    alt={message.attachmentName ?? "imagen"}
-                                    className="mb-2 max-h-64 rounded-xl object-contain"
-                                  />
-                                </a>
+                              {!own && (
+                                <ContactAvatar
+                                  contact={selectedContact}
+                                  className="h-10 w-10 rounded-[16px] text-xs"
+                                />
                               )}
 
-                              {message.attachmentUrl && !isImageType(message.attachmentType) && (
-                                <a
-                                  href={message.attachmentUrl}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className={`mb-2 flex items-center gap-2 rounded-xl px-3 py-2 text-sm transition ${
-                                    own
-                                      ? "bg-white/10 hover:bg-white/20"
-                                      : "bg-slate-50 hover:bg-slate-100"
-                                  }`}
-                                >
-                                  <FileIcon className="h-5 w-5 shrink-0" />
-                                  <div className="min-w-0 flex-1">
-                                    <p className="truncate font-medium">{message.attachmentName}</p>
-                                    {message.attachmentSize != null && (
-                                      <p className={`text-xs ${own ? "text-slate-300" : "text-slate-400"}`}>
-                                        {formatFileSize(message.attachmentSize)}
-                                      </p>
-                                    )}
-                                  </div>
-                                </a>
-                              )}
-
-                              {message.text && (
-                                <p className="text-sm leading-6">{message.text}</p>
-                              )}
-                              <p
-                                className={`mt-2 text-[11px] ${
-                                  own ? "text-slate-300" : "text-slate-400"
+                              <div
+                                className={`max-w-[78%] rounded-[26px] px-4 py-3 shadow-[0_20px_40px_-34px_rgba(15,23,42,0.35)] ${
+                                  own
+                                    ? "bg-[linear-gradient(135deg,#0f172a,#334155)] text-white"
+                                    : "border border-white/80 bg-white text-slate-700"
                                 }`}
                               >
-                                {formatMessageTime(message.createdAt)}
-                              </p>
+                                {message.attachmentUrl && isImageType(message.attachmentType) && (
+                                  <a href={message.attachmentUrl} target="_blank" rel="noopener noreferrer">
+                                    <img
+                                      src={message.attachmentUrl}
+                                      alt={message.attachmentName ?? "imagen"}
+                                      className="mb-2 max-h-64 rounded-xl object-contain"
+                                    />
+                                  </a>
+                                )}
+
+                                {message.attachmentUrl && !isImageType(message.attachmentType) && (
+                                  <a
+                                    href={message.attachmentUrl}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className={`mb-2 flex items-center gap-2 rounded-xl px-3 py-2 text-sm transition ${
+                                      own
+                                        ? "bg-white/10 hover:bg-white/20"
+                                        : "bg-slate-50 hover:bg-slate-100"
+                                    }`}
+                                  >
+                                    <FileIcon className="h-5 w-5 shrink-0" />
+                                    <div className="min-w-0 flex-1">
+                                      <p className="truncate font-medium">{message.attachmentName}</p>
+                                      {message.attachmentSize != null && (
+                                        <p className={`text-xs ${own ? "text-slate-300" : "text-slate-400"}`}>
+                                          {formatFileSize(message.attachmentSize)}
+                                        </p>
+                                      )}
+                                    </div>
+                                  </a>
+                                )}
+
+                                {message.text && <p className="text-sm leading-6">{message.text}</p>}
+                                <p
+                                  className={`mt-2 text-[11px] ${
+                                    own ? "text-slate-300" : "text-slate-400"
+                                  }`}
+                                >
+                                  {formatMessageTime(message.createdAt)}
+                                </p>
+                              </div>
                             </div>
                           </div>
                         );
@@ -666,7 +767,7 @@ export default function ChatPage() {
                     </div>
                   </div>
 
-                  <div className="rounded-[28px] border border-slate-200 bg-white p-3 shadow-sm">
+                  <div className="shrink-0 rounded-[30px] border border-white/80 bg-white/90 p-3 shadow-[0_22px_60px_-42px_rgba(15,23,42,0.35)] backdrop-blur">
                     {selectedFile && (
                       <div className="mb-3 flex items-center gap-3 rounded-2xl bg-slate-50 px-4 py-3">
                         {filePreviewUrl ? (
@@ -721,14 +822,15 @@ export default function ChatPage() {
                         onChange={(event) => setDraft(event.target.value)}
                         rows={3}
                         placeholder={`Escribe un mensaje para ${selectedContact.firstName || "este contacto"}`}
-                        className="min-h-[92px] flex-1 resize-none rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700 outline-none transition focus:border-slate-400 focus:bg-white"
+                        className="min-h-[96px] flex-1 resize-none rounded-[22px] border border-slate-200 bg-slate-50/80 px-4 py-3 text-sm text-slate-700 outline-none transition focus:border-slate-300 focus:bg-white"
                       />
                       <button
                         type="button"
                         onClick={handleSendMessage}
                         disabled={sending || (!draft.trim() && !selectedFile)}
-                        className="rounded-2xl bg-slate-900 px-5 py-3 text-sm font-medium text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:bg-slate-300"
+                        className="inline-flex items-center justify-center gap-2 rounded-[22px] bg-slate-900 px-5 py-3 text-sm font-medium text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:bg-slate-300"
                       >
+                        <SendIcon />
                         {sending ? "Enviando..." : "Enviar"}
                       </button>
                     </div>
@@ -737,16 +839,78 @@ export default function ChatPage() {
               </div>
             </>
           ) : (
-            <div className="flex h-full min-h-[72vh] items-center justify-center bg-[radial-gradient(circle_at_top,_rgba(14,165,233,0.12),_transparent_42%),linear-gradient(180deg,#ffffff,#f8fafc)] px-6 text-center">
+            <div className="flex h-full min-h-[72vh] items-center justify-center bg-[radial-gradient(circle_at_top,rgba(148,163,184,0.14),transparent_30%),linear-gradient(180deg,#ffffff,#f8fafc)] px-6 text-center">
               <div className="max-w-md rounded-[32px] border border-dashed border-slate-200 bg-white/90 px-8 py-10 shadow-sm">
                 <p className="text-lg font-semibold text-slate-900">Selecciona un contacto</p>
                 <p className="mt-2 text-sm text-slate-500">
-                  El panel derecho mostrara la conversacion cuando elijas un usuario de la sede.
+                  El panel central mostrara la conversacion cuando elijas un usuario de la sede.
                 </p>
               </div>
             </div>
           )}
         </section>
+
+        <aside className="flex min-h-0 flex-col overflow-hidden rounded-[34px] border border-white/70 bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(248,250,252,0.96))] shadow-[0_30px_80px_-45px_rgba(15,23,42,0.45)]">
+          {selectedContact ? (
+            <div className="min-h-0 flex-1 overflow-y-auto px-5 py-6">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <p className="text-xs uppercase tracking-[0.26em] text-slate-400">Perfil</p>
+                  <h3 className="mt-2 text-2xl font-semibold tracking-tight text-slate-900">
+                    {getDisplayName(selectedContact)}
+                  </h3>
+                  <p className="mt-1 text-sm text-slate-500">
+                    {selectedContact.isOnline ? "Disponible ahora" : "Sin actividad reciente"}
+                  </p>
+                </div>
+                <ContactAvatar
+                  contact={selectedContact}
+                  className="h-16 w-16 rounded-[22px] text-base"
+                />
+              </div>
+
+              <div className="mt-6 space-y-4">
+                <div className="rounded-[26px] border border-slate-200 bg-white px-4 py-4">
+                  <p className="text-xs uppercase tracking-[0.22em] text-slate-400">Nombre</p>
+                  <p className="mt-3 text-sm font-medium text-slate-900">
+                    {getDisplayName(selectedContact)}
+                  </p>
+                </div>
+
+                <div className="rounded-[26px] border border-slate-200 bg-white px-4 py-4">
+                  <p className="text-xs uppercase tracking-[0.22em] text-slate-400">Correo</p>
+                  <p className="mt-3 break-words text-sm font-medium text-slate-900">
+                    {selectedContact.email}
+                  </p>
+                </div>
+
+                <div className="rounded-[26px] border border-slate-200 bg-white px-4 py-4">
+                  <p className="text-xs uppercase tracking-[0.22em] text-slate-400">Rol</p>
+                  <p className="mt-3 text-sm font-medium text-slate-900">
+                    {ROLE_LABELS[selectedContact.role]}
+                  </p>
+                </div>
+
+                <div className="rounded-[26px] border border-slate-200 bg-white px-4 py-4">
+                  <p className="text-xs uppercase tracking-[0.22em] text-slate-400">Especialidad</p>
+                  <p className="mt-3 text-sm font-medium text-slate-900">
+                    {selectedContact.specialty || "No registrada"}
+                  </p>
+                </div>
+
+              </div>
+            </div>
+          ) : (
+            <div className="flex h-full items-center justify-center px-6 text-center">
+              <div className="max-w-xs">
+                <p className="text-base font-semibold text-slate-900">Sin perfil activo</p>
+                <p className="mt-2 text-sm text-slate-500">
+                  Al seleccionar un contacto veras aqui sus datos y el resumen de la conversacion.
+                </p>
+              </div>
+            </div>
+          )}
+        </aside>
       </div>
     </div>
   );

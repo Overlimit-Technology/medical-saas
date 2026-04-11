@@ -18,6 +18,7 @@ import {
   UserCircle,
   MessageCircle,
 } from "lucide-react";
+import { hasPermission, type UserPermission } from "@/lib/permissions";
 
 type Role = "ADMIN" | "SECRETARY" | "DOCTOR";
 
@@ -25,79 +26,44 @@ type NavItem = {
   href: string;
   label: string;
   icon: LucideIcon;
-  roles?: Role[];
   group: "escritorios" | "paginas";
+  roles?: Role[];
+  permission?: UserPermission;
+  doctorOnlyWithPermission?: boolean;
 };
 
 const NAV_ITEMS: NavItem[] = [
+  { href: "/dashboard", label: "Vista General", icon: LayoutGrid, group: "escritorios" },
+  { href: "/agenda", label: "Agenda", icon: CalendarDays, group: "escritorios", permission: "AGENDA" },
+  { href: "/chat", label: "Chat", icon: MessageCircle, group: "escritorios", permission: "CHAT" },
+  { href: "/chat-meta", label: "Chat Meta", icon: MessageCircle, group: "escritorios", permission: "CHAT_META" },
+  { href: "/formulario-chat", label: "Formulario Chat", icon: MessageCircle, group: "escritorios", permission: "CHAT_FORM" },
+  { href: "/crm", label: "Gestion de contactos y cobros", icon: HandCoins, group: "escritorios", permission: "TREATMENTS" },
+  { href: "/patients", label: "Pacientes", icon: Users, group: "paginas", permission: "PATIENTS" },
+  { href: "/usuarios", label: "Usuario", icon: UserCog, group: "paginas", permission: "USERS" },
+  { href: "/treatments", label: "Tratamientos", icon: Pill, group: "paginas", permission: "TREATMENTS" },
+  { href: "/boxes", label: "Boxes", icon: DoorOpen, group: "paginas", permission: "BOXES" },
   {
-    href: "/dashboard",
-    label: "Vista General",
-    icon: LayoutGrid,
-    group: "escritorios",
-  },
-  {
-    href: "/agenda",
-    label: "Agenda",
-    icon: CalendarDays,
-    roles: ["ADMIN", "SECRETARY", "DOCTOR"],
-    group: "escritorios",
-  },
-  {
-    href: "/chat",
-    label: "Chat",
-    icon: MessageCircle,
-    roles: ["ADMIN", "SECRETARY", "DOCTOR"],
-    group: "escritorios",
-  },
-  {
-    href: "/crm",
-    label: "Gestion de contactos y cobros",
-    icon: HandCoins,
-    roles: ["ADMIN", "SECRETARY"],
-    group: "escritorios",
-  },
-  {
-    href: "/patients",
-    label: "Pacientes",
-    icon: Users,
-    roles: ["ADMIN", "SECRETARY"],
+    href: "/clinical-visits",
+    label: "Cita clinica",
+    icon: ClipboardList,
     group: "paginas",
-  },
-  {
-    href: "/doctors",
-    label: "Usuario",
-    icon: UserCog,
-    roles: ["ADMIN"],
-    group: "paginas",
-  },
-  {
-    href: "/treatments",
-    label: "Tratamientos",
-    icon: Pill,
-    roles: ["ADMIN", "DOCTOR"],
-    group: "paginas",
-  },
-  {
-    href: "/boxes",
-    label: "Boxes",
-    icon: DoorOpen,
-    roles: ["ADMIN"],
-    group: "paginas",
+    permission: "CLINICAL_VISITS",
+    doctorOnlyWithPermission: true,
   },
   {
     href: "/form-templates",
     label: "Fichas Clínicas",
     icon: ClipboardList,
-    roles: ["ADMIN", "DOCTOR"],
     group: "paginas",
+    roles: ["ADMIN", "DOCTOR"],
   },
   {
     href: "/profile",
     label: "Mi perfil",
     icon: UserCircle,
-    roles: ["ADMIN", "SECRETARY", "DOCTOR"],
     group: "paginas",
+    roles: ["ADMIN", "SECRETARY", "DOCTOR"],
   },
 ];
 
@@ -110,6 +76,8 @@ type SidebarProfile = {
     lastName: string;
     image: string | null;
     role: string;
+    isSuperAdmin: boolean;
+    permissions: string[];
   };
 };
 
@@ -126,6 +94,8 @@ export default function Sidebar() {
   const pathname = usePathname();
   const [role, setRole] = useState<Role | null>(null);
   const [collapsed, setCollapsed] = useState(false);
+  const [isSuperAdmin, setIsSuperAdmin] = useState(false);
+  const [permissions, setPermissions] = useState<string[]>([]);
   const [displayName, setDisplayName] = useState("Medigest");
   const [clinicLabel, setClinicLabel] = useState("Panel clínico");
   const [email, setEmail] = useState("");
@@ -143,10 +113,14 @@ export default function Sidebar() {
 
         if (!data.ok || !data.item) {
           setRole(null);
+          setIsSuperAdmin(false);
+          setPermissions([]);
           return;
         }
 
         setRole(data.item.role as Role);
+        setIsSuperAdmin(data.item.isSuperAdmin === true);
+        setPermissions(data.item.permissions ?? []);
         setEmail(data.item.email);
         setImage(data.item.image ?? null);
         setDisplayName(`${data.item.firstName} ${data.item.lastName}`.trim() || data.item.email);
@@ -154,6 +128,8 @@ export default function Sidebar() {
         setInitials(getInitials(data.item.firstName, data.item.lastName, data.item.email));
       } catch {
         setRole(null);
+        setIsSuperAdmin(false);
+        setPermissions([]);
       }
     };
 
@@ -180,8 +156,17 @@ export default function Sidebar() {
   };
 
   const visibleItems = NAV_ITEMS.filter((item) => {
-    if (!item.roles) return true;
     if (role === null) return false;
+
+    if (item.doctorOnlyWithPermission) {
+      return role === "DOCTOR" && hasPermission(role, permissions, "CLINICAL_VISITS", isSuperAdmin);
+    }
+
+    if (item.permission) {
+      return hasPermission(role, permissions, item.permission, isSuperAdmin);
+    }
+
+    if (!item.roles) return true;
     return item.roles.includes(role);
   });
 
@@ -189,8 +174,7 @@ export default function Sidebar() {
   const paginaItems = visibleItems.filter((item) => item.group === "paginas");
 
   const renderItem = (item: NavItem) => {
-    const active =
-      pathname === item.href || pathname.startsWith(`${item.href}/`);
+    const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
     const Icon = item.icon;
 
     return (
@@ -204,9 +188,7 @@ export default function Sidebar() {
         }`}
       >
         <Icon
-          className={`h-[18px] w-[18px] shrink-0 ${
-            active ? "text-slate-900" : "text-slate-500"
-          }`}
+          className={`h-[18px] w-[18px] shrink-0 ${active ? "text-slate-900" : "text-slate-500"}`}
           strokeWidth={2}
         />
         {!collapsed && <span className="min-w-0 truncate">{item.label}</span>}
@@ -235,41 +217,31 @@ export default function Sidebar() {
 
         {!collapsed && (
           <div className="min-w-0 flex-1">
-            <p className="truncate text-sm font-semibold text-slate-900">
-              {displayName}
-            </p>
-            <p className="truncate text-xs text-slate-500">
-              {clinicLabel}
-            </p>
+            <p className="truncate text-sm font-semibold text-slate-900">{displayName}</p>
+            <p className="truncate text-xs text-slate-500">{clinicLabel}</p>
             {email ? <p className="truncate text-[11px] text-slate-400">{email}</p> : null}
           </div>
         )}
 
         <button
           type="button"
-          onClick={() => setCollapsed((v) => !v)}
+          onClick={() => setCollapsed((value) => !value)}
           className="ml-auto flex h-7 w-7 items-center justify-center rounded-full text-slate-400 hover:bg-slate-100 hover:text-slate-700"
           aria-label={collapsed ? "Expandir menú" : "Colapsar menú"}
         >
           <ChevronsUpDown
-            className={`h-4 w-4 transition-transform duration-200 ${
-              collapsed ? "rotate-90" : ""
-            }`}
+            className={`h-4 w-4 transition-transform duration-200 ${collapsed ? "rotate-90" : ""}`}
           />
         </button>
       </div>
 
       <div className="mt-8">
-        {!collapsed && (
-          <p className="px-2 text-xs font-medium text-slate-400">Escritorios</p>
-        )}
+        {!collapsed && <p className="px-2 text-xs font-medium text-slate-400">Escritorios</p>}
         <nav className="mt-2 flex flex-col gap-1">{escritorioItems.map(renderItem)}</nav>
       </div>
 
       <div className="mt-6">
-        {!collapsed && (
-          <p className="px-2 text-xs font-medium text-slate-400">Páginas</p>
-        )}
+        {!collapsed && <p className="px-2 text-xs font-medium text-slate-400">Páginas</p>}
         <nav className="mt-2 flex flex-col gap-1">{paginaItems.map(renderItem)}</nav>
       </div>
 

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { generatePassword, hashPassword } from "@/lib/password";
 import { normalizeId } from "@/lib/normalize";
@@ -7,14 +8,17 @@ import { ClinicsService } from "@/server/clinics/ClinicsService";
 import { resolveClinicLabels } from "@/server/clinics/clinicDisplay";
 import { requireClinicSession, requireRole } from "@/server/auth/requireSession";
 import { DoctorsService } from "@/server/doctors/DoctorsService";
+import { sendEmail } from "@/server/notifications/email";
+import { normalizePermissions } from "@/lib/permissions";
 
 const userCreateSchema = z.object({
   email: z.string().email(),
-  role: z.enum(["DOCTOR", "SECRETARY"]),
+  role: z.enum(["ADMIN", "DOCTOR", "SECRETARY"]),
   firstName: z.string().min(1),
   lastName: z.string().min(1),
   rut: z.string().min(1),
   specialty: z.string().optional().nullable(),
+  permissions: z.array(z.string()).optional(),
   clinicId: z.string().optional(),
   clinicIds: z.array(z.string().min(1)).optional(),
 });
@@ -27,7 +31,7 @@ async function ensureRutAvailable(rut: string) {
     select: { id: true },
   });
   if (existingDoctor) {
-    throw new Error("El RUN ya esta registrado.");
+    throw new Error("El RUN ya está registrado.");
   }
 
   const profiles = await prisma.userProfile.findMany({
@@ -38,8 +42,31 @@ async function ensureRutAvailable(rut: string) {
     (profile) => normalizeId(profile.rut ?? "") === normalized
   );
   if (existsInProfiles) {
-    throw new Error("El RUN ya esta registrado.");
+    throw new Error("El RUN ya está registrado.");
   }
+}
+
+function getUserCreationErrorMessage(error: unknown) {
+  if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
+    const target = Array.isArray(error.meta?.target)
+      ? error.meta.target.join(", ").toLowerCase()
+      : String(error.meta?.target ?? "").toLowerCase();
+
+    if (target.includes("email")) {
+      return "Ya existe un usuario con ese correo.";
+    }
+    if (target.includes("rut")) {
+      return "El RUN ya está registrado.";
+    }
+
+    return "Ya existe un usuario con esos datos.";
+  }
+
+  if (error instanceof Error) {
+    return error.message;
+  }
+
+  return "No se pudo crear el usuario.";
 }
 
 async function sendWelcomeEmail(
@@ -63,27 +90,27 @@ async function sendWelcomeEmail(
     "Por seguridad, cambia tu contrasena al iniciar sesion.",
   ].join("\n");
 
-  const res = await fetch(new URL("/api/email/send", origin), {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ to: payload.to, subject, text }),
+  const sent = await sendEmail({
+    origin,
+    to: payload.to,
+    subject,
+    text,
   });
 
-  if (!res.ok) {
-    const data = await res.json().catch(() => null);
-    const detail = data?.error ?? data?.message ?? "No se pudo enviar el correo.";
-    throw new Error(detail);
+  if (!sent.ok) {
+    throw new Error(sent.error);
   }
 }
 
 export async function GET() {
   try {
     const session = await requireClinicSession();
-    requireRole(session.role, ["ADMIN"]);
+    requireRole(session, ["ADMIN"], "USERS");
 
     const items = await prisma.user.findMany({
       where: {
-        role: { in: ["DOCTOR", "SECRETARY"] },
+        role: { in: ["ADMIN", "DOCTOR", "SECRETARY"] },
+        isSuperAdmin: false,
         status: "ACTIVE",
         clinicMemberships: {
           some: { clinicId: session.clinicId, status: "ACTIVE" },
@@ -105,12 +132,12 @@ export async function GET() {
 export async function POST(req: Request) {
   try {
     const session = await requireClinicSession();
-    requireRole(session.role, ["ADMIN"]);
+    requireRole(session, ["ADMIN"], "USERS");
 
     const body = await req.json();
     const parsed = userCreateSchema.safeParse(body);
     if (!parsed.success) {
-      return NextResponse.json({ ok: false, error: "Datos invalidos." }, { status: 400 });
+      return NextResponse.json({ ok: false, error: "Los datos del usuario no son válidos." }, { status: 400 });
     }
 
     const selectedClinics = parsed.data.clinicIds?.length
@@ -124,6 +151,7 @@ export async function POST(req: Request) {
     );
     const clinicLabels = await resolveClinicLabels(clinicIds);
     await ensureRutAvailable(parsed.data.rut);
+    const permissions = normalizePermissions(parsed.data.permissions);
 
     const generatedPassword = generatePassword();
     let item: { id: string; email: string };
@@ -137,6 +165,7 @@ export async function POST(req: Request) {
         phone: null,
         rut: parsed.data.rut,
         specialty: parsed.data.specialty ?? null,
+        permissions,
         clinicIds,
       });
     } else {
@@ -146,7 +175,9 @@ export async function POST(req: Request) {
           email: parsed.data.email,
           passwordHash,
           mustChangePassword: true,
-          role: "SECRETARY",
+          role: parsed.data.role,
+          isSuperAdmin: false,
+          permissions,
           status: "ACTIVE",
           profile: {
             create: {
@@ -180,8 +211,10 @@ export async function POST(req: Request) {
 
     return NextResponse.json({ ok: true, item }, { status: 201 });
   } catch (error) {
-    const message = error instanceof Error ? error.message : "No se pudo crear el usuario.";
-    const status = message.toLowerCase().includes("registrado") ? 409 : 400;
+    const message = getUserCreationErrorMessage(error);
+    const normalizedMessage = message.toLowerCase();
+    const status =
+      normalizedMessage.includes("registrado") || normalizedMessage.includes("ya existe") ? 409 : 400;
     return NextResponse.json({ ok: false, error: message }, { status });
   }
 }

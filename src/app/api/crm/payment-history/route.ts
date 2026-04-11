@@ -43,7 +43,7 @@ function formatClp(value: number) {
 export async function GET(req: Request) {
   try {
     const session = await requireClinicSession();
-    requireRole(session.role, ["ADMIN", "SECRETARY"]);
+    requireRole(session.role, ["SECRETARY"]);
 
     const { searchParams } = new URL(req.url);
     const patientId = searchParams.get("patientId");
@@ -62,7 +62,7 @@ export async function GET(req: Request) {
 export async function POST(req: Request) {
   try {
     const session = await requireClinicSession();
-    requireRole(session.role, ["ADMIN", "SECRETARY"]);
+    requireRole(session.role, ["SECRETARY"]);
 
     const body = await req.json();
     const parsed = paymentCreateSchema.safeParse(body);

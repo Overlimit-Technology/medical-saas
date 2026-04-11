@@ -11,6 +11,7 @@ export type DoctorInput = {
   phone?: string | null;
   rut: string;
   specialty?: string | null;
+  permissions?: string[];
   clinicIds: string[];
 };
 
@@ -66,7 +67,7 @@ export class DoctorsService {
       select: { id: true },
     });
     if (existingRut) {
-      throw new Error("El RUT ya está registrado.");
+      throw new Error("El RUN ya está registrado.");
     }
 
     const passwordHash = await hashPassword(input.password);
@@ -77,6 +78,7 @@ export class DoctorsService {
         passwordHash,
         mustChangePassword: true,
         role: "DOCTOR",
+        permissions: input.permissions ?? [],
         status: "ACTIVE",
         profile: {
           create: {
@@ -117,7 +119,7 @@ export class DoctorsService {
         select: { id: true },
       });
       if (exists) {
-        throw new Error("El RUT ya está registrado.");
+        throw new Error("El RUN ya está registrado.");
       }
 
       await prisma.doctorProfile.update({

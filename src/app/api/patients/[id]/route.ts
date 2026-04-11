@@ -20,8 +20,9 @@ const patientUpdateSchema = z.object({
 
 export async function GET(_req: Request, { params }: { params: { id: string } }) {
   try {
-    const { clinicId } = await requireClinicSession();
-    const item = await PatientsService.getById(clinicId, params.id);
+    const session = await requireClinicSession();
+    requireRole(session, ["ADMIN"], ["PATIENTS", "CLINICAL_VISITS"]);
+    const item = await PatientsService.getById(session.clinicId, params.id);
     if (!item) {
       return NextResponse.json({ ok: false, error: "Paciente no encontrado." }, { status: 404 });
     }
@@ -34,7 +35,7 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
 export async function PATCH(req: Request, { params }: { params: { id: string } }) {
   try {
     const session = await requireClinicSession();
-    requireRole(session.role, ["ADMIN", "SECRETARY"]);
+    requireRole(session, ["ADMIN"], "PATIENTS");
 
     const body = await req.json();
     const parsed = patientUpdateSchema.safeParse(body);
@@ -74,7 +75,7 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
 export async function DELETE(_req: Request, { params }: { params: { id: string } }) {
   try {
     const session = await requireClinicSession();
-    requireRole(session.role, ["ADMIN", "SECRETARY"]);
+    requireRole(session, ["ADMIN"], "PATIENTS");
 
     const result = await PatientsService.remove(params.id, session.clinicId);
     return NextResponse.json({ ok: true, ...result });
