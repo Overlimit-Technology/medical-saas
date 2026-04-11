@@ -1,0 +1,85 @@
+"use client";
+
+import { useEffect, useMemo, useState } from "react";
+import { ProfileRepositoryHttp } from "@/data/profile/ProfileRepository";
+import { ClinicsRepositoryHttp } from "@/data/clinics/ClinicsRepository";
+import { GetMyProfileUseCase } from "@/domain/profile/usecases/ProfileUseCases";
+import { ClearSelectedClinicUseCase } from "@/domain/clinics/usecases/ClearSelectedClinicUseCase";
+
+type Role = "ADMIN" | "SECRETARY" | "DOCTOR";
+
+export function getInitials(firstName: string, lastName: string, email: string) {
+  const seed = `${firstName} ${lastName}`.trim() || email || "MG";
+  return seed
+    .split(/\s+/)
+    .slice(0, 2)
+    .map((part) => part.charAt(0).toUpperCase())
+    .join("");
+}
+
+export function useSidebarViewModel() {
+  const { getMyProfileUseCase, clearSelectedClinicUseCase } = useMemo(() => {
+    const profileRepo = new ProfileRepositoryHttp();
+    const clinicsRepo = new ClinicsRepositoryHttp();
+
+    return {
+      getMyProfileUseCase: new GetMyProfileUseCase(profileRepo),
+      clearSelectedClinicUseCase: new ClearSelectedClinicUseCase(clinicsRepo),
+    };
+  }, []);
+
+  const [role, setRole] = useState<Role | null>(null);
+  const [displayName, setDisplayName] = useState("Medigest");
+  const [clinicLabel, setClinicLabel] = useState("Panel clínico");
+  const [email, setEmail] = useState("");
+  const [image, setImage] = useState<string | null>(null);
+  const [initials, setInitials] = useState("MG");
+
+  useEffect(() => {
+    const loadSidebarData = async () => {
+      try {
+        const profile = await getMyProfileUseCase.execute();
+        setRole(profile.role as Role);
+        setEmail(profile.email);
+        setImage(profile.image ?? null);
+        setDisplayName(`${profile.firstName} ${profile.lastName}`.trim() || profile.email);
+        setClinicLabel(profile.clinicLabel ?? "Sede actual");
+        setInitials(getInitials(profile.firstName, profile.lastName, profile.email));
+      } catch {
+        setRole(null);
+      }
+    };
+
+    const handleProfileUpdated = () => {
+      void loadSidebarData();
+    };
+
+    void loadSidebarData();
+    window.addEventListener("profile-updated", handleProfileUpdated);
+    window.addEventListener("focus", handleProfileUpdated);
+
+    return () => {
+      window.removeEventListener("profile-updated", handleProfileUpdated);
+      window.removeEventListener("focus", handleProfileUpdated);
+    };
+  }, [getMyProfileUseCase]);
+
+  const handleChangeClinic = async () => {
+    await clearSelectedClinicUseCase.execute();
+    window.location.assign("/select-clinic");
+  };
+
+  return {
+    state: {
+      role,
+      displayName,
+      clinicLabel,
+      email,
+      image,
+      initials,
+    },
+    actions: {
+      handleChangeClinic,
+    },
+  };
+}

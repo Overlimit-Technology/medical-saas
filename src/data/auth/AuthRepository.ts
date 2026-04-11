@@ -1,6 +1,7 @@
 import type { AuthRepository } from "@/domain/auth/repositories/AuthRepository";
 import type { LoginInput } from "@/domain/auth/schemas/login.schema";
 import type { User } from "@/domain/auth/entities/User";
+import type { AuthSession } from "@/domain/auth/entities/Session";
 
 /**
  * Repo HTTP (se usa en el browser).
@@ -34,5 +35,55 @@ export class AuthRepositoryHttp implements AuthRepository {
       method: "POST",
       credentials: "include",
     }).catch(() => {});
+  }
+
+  async getCurrentSession(): Promise<AuthSession> {
+    const res = await fetch("/api/auth/me", {
+      method: "GET",
+      credentials: "include",
+      cache: "no-store",
+    });
+    const data = await res.json().catch(() => null);
+
+    if (!res.ok || !data?.ok) {
+      return {
+        userId: null,
+        role: null,
+        mustChangePassword: false,
+      };
+    }
+
+    return {
+      userId: data.session?.userId ?? null,
+      role: data.session?.role ?? null,
+      mustChangePassword: Boolean(data.session?.mustChangePassword),
+    };
+  }
+
+  async changePassword(input: { currentPassword: string; newPassword: string }): Promise<void> {
+    const res = await fetch("/api/auth/change-password", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify(input),
+    });
+
+    const data = await res.json().catch(() => null);
+    if (!res.ok) {
+      const msg = data?.error ?? "No se pudo actualizar la contrasena.";
+      throw new Error(msg);
+    }
+  }
+
+  async reportPresence(): Promise<void> {
+    const res = await fetch("/api/auth/presence", {
+      method: "POST",
+      credentials: "include",
+      cache: "no-store",
+    });
+
+    if (!res.ok) {
+      throw new Error("No se pudo reportar presencia.");
+    }
   }
 }

@@ -1,27 +1,17 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { AuthRepositoryHttp } from "@/data/auth/AuthRepository";
+import { FormTemplatesRepositoryHttp } from "@/data/form-templates/FormTemplatesRepository";
+import { GetCurrentSessionUseCase } from "@/domain/auth/usecases/GetCurrentSessionUseCase";
+import type { FieldType, FormTemplate, TemplateField } from "@/domain/form-templates/entities/FormTemplate";
+import {
+  DeleteFormTemplateUseCase,
+  GetFormTemplatesUseCase,
+  SaveFormTemplateUseCase,
+} from "@/domain/form-templates/usecases/FormTemplatesUseCases";
 
-export type FieldType = "TEXT" | "NUMBER" | "DATE" | "SELECT" | "TEXTAREA" | "BOOLEAN";
-
-export type TemplateField = {
-  id?: string;
-  label: string;
-  fieldType: FieldType;
-  position: number;
-  isRequired: boolean;
-  options: string | null;
-  defaultValue: string | null;
-};
-
-export type FormTemplate = {
-  id: string;
-  name: string;
-  description: string | null;
-  isActive: boolean;
-  fields: TemplateField[];
-  _count: { clinicalRecords: number };
-};
+export type { FieldType, FormTemplate, TemplateField };
 
 export type FormState = {
   name: string;
@@ -51,9 +41,8 @@ function validateForm(form: FormState): FormErrors {
   if (!form.name.trim()) errors.name = "Nombre obligatorio.";
   if (form.fields.length === 0) {
     errors.fields = "Debe incluir al menos un campo.";
-  } else {
-    const hasEmpty = form.fields.some((f) => !f.label.trim());
-    if (hasEmpty) errors.fields = "Todos los campos deben tener nombre.";
+  } else if (form.fields.some((field) => !field.label.trim())) {
+    errors.fields = "Todos los campos deben tener nombre.";
   }
   return errors;
 }
@@ -84,6 +73,22 @@ export function useFormTemplatesViewModel() {
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [showPreview, setShowPreview] = useState(false);
 
+  const {
+    getCurrentSessionUseCase,
+    getFormTemplatesUseCase,
+    saveFormTemplateUseCase,
+    deleteFormTemplateUseCase,
+  } = useMemo(() => {
+    const authRepo = new AuthRepositoryHttp();
+    const repo = new FormTemplatesRepositoryHttp();
+    return {
+      getCurrentSessionUseCase: new GetCurrentSessionUseCase(authRepo),
+      getFormTemplatesUseCase: new GetFormTemplatesUseCase(repo),
+      saveFormTemplateUseCase: new SaveFormTemplateUseCase(repo),
+      deleteFormTemplateUseCase: new DeleteFormTemplateUseCase(repo),
+    };
+  }, []);
+
   const filteredItems = useMemo(() => {
     if (!query.trim()) return items;
     const term = query.toLowerCase();
@@ -98,42 +103,34 @@ export function useFormTemplatesViewModel() {
   }, [filteredItems.length, query]);
 
   const isSubmitDisabled = saving || Object.keys(validateForm(form)).length > 0;
-
   const hasRecords = (selected?._count.clinicalRecords ?? 0) > 0;
 
-  const loadRole = async () => {
+  const loadRole = useCallback(async () => {
     try {
-      const res = await fetch("/api/auth/me", { credentials: "include" });
-      const data = await res.json();
-      setRole(data.ok ? data.session?.role ?? null : null);
+      const session = await getCurrentSessionUseCase.execute();
+      setRole(session.role);
     } catch {
       setRole(null);
     } finally {
       setRoleLoading(false);
     }
-  };
+  }, [getCurrentSessionUseCase]);
 
-  const loadTemplates = async () => {
+  const loadTemplates = useCallback(async () => {
     setLoading(true);
     setApiError(null);
     try {
-      const res = await fetch("/api/form-templates");
-      const data = await res.json();
-      if (!data.ok) {
-        setApiError(data.error ?? "No se pudieron cargar las plantillas.");
-        return;
-      }
-      setItems(data.items ?? []);
-    } catch {
-      setApiError("No se pudieron cargar las plantillas.");
+      setItems(await getFormTemplatesUseCase.execute());
+    } catch (error) {
+      setApiError(error instanceof Error ? error.message : "No se pudieron cargar las plantillas.");
     } finally {
       setLoading(false);
     }
-  };
+  }, [getFormTemplatesUseCase]);
 
   useEffect(() => {
-    loadRole();
-  }, []);
+    void loadRole();
+  }, [loadRole]);
 
   useEffect(() => {
     if (!successMessage) return;
@@ -147,8 +144,8 @@ export function useFormTemplatesViewModel() {
       window.location.assign("/dashboard");
       return;
     }
-    loadTemplates();
-  }, [role, roleLoading]);
+    void loadTemplates();
+  }, [loadTemplates, role, roleLoading]);
 
   const openCreateModal = () => {
     setSelected(null);
@@ -163,7 +160,7 @@ export function useFormTemplatesViewModel() {
     setForm({
       name: template.name,
       description: template.description ?? "",
-      fields: template.fields.map((f) => ({ ...f })),
+      fields: template.fields.map((field) => ({ ...field })),
     });
     setErrors({});
     setApiError(null);
@@ -180,7 +177,7 @@ export function useFormTemplatesViewModel() {
   };
 
   const handleFieldChange = (key: keyof Pick<FormState, "name" | "description">, value: string) => {
-    setForm((c) => ({ ...c, [key]: value }));
+    setForm((current) => ({ ...current, [key]: value }));
     if (key === "name" && errors.name) {
       const next = { ...errors };
       delete next.name;
@@ -189,23 +186,23 @@ export function useFormTemplatesViewModel() {
   };
 
   const addField = () => {
-    setForm((c) => ({
-      ...c,
-      fields: [...c.fields, { ...EMPTY_FIELD, position: c.fields.length }],
+    setForm((current) => ({
+      ...current,
+      fields: [...current.fields, { ...EMPTY_FIELD, position: current.fields.length }],
     }));
   };
 
   const removeField = (index: number) => {
-    setForm((c) => ({
-      ...c,
-      fields: c.fields.filter((_, i) => i !== index).map((f, i) => ({ ...f, position: i })),
+    setForm((current) => ({
+      ...current,
+      fields: current.fields.filter((_, i) => i !== index).map((field, i) => ({ ...field, position: i })),
     }));
   };
 
   const updateField = (index: number, updates: Partial<TemplateField>) => {
-    setForm((c) => ({
-      ...c,
-      fields: c.fields.map((f, i) => (i === index ? { ...f, ...updates } : f)),
+    setForm((current) => ({
+      ...current,
+      fields: current.fields.map((field, i) => (i === index ? { ...field, ...updates } : field)),
     }));
     if (errors.fields) {
       const next = { ...errors };
@@ -216,11 +213,11 @@ export function useFormTemplatesViewModel() {
 
   const moveField = (index: number, direction: "up" | "down") => {
     const target = direction === "up" ? index - 1 : index + 1;
-    setForm((c) => {
-      const fields = [...c.fields];
-      if (target < 0 || target >= fields.length) return c;
+    setForm((current) => {
+      const fields = [...current.fields];
+      if (target < 0 || target >= fields.length) return current;
       [fields[index], fields[target]] = [fields[target], fields[index]];
-      return { ...c, fields: fields.map((f, i) => ({ ...f, position: i })) };
+      return { ...current, fields: fields.map((field, i) => ({ ...field, position: i })) };
     });
   };
 
@@ -233,42 +230,29 @@ export function useFormTemplatesViewModel() {
     setSaving(true);
     setApiError(null);
 
-    const editing = Boolean(selected);
-    const endpoint = editing ? `/api/form-templates/${selected!.id}` : "/api/form-templates";
-    const method = editing ? "PATCH" : "POST";
-
-    const payload: Record<string, unknown> = {
-      name: form.name.trim(),
-      description: form.description.trim() || null,
-    };
-
-    if (!editing || !hasRecords) {
-      payload.fields = form.fields.map((f) => ({
-        label: f.label.trim(),
-        fieldType: f.fieldType,
-        position: f.position,
-        isRequired: f.isRequired,
-        options: f.fieldType === "SELECT" ? f.options : null,
-        defaultValue: f.defaultValue || null,
-      }));
-    }
-
     try {
-      const res = await fetch(endpoint, {
-        method,
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
+      await saveFormTemplateUseCase.execute({
+        id: selected?.id,
+        name: form.name.trim(),
+        description: form.description.trim() || null,
+        fields:
+          selected && hasRecords
+            ? undefined
+            : form.fields.map((field) => ({
+                label: field.label.trim(),
+                fieldType: field.fieldType,
+                position: field.position,
+                isRequired: field.isRequired,
+                options: field.fieldType === "SELECT" ? field.options : null,
+                defaultValue: field.defaultValue || null,
+              })),
       });
-      const data = await res.json();
-      if (!data.ok) {
-        setApiError(data.error ?? "No se pudo guardar la plantilla.");
-        return;
-      }
+
       closeModal();
-      setSuccessMessage(editing ? "Plantilla actualizada." : "Plantilla creada.");
+      setSuccessMessage(selected ? "Plantilla actualizada." : "Plantilla creada.");
       await loadTemplates();
-    } catch {
-      setApiError("No se pudo guardar la plantilla.");
+    } catch (error) {
+      setApiError(error instanceof Error ? error.message : "No se pudo guardar la plantilla.");
     } finally {
       setSaving(false);
     }
@@ -278,18 +262,13 @@ export function useFormTemplatesViewModel() {
     if (!deleteTarget) return;
     setDeleteError(null);
     try {
-      const res = await fetch(`/api/form-templates/${deleteTarget.id}`, { method: "DELETE" });
-      const data = await res.json();
-      if (!data.ok) {
-        setDeleteError(data.error ?? "No se pudo eliminar la plantilla.");
-        return;
-      }
+      await deleteFormTemplateUseCase.execute(deleteTarget.id);
       setDeleteTarget(null);
       setDeleteError(null);
       setSuccessMessage("Plantilla eliminada.");
       await loadTemplates();
-    } catch {
-      setDeleteError("No se pudo eliminar la plantilla.");
+    } catch (error) {
+      setDeleteError(error instanceof Error ? error.message : "No se pudo eliminar la plantilla.");
     }
   };
 
@@ -337,7 +316,7 @@ export function useFormTemplatesViewModel() {
       handleDelete,
       setDeleteTarget,
       dismissDeleteModal,
-      togglePreview: () => setShowPreview((p) => !p),
+      togglePreview: () => setShowPreview((current) => !current),
     },
   };
 }

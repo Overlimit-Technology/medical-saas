@@ -11,7 +11,7 @@ function parseDate(value: string | null) {
 export async function GET(req: Request) {
   try {
     const session = await requireClinicSession();
-    requireRole(session.role, ["SECRETARY"]);
+    requireRole(session.role, ["SECRETARY", "ADMIN"]);
 
     const { searchParams } = new URL(req.url);
     const from = parseDate(searchParams.get("from"));

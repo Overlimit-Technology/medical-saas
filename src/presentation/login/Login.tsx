@@ -87,7 +87,7 @@ export default function Login() {
                 </label>
                 <button
                   type="button"
-                  className="text-xs font-medium text-blue-500 hover:text-blue-600"
+                  className="text-xs font-medium text-[#50c9d5] hover:bg-white hover:text-[#50c9d5] rounded px-1 py-0.5 transition"
                   onClick={() => alert("MVP: flujo de recuperación aún no implementado")}
                 >
                   ¿Olvidaste tu contraseña?
@@ -113,7 +113,7 @@ export default function Login() {
               <button
                 type="submit"
                 disabled={state.loading}
-                className="w-full rounded-full bg-black px-4 py-2.5 text-sm font-medium text-white shadow-sm transition hover:bg-neutral-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black focus-visible:ring-offset-2 focus-visible:ring-offset-white disabled:opacity-60"
+                className="w-full rounded-full border border-[#50c9d5] bg-[#50c9d5] px-4 py-2.5 text-sm font-medium text-white shadow-sm transition hover:bg-white hover:text-[#50c9d5] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#50c9d5] focus-visible:ring-offset-2 focus-visible:ring-offset-white disabled:opacity-60"
               >
                 {state.loading ? "Ingresando..." : "Iniciar sesión"}
               </button>
@@ -126,7 +126,7 @@ export default function Login() {
               ¿Aún no tienes cuenta?{" "}
               <button
                 type="button"
-                className="font-medium text-blue-500 hover:text-blue-600"
+                className="font-medium text-[#50c9d5] hover:bg-white hover:text-[#50c9d5] rounded px-1 py-0.5 transition"
                 onClick={() => alert("MVP: flujo de registro aún no implementado")}
               >
                 Crear cuenta

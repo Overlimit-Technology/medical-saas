@@ -2,36 +2,19 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
+import { AuthRepositoryHttp } from "@/data/auth/AuthRepository";
+import { PatientsRepositoryHttp } from "@/data/patients/PatientsRepository";
+import { GetCurrentSessionUseCase } from "@/domain/auth/usecases/GetCurrentSessionUseCase";
+import type {
+  PatientDetail,
+  UpdatePatientDetailInput,
+} from "@/domain/patients/entities/Patient";
+import {
+  DeletePatientUseCase,
+  GetPatientDetailUseCase,
+  UpdatePatientDetailUseCase,
+} from "@/domain/patients/usecases/PatientsUseCases";
 import { formatRun } from "../PatientsViewModel";
-
-export type PatientAppointment = {
-  id: string;
-  startAt: string;
-  endAt: string;
-  status: string;
-  notes?: string | null;
-  doctor: {
-    profile?: { firstName: string; lastName: string } | null;
-  };
-};
-
-export type PatientDetail = {
-  id: string;
-  firstName: string;
-  lastName: string;
-  secondLastName?: string | null;
-  run: string;
-  email?: string | null;
-  phone?: string | null;
-  birthDate?: string | null;
-  gender?: string | null;
-  address?: string | null;
-  city?: string | null;
-  emergencyContactName?: string | null;
-  emergencyContactPhone?: string | null;
-  createdAt: string;
-  appointments?: PatientAppointment[];
-};
 
 export type EditableFields = {
   firstName: string;
@@ -63,6 +46,17 @@ export function usePatientDetailViewModel() {
   const params = useParams();
   const router = useRouter();
   const id = params?.id as string;
+  const { getCurrentSessionUseCase, getPatientDetailUseCase, updatePatientDetailUseCase, deletePatientUseCase } =
+    useMemo(() => {
+      const authRepo = new AuthRepositoryHttp();
+      const patientsRepo = new PatientsRepositoryHttp();
+      return {
+        getCurrentSessionUseCase: new GetCurrentSessionUseCase(authRepo),
+        getPatientDetailUseCase: new GetPatientDetailUseCase(patientsRepo),
+        updatePatientDetailUseCase: new UpdatePatientDetailUseCase(patientsRepo),
+        deletePatientUseCase: new DeletePatientUseCase(patientsRepo),
+      };
+    }, []);
 
   const [patient, setPatient] = useState<PatientDetail | null>(null);
   const [loading, setLoading] = useState(true);
@@ -111,31 +105,29 @@ export function usePatientDetailViewModel() {
   useEffect(() => {
     const loadRole = async () => {
       try {
-        const res = await fetch("/api/auth/me", { credentials: "include" });
-        const data = await res.json();
-        setRole(data.ok ? data.session?.role ?? null : null);
+        const session = await getCurrentSessionUseCase.execute();
+        setRole(session.role ?? null);
       } catch {
         setRole(null);
       }
     };
-    loadRole();
-  }, []);
+    void loadRole();
+  }, [getCurrentSessionUseCase]);
 
   const loadPatient = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch(`/api/patients/${id}`);
-      const data = await res.json();
-      if (data.ok && data.item) {
-        setPatient(data.item);
-        populateForm(data.item);
+      const item = await getPatientDetailUseCase.execute(id);
+      if (item) {
+        setPatient(item);
+        populateForm(item);
       }
     } catch {
       // silently fail
     } finally {
       setLoading(false);
     }
-  }, [id, populateForm]);
+  }, [getPatientDetailUseCase, id, populateForm]);
 
   useEffect(() => {
     loadPatient();
@@ -199,7 +191,7 @@ export function usePatientDetailViewModel() {
     setSaving(true);
     setApiError(null);
 
-    const payload: Record<string, string | null> = {
+    const payload: UpdatePatientDetailInput = {
       firstName: form.firstName.trim(),
       lastName: form.lastName.trim(),
       secondLastName: form.secondLastName.trim() || null,
@@ -215,21 +207,12 @@ export function usePatientDetailViewModel() {
     };
 
     try {
-      const res = await fetch(`/api/patients/${id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-      const data = await res.json();
-      if (!data.ok) {
-        setApiError(data.error ?? "No se pudo guardar.");
-        return;
-      }
+      await updatePatientDetailUseCase.execute(id, payload);
       setEditing(false);
       setSuccessMessage("Paciente actualizado.");
       await loadPatient();
-    } catch {
-      setApiError("No se pudo guardar.");
+    } catch (error) {
+      setApiError(error instanceof Error ? error.message : "No se pudo guardar.");
     } finally {
       setSaving(false);
     }
@@ -240,15 +223,10 @@ export function usePatientDetailViewModel() {
     setDeleting(true);
     setDeleteError(null);
     try {
-      const res = await fetch(`/api/patients/${id}`, { method: "DELETE" });
-      const data = await res.json();
-      if (!data.ok) {
-        setDeleteError(data.error ?? "No se pudo eliminar.");
-        return;
-      }
+      await deletePatientUseCase.execute(id);
       router.push("/patients");
-    } catch {
-      setDeleteError("No se pudo eliminar.");
+    } catch (error) {
+      setDeleteError(error instanceof Error ? error.message : "No se pudo eliminar.");
     } finally {
       setDeleting(false);
     }

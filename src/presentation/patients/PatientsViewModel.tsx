@@ -1,17 +1,9 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-
-export type Patient = {
-  id: string;
-  firstName: string;
-  lastName: string;
-  secondLastName?: string | null;
-  run: string;
-  email?: string | null;
-  phone?: string | null;
-  createdAt: string;
-};
+import type { Patient } from "@/domain/patients/entities/Patient";
+import { PatientsRepositoryHttp } from "@/data/patients/PatientsRepository";
+import { DeletePatientUseCase, GetPatientsUseCase, SavePatientUseCase } from "@/domain/patients/usecases/PatientsUseCases";
 
 export type FormState = {
   firstName: string;
@@ -100,6 +92,14 @@ export function formatRelativeDate(dateStr: string) {
 }
 
 export function usePatientsViewModel() {
+  const { getPatientsUseCase, savePatientUseCase, deletePatientUseCase } = useMemo(() => {
+    const repo = new PatientsRepositoryHttp();
+    return {
+      getPatientsUseCase: new GetPatientsUseCase(repo),
+      savePatientUseCase: new SavePatientUseCase(repo),
+      deletePatientUseCase: new DeletePatientUseCase(repo),
+    };
+  }, []);
   const [items, setItems] = useState<Patient[]>([]);
   const [selected, setSelected] = useState<Patient | null>(null);
   const [loading, setLoading] = useState(true);
@@ -118,28 +118,21 @@ export function usePatientsViewModel() {
     setLoading(true);
     setApiError(null);
     try {
-      const res = await fetch(
-        `/api/patients?q=${encodeURIComponent(q ?? "")}&page=1&pageSize=200`
-      );
-      const data = await res.json();
-      if (data.ok) {
-        setItems(data.items ?? []);
-        if (!q) {
-          setTotalCount(data.total ?? data.items?.length ?? 0);
-        }
-      } else {
-        setApiError(data.error ?? "No se pudieron cargar los pacientes.");
+      const data = await getPatientsUseCase.execute({ query: q ?? "", page: 1, pageSize: 200 });
+      setItems(data.items ?? []);
+      if (!q) {
+        setTotalCount(data.total ?? data.items?.length ?? 0);
       }
-    } catch {
-      setApiError("No se pudieron cargar los pacientes.");
+    } catch (error) {
+      setApiError(error instanceof Error ? error.message : "No se pudieron cargar los pacientes.");
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    loadPatients();
-  }, []);
+    void loadPatients();
+  }, [getPatientsUseCase]);
 
   useEffect(() => {
     if (!successMessage) return;
@@ -211,16 +204,7 @@ export function usePatientsViewModel() {
     };
 
     try {
-      const res = await fetch(selected ? `/api/patients/${selected.id}` : "/api/patients", {
-        method: selected ? "PATCH" : "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-      const data = await res.json();
-      if (!data.ok) {
-        setApiError(data.error ?? "No se pudo guardar el paciente.");
-        return;
-      }
+      const data = await savePatientUseCase.execute(selected?.id ?? null, payload);
       const savedMessage = selected
         ? "Paciente actualizado exitosamente."
         : "Paciente guardado exitosamente.";
@@ -231,8 +215,8 @@ export function usePatientsViewModel() {
           : savedMessage
       );
       await loadPatients(query);
-    } catch {
-      setApiError("No se pudo guardar el paciente.");
+    } catch (error) {
+      setApiError(error instanceof Error ? error.message : "No se pudo guardar el paciente.");
     } finally {
       setSaving(false);
     }
@@ -242,25 +226,20 @@ export function usePatientsViewModel() {
     if (!deleteTarget) return;
     setDeleteError(null);
     try {
-      const res = await fetch(`/api/patients/${deleteTarget.id}`, { method: "DELETE" });
-      const data = await res.json();
-      if (!data.ok) {
-        setDeleteError(data.error ?? "No se pudo eliminar el paciente.");
-        return;
-      }
+      const data = await deletePatientUseCase.execute(deleteTarget.id);
       if (selected?.id === deleteTarget.id) setSelected(null);
       setDeleteTarget(null);
       setDeleteError(null);
       setSuccessMessage(
         data.softDeleted
           ? "Paciente desactivado."
-          : data.deletedAppointments > 0
+          : (data.deletedAppointments ?? 0) > 0
             ? "Paciente eliminado y citas pasadas removidas de agenda."
             : "Paciente eliminado."
       );
       await loadPatients(query);
-    } catch {
-      setDeleteError("No se pudo eliminar el paciente.");
+    } catch (error) {
+      setDeleteError(error instanceof Error ? error.message : "No se pudo eliminar el paciente.");
     }
   };
 

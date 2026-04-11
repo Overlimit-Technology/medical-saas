@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { usePathname } from "next/navigation";
 import type { LucideIcon } from "lucide-react";
 import {
@@ -18,6 +18,7 @@ import {
   UserCircle,
   MessageCircle,
 } from "lucide-react";
+import { useSidebarViewModel } from "./SidebarViewModel";
 
 type Role = "ADMIN" | "SECRETARY" | "DOCTOR";
 
@@ -103,88 +104,15 @@ const NAV_ITEMS: NavItem[] = [
   },
 ];
 
-type SidebarProfile = {
-  ok: boolean;
-  clinicLabel?: string;
-  item?: {
-    email: string;
-    firstName: string;
-    lastName: string;
-    image: string | null;
-    role: string;
-  };
-};
-
-function getInitials(firstName: string, lastName: string, email: string) {
-  const seed = `${firstName} ${lastName}`.trim() || email || "MG";
-  return seed
-    .split(/\s+/)
-    .slice(0, 2)
-    .map((part) => part.charAt(0).toUpperCase())
-    .join("");
-}
-
 export default function Sidebar() {
+  const { state, actions } = useSidebarViewModel();
   const pathname = usePathname();
-  const [role, setRole] = useState<Role | null>(null);
   const [collapsed, setCollapsed] = useState(false);
-  const [displayName, setDisplayName] = useState("Medigest");
-  const [clinicLabel, setClinicLabel] = useState("Panel clínico");
-  const [email, setEmail] = useState("");
-  const [image, setImage] = useState<string | null>(null);
-  const [initials, setInitials] = useState("MG");
-
-  useEffect(() => {
-    const loadSidebarData = async () => {
-      try {
-        const res = await fetch("/api/profile/me", {
-          credentials: "include",
-          cache: "no-store",
-        });
-        const data = (await res.json()) as SidebarProfile;
-
-        if (!data.ok || !data.item) {
-          setRole(null);
-          return;
-        }
-
-        setRole(data.item.role as Role);
-        setEmail(data.item.email);
-        setImage(data.item.image ?? null);
-        setDisplayName(`${data.item.firstName} ${data.item.lastName}`.trim() || data.item.email);
-        setClinicLabel(data.clinicLabel ?? "Sede actual");
-        setInitials(getInitials(data.item.firstName, data.item.lastName, data.item.email));
-      } catch {
-        setRole(null);
-      }
-    };
-
-    const handleProfileUpdated = () => {
-      void loadSidebarData();
-    };
-
-    void loadSidebarData();
-    window.addEventListener("profile-updated", handleProfileUpdated);
-    window.addEventListener("focus", handleProfileUpdated);
-
-    return () => {
-      window.removeEventListener("profile-updated", handleProfileUpdated);
-      window.removeEventListener("focus", handleProfileUpdated);
-    };
-  }, []);
-
-  const handleChangeClinic = async () => {
-    await fetch("/api/clinics/clear", {
-      method: "POST",
-      credentials: "include",
-    });
-    window.location.assign("/select-clinic");
-  };
 
   const visibleItems = NAV_ITEMS.filter((item) => {
     if (!item.roles) return true;
-    if (role === null) return false;
-    return item.roles.includes(role);
+    if (state.role === null) return false;
+    return item.roles.includes(state.role);
   });
 
   const escritorioItems = visibleItems.filter((item) => item.group === "escritorios");
@@ -225,23 +153,23 @@ export default function Sidebar() {
       }`}
     >
       <div className="flex items-center gap-3 px-2">
-        {image ? (
+        {state.image ? (
           <img
-            src={image}
-            alt={displayName}
+            src={state.image}
+            alt={state.displayName}
             className="h-10 w-10 shrink-0 rounded-full object-cover"
           />
         ) : (
           <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-slate-200 text-sm font-semibold text-slate-700">
-            {initials}
+            {state.initials}
           </div>
         )}
 
         {!collapsed && (
           <div className="min-w-0 flex-1">
-            <p className="truncate text-sm font-semibold text-slate-900">{displayName}</p>
-            <p className="truncate text-xs text-slate-500">{clinicLabel}</p>
-            {email ? <p className="truncate text-[11px] text-slate-400">{email}</p> : null}
+            <p className="truncate text-sm font-semibold text-slate-900">{state.displayName}</p>
+            <p className="truncate text-xs text-slate-500">{state.clinicLabel}</p>
+            {state.email ? <p className="truncate text-[11px] text-slate-400">{state.email}</p> : null}
           </div>
         )}
 
@@ -270,7 +198,7 @@ export default function Sidebar() {
       <div className="mt-auto space-y-2 pt-6">
         <button
           type="button"
-          onClick={handleChangeClinic}
+          onClick={actions.handleChangeClinic}
           className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-100 hover:text-slate-900"
         >
           <ChevronsUpDown className="h-[18px] w-[18px] text-slate-500" />

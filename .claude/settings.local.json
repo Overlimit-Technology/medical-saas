@@ -24,7 +24,8 @@
       "Bash(grep -r \"SCHEDULED\\\\|CONFIRMED\\\\|CANCELLED\\\\|COMPLETED\\\\|NO_SHOW\" /c/Users/FTEZe/Documents/Programacion/Overlimit/medigest/src --include=*.tsx --include=*.ts -l)",
       "Bash(grep -r \"color\\\\|bg-\\\\|className\" /c/Users/FTEZe/Documents/Programacion/Overlimit/medigest/src/presentation/agenda --include=*.tsx -A 2 -B 1)",
       "Bash(head:*)",
-      "Bash(npx prisma:*)"
+      "Bash(npx prisma:*)",
+      "Bash(wc:*)"
     ]
   }
 }

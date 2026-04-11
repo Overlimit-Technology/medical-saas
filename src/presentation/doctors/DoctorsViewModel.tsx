@@ -1,23 +1,15 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-
-export type UserRole = "DOCTOR" | "SECRETARY";
-
-export type Clinic = {
-  id: string;
-  name: string;
-  city: string;
-};
-
-export type User = {
-  id: string;
-  email: string;
-  role: UserRole;
-  createdAt: string;
-  profile?: { firstName: string; lastName: string; rut?: string | null; phone?: string | null } | null;
-  doctorProfile?: { rut: string; specialty?: string | null } | null;
-};
+import { UsersRepositoryHttp } from "@/data/users/UsersRepository";
+import type { User, UserRole } from "@/domain/users/entities/User";
+import {
+  CreateUserUseCase,
+  DeleteUserUseCase,
+  GetUserClinicsUseCase,
+  GetUsersUseCase,
+} from "@/domain/users/usecases/UserUseCases";
+import type { Clinic } from "@/domain/clinics/entities/Clinic";
 
 export type FormState = {
   email: string;
@@ -73,6 +65,16 @@ export function formatRelativeDate(dateStr: string) {
 }
 
 export function useDoctorsViewModel() {
+  const { getUsersUseCase, getUserClinicsUseCase, createUserUseCase, deleteUserUseCase } =
+    useMemo(() => {
+      const repo = new UsersRepositoryHttp();
+      return {
+        getUsersUseCase: new GetUsersUseCase(repo),
+        getUserClinicsUseCase: new GetUserClinicsUseCase(repo),
+        createUserUseCase: new CreateUserUseCase(repo),
+        deleteUserUseCase: new DeleteUserUseCase(repo),
+      };
+    }, []);
   const [items, setItems] = useState<User[]>([]);
   const [clinics, setClinics] = useState<Clinic[]>([]);
   const [loading, setLoading] = useState(true);
@@ -91,27 +93,19 @@ export function useDoctorsViewModel() {
     setLoading(true);
     setApiError(null);
     try {
-      const res = await fetch("/api/users");
-      const data = await res.json();
-      if (data.ok) {
-        setItems(data.items ?? []);
-      } else {
-        setApiError(data.error ?? "No se pudieron cargar los usuarios.");
-      }
-    } catch {
-      setApiError("No se pudieron cargar los usuarios.");
+      const nextUsers = await getUsersUseCase.execute();
+      setItems(nextUsers);
+    } catch (error) {
+      setApiError(error instanceof Error ? error.message : "No se pudieron cargar los usuarios.");
     } finally {
       setLoading(false);
     }
   };
 
   const loadClinics = async () => {
-    const res = await fetch("/api/clinics/my");
-    const data = await res.json();
-    if (!data.ok) return;
-    setClinics(data.items ?? []);
-    const preferredClinicId =
-      data.activeClinicId ?? (data.items && data.items.length > 0 ? data.items[0].id : "");
+    const data = await getUserClinicsUseCase.execute();
+    setClinics(data.clinics ?? []);
+    const preferredClinicId = data.activeClinicId ?? (data.clinics[0]?.id ?? "");
     if (preferredClinicId) {
       setForm((current) => ({
         ...current,
@@ -121,9 +115,9 @@ export function useDoctorsViewModel() {
   };
 
   useEffect(() => {
-    loadUsers();
-    loadClinics();
-  }, []);
+    void loadUsers();
+    void loadClinics();
+  }, [getUserClinicsUseCase, getUsersUseCase]);
 
   useEffect(() => {
     if (!successMessage) return;
@@ -187,21 +181,12 @@ export function useDoctorsViewModel() {
     };
 
     try {
-      const res = await fetch("/api/users", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-      const data = await res.json();
-      if (!data.ok) {
-        setApiError(data.error ?? "No se pudo crear el usuario.");
-        return;
-      }
+      await createUserUseCase.execute(payload);
       closeModal();
       setSuccessMessage("Usuario creado exitosamente.");
       await loadUsers();
-    } catch {
-      setApiError("No se pudo crear el usuario.");
+    } catch (error) {
+      setApiError(error instanceof Error ? error.message : "No se pudo crear el usuario.");
     } finally {
       setSaving(false);
     }
@@ -212,22 +197,17 @@ export function useDoctorsViewModel() {
     setDeleteError(null);
     setDeletingId(deleteTarget.id);
     try {
-      const res = await fetch(`/api/users/${deleteTarget.id}`, { method: "DELETE" });
-      const data = await res.json();
-      if (!data.ok) {
-        setDeleteError(data.error ?? "No se pudo eliminar el usuario.");
-        return;
-      }
+      const result = await deleteUserUseCase.execute(deleteTarget.id);
       setDeleteTarget(null);
       setDeleteError(null);
       setSuccessMessage(
-        data.softDeleted
+        result.softDeleted
           ? "Usuario desactivado porque tiene citas futuras."
           : "Usuario eliminado."
       );
       await loadUsers();
-    } catch {
-      setDeleteError("No se pudo eliminar el usuario.");
+    } catch (error) {
+      setDeleteError(error instanceof Error ? error.message : "No se pudo eliminar el usuario.");
     } finally {
       setDeletingId(null);
     }

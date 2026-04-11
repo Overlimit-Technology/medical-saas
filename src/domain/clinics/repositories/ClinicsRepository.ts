@@ -9,4 +9,5 @@ export type SelectClinicResult = {
 export interface ClinicsRepository {
   getMyClinics(): Promise<Clinic[]>
   selectClinic(clinicId: string): Promise<SelectClinicResult>
+  clearSelectedClinic(): Promise<void>
 }

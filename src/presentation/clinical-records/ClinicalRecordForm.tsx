@@ -4,13 +4,17 @@ import { useState } from "react";
 import RecordPreview from "./RecordPreview";
 
 type FieldDef = {
-  id: string;
+  id?: string;
   label: string;
   fieldType: string;
   position: number;
   isRequired: boolean;
   options: string | null;
 };
+
+function getFieldKey(field: FieldDef) {
+  return field.id ?? `${field.label}-${field.position}`;
+}
 
 type Props = {
   templateName: string;
@@ -62,12 +66,12 @@ export default function ClinicalRecordForm({
       <div className={`mt-4 ${showPreview ? "flex gap-6 items-start" : ""}`}>
         <form onSubmit={onSubmit} className={`grid gap-4 ${showPreview ? "w-1/2 min-w-0" : "w-full"}`}>
           {sortedFields.map((field) => (
-            <div key={field.id}>
+            <div key={getFieldKey(field)}>
               <label className="mb-1 block text-[11px] font-medium uppercase tracking-wider text-slate-400">
                 {field.label}
                 {field.isRequired && <span className="text-rose-400"> *</span>}
               </label>
-              {renderField(field, values[field.id] ?? "", onFieldChange)}
+              {renderField(field, values[getFieldKey(field)] ?? "", onFieldChange)}
             </div>
           ))}
 
@@ -115,6 +119,7 @@ function renderField(
   value: string,
   onChange: (fieldId: string, value: string) => void
 ) {
+  const fieldId = field.id ?? `${field.label}-${field.position}`;
   const inputClass =
     "w-full rounded-xl border border-slate-200 bg-slate-50/40 px-3 py-2.5 text-sm transition-colors focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400";
 
@@ -123,7 +128,7 @@ function renderField(
       return (
         <textarea
           value={value}
-          onChange={(e) => onChange(field.id, e.target.value)}
+          onChange={(e) => onChange(fieldId, e.target.value)}
           rows={3}
           className={inputClass}
         />
@@ -133,7 +138,7 @@ function renderField(
         <input
           type="number"
           value={value}
-          onChange={(e) => onChange(field.id, e.target.value)}
+          onChange={(e) => onChange(fieldId, e.target.value)}
           className={inputClass}
         />
       );
@@ -142,7 +147,7 @@ function renderField(
         <input
           type="date"
           value={value}
-          onChange={(e) => onChange(field.id, e.target.value)}
+          onChange={(e) => onChange(fieldId, e.target.value)}
           className={inputClass}
         />
       );
@@ -150,7 +155,7 @@ function renderField(
       return (
         <select
           value={value}
-          onChange={(e) => onChange(field.id, e.target.value)}
+          onChange={(e) => onChange(fieldId, e.target.value)}
           className={inputClass}
         >
           <option value="">— Seleccionar —</option>
@@ -166,7 +171,7 @@ function renderField(
       return (
         <select
           value={value}
-          onChange={(e) => onChange(field.id, e.target.value)}
+          onChange={(e) => onChange(fieldId, e.target.value)}
           className={inputClass}
         >
           <option value="">— Seleccionar —</option>
@@ -183,7 +188,7 @@ function renderField(
         <input
           type="text"
           value={value}
-          onChange={(e) => onChange(field.id, e.target.value)}
+          onChange={(e) => onChange(fieldId, e.target.value)}
           className={inputClass}
         />
       );

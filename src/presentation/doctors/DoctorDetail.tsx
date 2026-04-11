@@ -1,24 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
-
-type Doctor = {
-  id: string;
-  email: string;
-  role: string;
-  createdAt: string;
-  profile?: { firstName: string; lastName: string; phone?: string | null; rut?: string | null } | null;
-  doctorProfile?: { rut: string; specialty?: string | null; bio?: string | null } | null;
-};
-
-type EditForm = {
-  firstName: string;
-  lastName: string;
-  phone: string;
-  rut: string;
-  specialty: string;
-};
+import { useDoctorDetailViewModel } from "./DoctorDetailViewModel";
 
 function ReadOnlyField({ label, value }: { label: string; value: string }) {
   return (
@@ -55,125 +37,28 @@ function EditableField({
 }
 
 export default function DoctorDetail({ userId }: { userId: string }) {
-  const router = useRouter();
-  const [doctor, setDoctor] = useState<Doctor | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [editing, setEditing] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const [form, setForm] = useState<EditForm>({
-    firstName: "",
-    lastName: "",
-    phone: "",
-    rut: "",
-    specialty: "",
-  });
-  const [apiError, setApiError] = useState<string | null>(null);
-  const [successMessage, setSuccessMessage] = useState<string | null>(null);
-  const [deleteConfirmChecked, setDeleteConfirmChecked] = useState(false);
-  const [deleting, setDeleting] = useState(false);
-  const [deleteError, setDeleteError] = useState<string | null>(null);
-
-  const loadDoctor = useCallback(async () => {
-    setLoading(true);
-    try {
-      const res = await fetch(`/api/doctors/${userId}`);
-      const data = await res.json();
-      if (data.ok) {
-        setDoctor(data.item);
-        populateForm(data.item);
-      } else {
-        setDoctor(null);
-      }
-    } finally {
-      setLoading(false);
-    }
-  }, [userId]);
-
-  function populateForm(item: Doctor) {
-    setForm({
-      firstName: item.profile?.firstName ?? "",
-      lastName: item.profile?.lastName ?? "",
-      phone: item.profile?.phone ?? "",
-      rut: item.doctorProfile?.rut ?? item.profile?.rut ?? "",
-      specialty: item.doctorProfile?.specialty ?? "",
-    });
-  }
-
-  useEffect(() => {
-    void loadDoctor();
-  }, [loadDoctor]);
-
-  useEffect(() => {
-    if (!successMessage) return;
-    const timeout = window.setTimeout(() => setSuccessMessage(null), 2500);
-    return () => window.clearTimeout(timeout);
-  }, [successMessage]);
-
-  const goBack = () => router.push("/usuarios");
-
-  const startEditing = () => {
-    if (doctor) populateForm(doctor);
-    setApiError(null);
-    setEditing(true);
-  };
-
-  const cancelEditing = () => {
-    if (doctor) populateForm(doctor);
-    setEditing(false);
-    setApiError(null);
-  };
-
-  const handleFieldChange = (key: keyof EditForm, value: string) => {
-    setForm((prev) => ({ ...prev, [key]: value }));
-  };
-
-  const saveChanges = async () => {
-    setSaving(true);
-    setApiError(null);
-    try {
-      const res = await fetch(`/api/doctors/${userId}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          firstName: form.firstName.trim(),
-          lastName: form.lastName.trim(),
-          phone: form.phone.trim() || null,
-          rut: form.rut.trim(),
-          specialty: form.specialty.trim() || null,
-        }),
-      });
-      const data = await res.json();
-      if (!data.ok) {
-        setApiError(data.error ?? "No se pudo actualizar.");
-        return;
-      }
-      setEditing(false);
-      setSuccessMessage("Usuario actualizado exitosamente.");
-      await loadDoctor();
-    } catch {
-      setApiError("No se pudo actualizar.");
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const handleDelete = async () => {
-    setDeleting(true);
-    setDeleteError(null);
-    try {
-      const res = await fetch(`/api/users/${userId}`, { method: "DELETE" });
-      const data = await res.json();
-      if (!data.ok) {
-        setDeleteError(data.error ?? "No se pudo eliminar.");
-        return;
-      }
-      router.push("/usuarios");
-    } catch {
-      setDeleteError("No se pudo eliminar.");
-    } finally {
-      setDeleting(false);
-    }
-  };
+  const { state, actions } = useDoctorDetailViewModel(userId);
+  const {
+    doctor,
+    loading,
+    editing,
+    saving,
+    form,
+    apiError,
+    successMessage,
+    deleteConfirmChecked,
+    deleting,
+    deleteError,
+  } = state;
+  const {
+    goBack,
+    startEditing,
+    cancelEditing,
+    handleFieldChange,
+    saveChanges,
+    handleDelete,
+    setDeleteConfirmChecked,
+  } = actions;
 
   if (loading) {
     return (

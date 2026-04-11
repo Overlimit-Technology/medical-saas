@@ -43,4 +43,15 @@ export class ClinicsRepositoryHttp implements ClinicsRepository {
 
     return { redirectTo: data.redirectTo }
   }
+
+  async clearSelectedClinic(): Promise<void> {
+    const res = await fetch("/api/clinics/clear", {
+      method: "POST",
+      credentials: "include",
+    })
+
+    if (!res.ok) {
+      throw new Error("Failed to clear clinic")
+    }
+  }
 }

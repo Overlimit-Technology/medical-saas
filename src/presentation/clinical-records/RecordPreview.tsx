@@ -1,13 +1,17 @@
 "use client";
 
 type FieldDef = {
-  id: string;
+  id?: string;
   label: string;
   fieldType: string;
   position: number;
   isRequired: boolean;
   options: string | null;
 };
+
+function getFieldKey(field: FieldDef) {
+  return field.id ?? `${field.label}-${field.position}`;
+}
 
 type Props = {
   templateName: string;
@@ -87,12 +91,12 @@ export default function RecordPreview({
               {/* Fields with real values */}
               <div className="space-y-3">
                 {sortedFields.map((field) => (
-                  <div key={field.id}>
+                  <div key={getFieldKey(field)}>
                     <p className="text-[9px] font-bold uppercase tracking-wider text-slate-400">
                       {field.label}
                     </p>
                     <p className="text-xs text-slate-800">
-                      {formatValue(values[field.id] ?? "", field.fieldType)}
+                      {formatValue(values[getFieldKey(field)] ?? "", field.fieldType)}
                     </p>
                   </div>
                 ))}

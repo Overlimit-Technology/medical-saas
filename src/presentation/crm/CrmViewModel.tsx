@@ -1,32 +1,20 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { CrmRepositoryHttp } from "@/data/crm/CrmRepository";
+import { PatientsRepositoryHttp } from "@/data/patients/PatientsRepository";
+import type { PaymentHistoryItem } from "@/domain/crm/entities/Crm";
+import {
+  GetCrmTreatmentsUseCase,
+  GetPaymentHistoryUseCase,
+  SavePaymentHistoryUseCase,
+} from "@/domain/crm/usecases/CrmUseCases";
+import type { PatientDetail } from "@/domain/patients/entities/Patient";
+import { GetPatientsUseCase } from "@/domain/patients/usecases/PatientsUseCases";
+import type { Treatment } from "@/domain/treatments/entities/Treatment";
 
-export type Patient = {
-  id: string;
-  firstName: string;
-  lastName: string;
-  secondLastName?: string | null;
-  run: string;
-};
-
-export type Treatment = {
-  id: string;
-  name: string;
-  price: number;
-};
-
-export type PaymentHistoryItem = {
-  id: string;
-  recordedAt: string;
-  status: "PENDING" | "PAID" | "WAIVED";
-  amount: number;
-  treatment: {
-    id: string;
-    name: string;
-    price: number;
-  };
-};
+export type Patient = Pick<PatientDetail, "id" | "firstName" | "lastName" | "secondLastName" | "run">;
+export type { Treatment, PaymentHistoryItem };
 
 export type FormState = {
   treatmentId: string;
@@ -80,6 +68,18 @@ export function useCrmViewModel() {
     notes: "",
   });
 
+  const { getPatientsUseCase, getCrmTreatmentsUseCase, getPaymentHistoryUseCase, savePaymentHistoryUseCase } =
+    useMemo(() => {
+      const patientsRepo = new PatientsRepositoryHttp();
+      const crmRepo = new CrmRepositoryHttp();
+      return {
+        getPatientsUseCase: new GetPatientsUseCase(patientsRepo),
+        getCrmTreatmentsUseCase: new GetCrmTreatmentsUseCase(crmRepo),
+        getPaymentHistoryUseCase: new GetPaymentHistoryUseCase(crmRepo),
+        savePaymentHistoryUseCase: new SavePaymentHistoryUseCase(crmRepo),
+      };
+    }, []);
+
   const selectedPatient = useMemo(
     () => patients.find((item) => item.id === selectedPatientId) ?? null,
     [patients, selectedPatientId]
@@ -87,29 +87,22 @@ export function useCrmViewModel() {
 
   const currentTreatment = treatments.find((item) => item.id === form.treatmentId) ?? null;
 
-  const loadInitial = async () => {
+  const loadInitial = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const [patientsRes, treatmentsRes] = await Promise.all([
-        fetch("/api/patients?page=1&pageSize=200"),
-        fetch("/api/crm/treatments"),
+      const [patientsResult, loadedTreatments] = await Promise.all([
+        getPatientsUseCase.execute({ page: 1, pageSize: 200 }),
+        getCrmTreatmentsUseCase.execute(),
       ]);
 
-      const patientsData = await patientsRes.json();
-      const treatmentsData = await treatmentsRes.json();
-
-      if (!patientsData.ok) {
-        setError(patientsData.error ?? "No se pudieron cargar los pacientes.");
-        return;
-      }
-      if (!treatmentsData.ok) {
-        setError(treatmentsData.error ?? "No se pudieron cargar los tratamientos.");
-        return;
-      }
-
-      const loadedPatients = patientsData.items ?? [];
-      const loadedTreatments = treatmentsData.items ?? [];
+      const loadedPatients = patientsResult.items.map((patient) => ({
+        id: patient.id,
+        firstName: patient.firstName,
+        lastName: patient.lastName,
+        secondLastName: patient.secondLastName,
+        run: patient.run,
+      }));
 
       setPatients(loadedPatients);
       setTreatments(loadedTreatments);
@@ -119,20 +112,20 @@ export function useCrmViewModel() {
       }
 
       if (loadedTreatments.length > 0) {
-        setForm((prev) => ({
-          ...prev,
+        setForm((previous) => ({
+          ...previous,
           treatmentId: loadedTreatments[0].id,
           amount: `${Math.round(loadedTreatments[0].price)}`,
         }));
       }
-    } catch {
-      setError("No se pudo cargar el modulo Gestion de contactos y cobros.");
+    } catch (loadError) {
+      setError(loadError instanceof Error ? loadError.message : "No se pudo cargar el modulo Gestion de contactos y cobros.");
     } finally {
       setLoading(false);
     }
-  };
+  }, [getCrmTreatmentsUseCase, getPatientsUseCase]);
 
-  const loadHistory = async (patientId: string) => {
+  const loadHistory = useCallback(async (patientId: string) => {
     if (!patientId) {
       setHistory([]);
       return;
@@ -141,27 +134,21 @@ export function useCrmViewModel() {
     setHistoryLoading(true);
     setError(null);
     try {
-      const res = await fetch(`/api/crm/payment-history?patientId=${encodeURIComponent(patientId)}`);
-      const data = await res.json();
-      if (!data.ok) {
-        setError(data.error ?? "No se pudo cargar el historial.");
-        return;
-      }
-      setHistory(data.items ?? []);
-    } catch {
-      setError("No se pudo cargar el historial.");
+      setHistory(await getPaymentHistoryUseCase.execute(patientId));
+    } catch (historyError) {
+      setError(historyError instanceof Error ? historyError.message : "No se pudo cargar el historial.");
     } finally {
       setHistoryLoading(false);
     }
-  };
+  }, [getPaymentHistoryUseCase]);
 
   useEffect(() => {
-    loadInitial();
-  }, []);
+    void loadInitial();
+  }, [loadInitial]);
 
   useEffect(() => {
-    loadHistory(selectedPatientId);
-  }, [selectedPatientId]);
+    void loadHistory(selectedPatientId);
+  }, [loadHistory, selectedPatientId]);
 
   useEffect(() => {
     if (!successMessage) return;
@@ -171,15 +158,15 @@ export function useCrmViewModel() {
 
   const handleTreatmentChange = (treatmentId: string) => {
     const treatment = treatments.find((item) => item.id === treatmentId);
-    setForm((prev) => ({
-      ...prev,
+    setForm((previous) => ({
+      ...previous,
       treatmentId,
-      amount: treatment ? `${Math.round(treatment.price)}` : prev.amount,
+      amount: treatment ? `${Math.round(treatment.price)}` : previous.amount,
     }));
   };
 
   const handleFormChange = (key: keyof FormState, value: string) => {
-    setForm((prev) => ({ ...prev, [key]: value }));
+    setForm((previous) => ({ ...previous, [key]: value }));
   };
 
   const handleSubmit = async (event: React.FormEvent) => {
@@ -198,29 +185,19 @@ export function useCrmViewModel() {
 
       const recordedAt = new Date(`${form.recordedAt}T12:00:00`).toISOString();
 
-      const res = await fetch("/api/crm/payment-history", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          patientId: selectedPatientId,
-          treatmentId: form.treatmentId,
-          recordedAt,
-          status: form.status,
-          amount,
-          notes: form.notes.trim() || null,
-        }),
+      await savePaymentHistoryUseCase.execute({
+        patientId: selectedPatientId,
+        treatmentId: form.treatmentId,
+        recordedAt,
+        status: form.status,
+        amount,
+        notes: form.notes.trim() || null,
       });
-      const data = await res.json();
-
-      if (!data.ok) {
-        setError(data.error ?? "No se pudo registrar el cobro.");
-        return;
-      }
 
       setSuccessMessage("Cobro registrado.");
       await loadHistory(selectedPatientId);
-    } catch {
-      setError("No se pudo registrar el cobro.");
+    } catch (submitError) {
+      setError(submitError instanceof Error ? submitError.message : "No se pudo registrar el cobro.");
     } finally {
       setSaving(false);
     }
