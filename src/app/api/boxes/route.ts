@@ -20,7 +20,7 @@ export async function GET() {
 export async function POST(req: Request) {
   try {
     const session = await requireClinicSession();
-    requireRole(session.role, ["ADMIN"]);
+    requireRole(session, ["ADMIN"], "BOXES");
 
     const body = await req.json();
     const parsed = boxSchema.safeParse(body);

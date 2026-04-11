@@ -1,51 +1,30 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { AgendaRepositoryHttp } from "@/data/agenda/AgendaRepository";
+import type { AgendaBannerData } from "@/domain/agenda/entities/Banner";
+import { GetAgendaBannerUseCase } from "@/domain/agenda/usecases/GetAgendaBannerUseCase";
 
-export type BannerData =
-  | {
-      mode: "doctor";
-      name: string;
-      specialty: string;
-      location: string;
-      email: string;
-      phone: string;
-      totalPatients: number;
-      inTreatment: number;
-      todayAppointments: number;
-      completedToday: number;
-    }
-  | {
-      mode: "clinic";
-      name: string;
-      location: string;
-      totalPatients: number;
-      inTreatment: number;
-      todayAppointments: number;
-      completedToday: number;
-      activeDoctors: number;
-    };
+export type BannerData = AgendaBannerData;
 
 export function useInfoBannerViewModel() {
   const [data, setData] = useState<BannerData | null>(null);
   const [loading, setLoading] = useState(true);
+  const getAgendaBannerUseCase = useMemo(() => {
+    const repo = new AgendaRepositoryHttp();
+    return new GetAgendaBannerUseCase(repo);
+  }, []);
 
   useEffect(() => {
     const load = async () => {
       try {
-        const res = await fetch("/api/agenda/banner", { credentials: "include" });
-        const json = await res.json();
-        if (json.ok) {
-          setData(json.data);
-        }
-      } catch {
-        // silently fail
+        setData(await getAgendaBannerUseCase.execute());
       } finally {
         setLoading(false);
       }
     };
-    load();
-  }, []);
+    void load();
+  }, [getAgendaBannerUseCase]);
 
   const totalToday = data ? data.completedToday + data.todayAppointments : 0;
   const progressPercent = totalToday > 0 && data ? Math.round((data.completedToday / totalToday) * 100) : 0;

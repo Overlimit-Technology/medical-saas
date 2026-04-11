@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { requireClinicSession, requireRole } from "@/server/auth/requireSession";
+import { requireClinicSession } from "@/server/auth/requireSession";
 import { ClinicalVisitsService } from "@/server/clinical-visits/ClinicalVisitsService";
+import { hasPermission } from "@/lib/permissions";
 
 const createSchema = z.object({
   patientId: z.string().min(1),
@@ -18,7 +19,12 @@ function parseDate(value?: string | null) {
 export async function GET(req: Request) {
   try {
     const session = await requireClinicSession();
-    requireRole(session.role, ["DOCTOR"]);
+    if (
+      session.role !== "DOCTOR" ||
+      !hasPermission(session.role, session.permissions, "CLINICAL_VISITS", session.isSuperAdmin)
+    ) {
+      throw new Error("Acceso denegado.");
+    }
 
     const { searchParams } = new URL(req.url);
     const patientId = searchParams.get("patientId");
@@ -42,7 +48,12 @@ export async function GET(req: Request) {
 export async function POST(req: Request) {
   try {
     const session = await requireClinicSession();
-    requireRole(session.role, ["DOCTOR"]);
+    if (
+      session.role !== "DOCTOR" ||
+      !hasPermission(session.role, session.permissions, "CLINICAL_VISITS", session.isSuperAdmin)
+    ) {
+      throw new Error("Acceso denegado.");
+    }
 
     const body = await req.json();
     const parsed = createSchema.safeParse(body);

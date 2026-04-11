@@ -1,43 +1,24 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { ClinicalRecordsRepositoryHttp } from "@/data/clinical-records/ClinicalRecordsRepository";
+import { FormTemplatesRepositoryHttp } from "@/data/form-templates/FormTemplatesRepository";
+import type { ClinicalRecord } from "@/domain/clinical-records/entities/ClinicalRecord";
+import {
+  GetClinicalRecordsUseCase,
+  SaveClinicalRecordUseCase,
+} from "@/domain/clinical-records/usecases/ClinicalRecordsUseCases";
+import type { FormTemplate } from "@/domain/form-templates/entities/FormTemplate";
+import { GetFormTemplatesUseCase } from "@/domain/form-templates/usecases/FormTemplatesUseCases";
 
-type FieldDef = {
-  id: string;
-  label: string;
-  fieldType: string;
-  position: number;
-  isRequired: boolean;
-  options: string | null;
-};
-
-type RecordValue = {
-  id: string;
-  fieldId: string;
-  value: string;
-  field: FieldDef;
-};
-
-export type ClinicalRecord = {
-  id: string;
-  createdAt: string;
-  updatedAt: string;
-  template: { id: string; name: string };
-  doctor: {
-    id: string;
-    profile?: { firstName: string; lastName: string } | null;
-  };
-  values: RecordValue[];
-};
-
-export type TemplateOption = {
-  id: string;
-  name: string;
-  description: string | null;
-  fields: FieldDef[];
-};
+export type { ClinicalRecord };
+export type TemplateOption = FormTemplate;
 
 type ValueMap = Record<string, string>;
+
+function getTemplateFieldKey(field: FormTemplate["fields"][number]) {
+  return field.id ?? `${field.label}-${field.position}`;
+}
 
 export function useClinicalRecordsViewModel(appointmentId: string, patientId: string) {
   const [records, setRecords] = useState<ClinicalRecord[]>([]);
@@ -46,34 +27,38 @@ export function useClinicalRecordsViewModel(appointmentId: string, patientId: st
   const [saving, setSaving] = useState(false);
   const [apiError, setApiError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
-
-  // Form state
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(null);
   const [editingRecord, setEditingRecord] = useState<ClinicalRecord | null>(null);
   const [values, setValues] = useState<ValueMap>({});
 
-  const selectedTemplate = templates.find((t) => t.id === selectedTemplateId) ?? null;
+  const { getClinicalRecordsUseCase, saveClinicalRecordUseCase, getFormTemplatesUseCase } = useMemo(() => {
+    const clinicalRecordsRepo = new ClinicalRecordsRepositoryHttp();
+    const formTemplatesRepo = new FormTemplatesRepositoryHttp();
+    return {
+      getClinicalRecordsUseCase: new GetClinicalRecordsUseCase(clinicalRecordsRepo),
+      saveClinicalRecordUseCase: new SaveClinicalRecordUseCase(clinicalRecordsRepo),
+      getFormTemplatesUseCase: new GetFormTemplatesUseCase(formTemplatesRepo),
+    };
+  }, []);
+
+  const selectedTemplate = templates.find((template) => template.id === selectedTemplateId) ?? null;
 
   const loadRecords = useCallback(async () => {
     try {
-      const res = await fetch(`/api/clinical-records?appointmentId=${appointmentId}`);
-      const data = await res.json();
-      if (data.ok) setRecords(data.items ?? []);
+      setRecords(await getClinicalRecordsUseCase.execute(appointmentId));
     } catch {
-      /* ignore */
+      setRecords([]);
     }
-  }, [appointmentId]);
+  }, [appointmentId, getClinicalRecordsUseCase]);
 
   const loadTemplates = useCallback(async () => {
     try {
-      const res = await fetch("/api/form-templates");
-      const data = await res.json();
-      if (data.ok) setTemplates(data.items ?? []);
+      setTemplates(await getFormTemplatesUseCase.execute());
     } catch {
-      /* ignore */
+      setTemplates([]);
     }
-  }, []);
+  }, [getFormTemplatesUseCase]);
 
   useEffect(() => {
     const load = async () => {
@@ -81,7 +66,7 @@ export function useClinicalRecordsViewModel(appointmentId: string, patientId: st
       await Promise.all([loadRecords(), loadTemplates()]);
       setLoading(false);
     };
-    load();
+    void load();
   }, [loadRecords, loadTemplates]);
 
   useEffect(() => {
@@ -91,14 +76,14 @@ export function useClinicalRecordsViewModel(appointmentId: string, patientId: st
   }, [successMessage]);
 
   const openCreateForm = (templateId: string) => {
-    const tmpl = templates.find((t) => t.id === templateId);
-    if (!tmpl) return;
+    const template = templates.find((item) => item.id === templateId);
+    if (!template) return;
 
     setSelectedTemplateId(templateId);
     setEditingRecord(null);
     const initial: ValueMap = {};
-    for (const f of tmpl.fields) {
-      initial[f.id] = "";
+    for (const field of template.fields) {
+      initial[getTemplateFieldKey(field)] = "";
     }
     setValues(initial);
     setApiError(null);
@@ -109,16 +94,18 @@ export function useClinicalRecordsViewModel(appointmentId: string, patientId: st
     setSelectedTemplateId(record.template.id);
     setEditingRecord(record);
     const initial: ValueMap = {};
-    for (const v of record.values) {
-      initial[v.fieldId] = v.value;
+    for (const value of record.values) {
+      initial[value.fieldId] = value.value;
     }
-    // Fill any missing fields with empty string
-    const tmpl = templates.find((t) => t.id === record.template.id);
-    if (tmpl) {
-      for (const f of tmpl.fields) {
-        if (!(f.id in initial)) initial[f.id] = "";
+
+    const template = templates.find((item) => item.id === record.template.id);
+    if (template) {
+      for (const field of template.fields) {
+        const fieldKey = getTemplateFieldKey(field);
+        if (!(fieldKey in initial)) initial[fieldKey] = "";
       }
     }
+
     setValues(initial);
     setApiError(null);
     setIsFormOpen(true);
@@ -133,16 +120,16 @@ export function useClinicalRecordsViewModel(appointmentId: string, patientId: st
   };
 
   const setFieldValue = (fieldId: string, value: string) => {
-    setValues((prev) => ({ ...prev, [fieldId]: value }));
+    setValues((previous) => ({ ...previous, [fieldId]: value }));
   };
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
     if (!selectedTemplate) return;
 
-    // Validate required fields
     for (const field of selectedTemplate.fields) {
-      if (field.isRequired && !(values[field.id] ?? "").trim()) {
+      const fieldKey = getTemplateFieldKey(field);
+      if (field.isRequired && !(values[fieldKey] ?? "").trim()) {
         setApiError(`El campo "${field.label}" es obligatorio.`);
         return;
       }
@@ -151,41 +138,20 @@ export function useClinicalRecordsViewModel(appointmentId: string, patientId: st
     setSaving(true);
     setApiError(null);
 
-    const valuesArray = Object.entries(values).map(([fieldId, value]) => ({
-      fieldId,
-      value,
-    }));
-
     try {
-      const editing = Boolean(editingRecord);
-      const endpoint = editing
-        ? `/api/clinical-records/${editingRecord!.id}`
-        : "/api/clinical-records";
-      const method = editing ? "PATCH" : "POST";
-
-      const payload: Record<string, unknown> = { values: valuesArray };
-      if (!editing) {
-        payload.appointmentId = appointmentId;
-        payload.templateId = selectedTemplateId;
-        payload.patientId = patientId;
-      }
-
-      const res = await fetch(endpoint, {
-        method,
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
+      await saveClinicalRecordUseCase.execute({
+        recordId: editingRecord?.id,
+        appointmentId: editingRecord ? undefined : appointmentId,
+        templateId: editingRecord ? undefined : selectedTemplateId,
+        patientId: editingRecord ? undefined : patientId,
+        values: Object.entries(values).map(([fieldId, value]) => ({ fieldId, value })),
       });
-      const data = await res.json();
-      if (!data.ok) {
-        setApiError(data.error ?? "No se pudo guardar la ficha.");
-        return;
-      }
 
       closeForm();
-      setSuccessMessage(editing ? "Ficha actualizada." : "Ficha creada.");
+      setSuccessMessage(editingRecord ? "Ficha actualizada." : "Ficha creada.");
       await loadRecords();
-    } catch {
-      setApiError("No se pudo guardar la ficha.");
+    } catch (error) {
+      setApiError(error instanceof Error ? error.message : "No se pudo guardar la ficha.");
     } finally {
       setSaving(false);
     }

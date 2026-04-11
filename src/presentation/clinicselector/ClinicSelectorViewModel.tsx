@@ -3,8 +3,10 @@
 import { useEffect, useMemo, useState } from 'react'
 import type { Clinic } from '@/domain/clinics/entities/Clinic'
 import { ClinicsRepositoryHttp } from '@/data/clinics/ClinicsRepository'
+import { AuthRepositoryHttp } from '@/data/auth/AuthRepository'
 import { GetMyClinicsUseCase } from '@/domain/clinics/usecases/GetMyClinicsUseCase'
 import { SelectClinicUseCase } from '@/domain/clinics/usecases/SelectClinicUseCase'
+import { LogoutUseCase } from '@/domain/auth/usecases/LogoutUseCase'
 
 type State = {
   loading: boolean
@@ -14,11 +16,13 @@ type State = {
 }
 
 export function useClinicSelectorViewModel() {
-  const { getMyClinicsUseCase, selectClinicUseCase } = useMemo(() => {
+  const { getMyClinicsUseCase, selectClinicUseCase, logoutUseCase } = useMemo(() => {
     const repo = new ClinicsRepositoryHttp()
+    const authRepo = new AuthRepositoryHttp()
     return {
       getMyClinicsUseCase: new GetMyClinicsUseCase(repo),
       selectClinicUseCase: new SelectClinicUseCase(repo),
+      logoutUseCase: new LogoutUseCase(authRepo),
     }
   }, [])
 
@@ -56,13 +60,13 @@ export function useClinicSelectorViewModel() {
       async signOut() {
         setState((s) => ({ ...s, selecting: true }))
         try {
-          await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' })
+          await logoutUseCase.execute()
         } finally {
           window.location.assign('/login')
         }
       },
     }
-  }, [getMyClinicsUseCase, selectClinicUseCase])
+  }, [getMyClinicsUseCase, logoutUseCase, selectClinicUseCase])
 
   useEffect(() => {
     void actions.load()

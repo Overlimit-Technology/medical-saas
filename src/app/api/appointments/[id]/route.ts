@@ -40,6 +40,7 @@ function formatDateTime(value: Date) {
 export async function GET(_req: Request, { params }: { params: { id: string } }) {
   try {
     const session = await requireClinicSession();
+    requireRole(session, ["ADMIN"], ["AGENDA", "CLINICAL_VISITS"]);
     const item = await prisma.appointment.findFirst({
       where: {
         id: params.id,
@@ -67,7 +68,7 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
 export async function PATCH(req: Request, { params }: { params: { id: string } }) {
   try {
     const session = await requireClinicSession();
-    requireRole(session.role, ["ADMIN", "SECRETARY"]);
+    requireRole(session, ["ADMIN"], "AGENDA");
 
     const body = await req.json();
     const parsed = appointmentUpdateSchema.safeParse(body);
@@ -81,6 +82,52 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
       return NextResponse.json({ ok: false, error: "Rango de horario invalido." }, { status: 400 });
     }
 
+    if (parsed.data.status === "CANCELLED") {
+      return NextResponse.json(
+        { ok: false, error: "Para cancelar una cita debes usar el flujo de cancelacion con motivo." },
+        { status: 400 }
+      );
+    }
+
+    const current = await prisma.appointment.findFirst({
+      where: {
+        id: params.id,
+        clinicId: session.clinicId,
+        doctorId: session.role === "DOCTOR" ? session.userId : undefined,
+      },
+      select: {
+        id: true,
+        doctorId: true,
+        startAt: true,
+        endAt: true,
+        status: true,
+      },
+    });
+
+    if (!current) {
+      return NextResponse.json({ ok: false, error: "Cita no encontrada." }, { status: 404 });
+    }
+
+    if (session.role === "DOCTOR") {
+      const hasNonStatusChanges =
+        parsed.data.patientId !== undefined ||
+        parsed.data.doctorId !== undefined ||
+        parsed.data.boxId !== undefined ||
+        parsed.data.startAt !== undefined ||
+        parsed.data.endAt !== undefined ||
+        parsed.data.paymentStatus !== undefined ||
+        parsed.data.notes !== undefined;
+
+      if (hasNonStatusChanges || !parsed.data.status) {
+        return NextResponse.json(
+          { ok: false, error: "Como doctor solo puedes cambiar el estado de tus propias citas." },
+          { status: 403 }
+        );
+      }
+    } else {
+      requireRole(session.role, ["ADMIN", "SECRETARY"]);
+    }
+
     const data: Partial<AppointmentInput> = {
       patientId: parsed.data.patientId,
       doctorId: parsed.data.doctorId,
@@ -91,11 +138,6 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
       paymentStatus: parsed.data.paymentStatus,
       notes: parsed.data.notes,
     };
-
-    const previous = await prisma.appointment.findFirst({
-      where: { id: params.id, clinicId: session.clinicId },
-      select: { startAt: true, endAt: true, status: true },
-    });
 
     let item: Awaited<ReturnType<typeof AppointmentsService.update>>;
     try {
@@ -138,18 +180,19 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
     const doctorName = [item.doctor.profile?.firstName ?? "", item.doctor.profile?.lastName ?? ""]
       .join(" ")
       .trim() || item.doctor.email;
-    const notifyRolesForStaffAction =
+    const notifyRolesForAction =
       session.role === "SECRETARY"
         ? (["ADMIN", "DOCTOR"] as const)
+        : session.role === "DOCTOR"
+          ? (["ADMIN", "SECRETARY"] as const)
         : (["ADMIN", "SECRETARY", "DOCTOR"] as const);
     const includeActorInInternalAlert = session.role === "ADMIN";
 
     let notificationWarning: string | null = null;
-    const wasRescheduled = previous
-      ? previous.startAt.getTime() !== item.startAt.getTime() ||
-        previous.endAt.getTime() !== item.endAt.getTime()
-      : Boolean(parsed.data.startAt || parsed.data.endAt);
-    const becameNoShow = previous ? previous.status !== "NO_SHOW" && item.status === "NO_SHOW" : item.status === "NO_SHOW";
+    const wasRescheduled =
+      current.startAt.getTime() !== item.startAt.getTime() ||
+      current.endAt.getTime() !== item.endAt.getTime();
+    const becameNoShow = current.status !== "NO_SHOW" && item.status === "NO_SHOW";
 
     if (wasRescheduled && item.patient.email) {
       const clinicLabel = await resolveSingleClinicLabel(session.clinicId);
@@ -193,7 +236,7 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
           message: `Paciente: ${patientName || item.patient.firstName}. Doctor: ${doctorName}. Nueva fecha: ${formatDateTime(item.startAt)}.`,
           referenceType: "APPOINTMENT",
           referenceId: item.id,
-          targetRoles: [...notifyRolesForStaffAction],
+          targetRoles: [...notifyRolesForAction],
           includeActor: includeActorInInternalAlert,
         });
         if (alert.warning) internalAlertWarnings.push(alert.warning);
@@ -217,7 +260,7 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
           message: `Paciente: ${patientName || item.patient.firstName}. Doctor: ${doctorName}. Fecha: ${formatDateTime(item.startAt)}.`,
           referenceType: "APPOINTMENT",
           referenceId: item.id,
-          targetRoles: [...notifyRolesForStaffAction],
+          targetRoles: [...notifyRolesForAction],
           includeActor: includeActorInInternalAlert,
         });
         if (alert.warning) internalAlertWarnings.push(alert.warning);
@@ -245,7 +288,7 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
 export async function DELETE(req: Request, { params }: { params: { id: string } }) {
   try {
     const session = await requireClinicSession();
-    requireRole(session.role, ["ADMIN", "SECRETARY"]);
+    requireRole(session, ["ADMIN"], "AGENDA");
 
     const body = await req.json().catch(() => ({}));
     const parsed = appointmentCancelSchema.safeParse(body);
@@ -257,6 +300,19 @@ export async function DELETE(req: Request, { params }: { params: { id: string } 
     }
     const reason = parsed.data.reason;
     const cancelledBy = parsed.data.cancelledBy ?? "STAFF";
+
+    const current = await prisma.appointment.findFirst({
+      where: {
+        id: params.id,
+        clinicId: session.clinicId,
+        doctorId: session.role === "DOCTOR" ? session.userId : undefined,
+      },
+      select: { id: true },
+    });
+
+    if (!current) {
+      return NextResponse.json({ ok: false, error: "Cita no encontrada." }, { status: 404 });
+    }
 
     const item = await AppointmentsService.cancel(params.id, session.clinicId, session.userId, reason);
     let notificationWarning: string | null = null;
@@ -307,7 +363,13 @@ export async function DELETE(req: Request, { params }: { params: { id: string } 
           : (["ADMIN", "SECRETARY", "DOCTOR"] as const);
     const includeActorInInternalAlert = session.role === "ADMIN" && internalTargetRoles.includes("ADMIN");
     const cancelledByLabel =
-      cancelledBy === "PATIENT" ? "Paciente" : session.role === "SECRETARY" ? "Secretaria" : "Administrador";
+      cancelledBy === "PATIENT"
+        ? "Paciente"
+        : session.role === "SECRETARY"
+          ? "Secretaria"
+          : session.role === "DOCTOR"
+            ? "Doctor"
+            : "Administrador";
 
     let internalAlertWarning: string | null = null;
     try {

@@ -11,7 +11,7 @@ const updateTreatmentSchema = z.object({
 export async function PUT(req: Request, { params }: { params: { id: string } }) {
   try {
     const session = await requireClinicSession();
-    requireRole(session.role, ["ADMIN", "DOCTOR"]);
+    requireRole(session, ["ADMIN"], "TREATMENTS");
 
     const body = await req.json();
     const parsed = updateTreatmentSchema.safeParse(body);
@@ -31,7 +31,7 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
 export async function DELETE(_req: Request, { params }: { params: { id: string } }) {
   try {
     const session = await requireClinicSession();
-    requireRole(session.role, ["ADMIN", "DOCTOR"]);
+    requireRole(session, ["ADMIN"], "TREATMENTS");
 
     await TreatmentsService.remove(params.id);
     return NextResponse.json({ ok: true });

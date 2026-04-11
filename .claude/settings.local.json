@@ -1,0 +1,31 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(node:*)",
+      "Bash(docker exec:*)",
+      "Bash(npx tsc:*)",
+      "Bash(npx next:*)",
+      "Bash(wc -l \"C:/Users/FTEZe/Documents/Programacion/Overlimit/medigest/src/app/\\(app\\)/agenda/page.tsx\")",
+      "Bash(cd C:/Users/FTEZe/Documents/Programacion/Overlimit/medigest && echo \"=== page.tsx files \\(line counts\\) ===\" && wc -l src/app/\\\\\\(app\\\\\\)/agenda/page.tsx src/app/\\\\\\(app\\\\\\)/patients/page.tsx src/app/\\\\\\(app\\\\\\)/crm/page.tsx src/app/\\\\\\(app\\\\\\)/treatments/page.tsx src/app/\\\\\\(app\\\\\\)/doctors/page.tsx src/app/\\\\\\(app\\\\\\)/clinical-visits/page.tsx && echo \"\" && echo \"=== presentation components ===\" && wc -l src/presentation/agenda/Agenda.tsx src/presentation/patients/Patients.tsx src/presentation/crm/Crm.tsx src/presentation/treatments/Treatments.tsx src/presentation/doctors/Doctors.tsx src/presentation/clinical-visits/ClinicalVisits.tsx)",
+      "Bash(ls -la /c/Users/FTEZe/Documents/Programacion/Overlimit/medigest/src/app/\\\\\\(app\\\\\\)/)",
+      "Bash(cd:*)",
+      "Bash(ls:*)",
+      "Bash(git fetch:*)",
+      "Bash(git merge:*)",
+      "Bash(git checkout:*)",
+      "Bash(npm install:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git pull:*)",
+      "Bash(git push:*)",
+      "Bash(grep -r process.env. C:UsersFTEZeDocumentsProgramacionOverlimitmedigest/src --include=*.ts --include=*.tsx --include=*.js --include=*.jsx)",
+      "Bash(grep -r process.env. C:UsersFTEZeDocumentsProgramacionOverlimitmedigest --include=*.mjs --include=*.config.js --include=*.config.ts)",
+      "Bash(xargs grep:*)",
+      "Bash(grep -r \"SCHEDULED\\\\|CONFIRMED\\\\|CANCELLED\\\\|COMPLETED\\\\|NO_SHOW\" /c/Users/FTEZe/Documents/Programacion/Overlimit/medigest/src --include=*.tsx --include=*.ts -l)",
+      "Bash(grep -r \"color\\\\|bg-\\\\|className\" /c/Users/FTEZe/Documents/Programacion/Overlimit/medigest/src/presentation/agenda --include=*.tsx -A 2 -B 1)",
+      "Bash(head:*)",
+      "Bash(npx prisma:*)",
+      "Bash(wc:*)"
+    ]
+  }
+}

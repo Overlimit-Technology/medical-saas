@@ -1,5 +1,5 @@
-import Doctors from "@/presentation/doctors/Doctors";
+import { redirect } from "next/navigation";
 
-export default function DoctorsPage() {
-    return <Doctors />;
+export default function DoctorsRedirectPage() {
+  redirect("/usuarios");
 }

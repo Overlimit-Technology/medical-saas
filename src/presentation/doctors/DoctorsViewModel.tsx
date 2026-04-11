@@ -1,23 +1,16 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-
-export type UserRole = "DOCTOR" | "SECRETARY";
-
-export type Clinic = {
-  id: string;
-  name: string;
-  city: string;
-};
-
-export type User = {
-  id: string;
-  email: string;
-  role: UserRole;
-  createdAt: string;
-  profile?: { firstName: string; lastName: string; rut?: string | null; phone?: string | null } | null;
-  doctorProfile?: { rut: string; specialty?: string | null } | null;
-};
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { UsersRepositoryHttp } from "@/data/users/UsersRepository";
+import type { User, UserRole } from "@/domain/users/entities/User";
+import { USER_PERMISSIONS, type UserPermission } from "@/lib/permissions";
+import {
+  CreateUserUseCase,
+  DeleteUserUseCase,
+  GetUserClinicsUseCase,
+  GetUsersUseCase,
+} from "@/domain/users/usecases/UserUseCases";
+import type { Clinic } from "@/domain/clinics/entities/Clinic";
 
 export type FormState = {
   email: string;
@@ -27,6 +20,7 @@ export type FormState = {
   rut: string;
   specialty: string;
   clinicIds: string[];
+  permissions: UserPermission[];
 };
 
 export type FormErrors = Partial<Record<keyof FormState, string>>;
@@ -39,6 +33,7 @@ const EMPTY_FORM: FormState = {
   rut: "",
   specialty: "",
   clinicIds: [],
+  permissions: [],
 };
 
 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -73,6 +68,16 @@ export function formatRelativeDate(dateStr: string) {
 }
 
 export function useDoctorsViewModel() {
+  const { getUsersUseCase, getUserClinicsUseCase, createUserUseCase, deleteUserUseCase } =
+    useMemo(() => {
+      const repo = new UsersRepositoryHttp();
+      return {
+        getUsersUseCase: new GetUsersUseCase(repo),
+        getUserClinicsUseCase: new GetUserClinicsUseCase(repo),
+        createUserUseCase: new CreateUserUseCase(repo),
+        deleteUserUseCase: new DeleteUserUseCase(repo),
+      };
+    }, []);
   const [items, setItems] = useState<User[]>([]);
   const [clinics, setClinics] = useState<Clinic[]>([]);
   const [loading, setLoading] = useState(true);
@@ -87,43 +92,35 @@ export function useDoctorsViewModel() {
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
-  const loadUsers = async () => {
+  const loadUsers = useCallback(async () => {
     setLoading(true);
     setApiError(null);
     try {
-      const res = await fetch("/api/users");
-      const data = await res.json();
-      if (data.ok) {
-        setItems(data.items ?? []);
-      } else {
-        setApiError(data.error ?? "No se pudieron cargar los usuarios.");
-      }
-    } catch {
-      setApiError("No se pudieron cargar los usuarios.");
+      const nextUsers = await getUsersUseCase.execute();
+      setItems(nextUsers);
+    } catch (error) {
+      setApiError(error instanceof Error ? error.message : "No se pudieron cargar los usuarios.");
     } finally {
       setLoading(false);
     }
-  };
+  }, [getUsersUseCase]);
 
-  const loadClinics = async () => {
-    const res = await fetch("/api/clinics/my");
-    const data = await res.json();
-    if (!data.ok) return;
-    setClinics(data.items ?? []);
-    const preferredClinicId =
-      data.activeClinicId ?? (data.items && data.items.length > 0 ? data.items[0].id : "");
+  const loadClinics = useCallback(async () => {
+    const data = await getUserClinicsUseCase.execute();
+    setClinics(data.clinics ?? []);
+    const preferredClinicId = data.activeClinicId ?? (data.clinics[0]?.id ?? "");
     if (preferredClinicId) {
       setForm((current) => ({
         ...current,
         clinicIds: current.clinicIds.length > 0 ? current.clinicIds : [preferredClinicId],
       }));
     }
-  };
+  }, [getUserClinicsUseCase]);
 
   useEffect(() => {
-    loadUsers();
-    loadClinics();
-  }, []);
+    void loadUsers();
+    void loadClinics();
+  }, [loadClinics, loadUsers]);
 
   useEffect(() => {
     if (!successMessage) return;
@@ -167,6 +164,18 @@ export function useDoctorsViewModel() {
     });
   };
 
+  const togglePermission = (permission: UserPermission) => {
+    setForm((current) => {
+      const isSelected = current.permissions.includes(permission);
+      return {
+        ...current,
+        permissions: isSelected
+          ? current.permissions.filter((item) => item !== permission)
+          : [...current.permissions, permission],
+      };
+    });
+  };
+
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
     const nextErrors = validateForm(form);
@@ -184,24 +193,16 @@ export function useDoctorsViewModel() {
       rut: form.rut.trim(),
       specialty: form.role === "DOCTOR" && form.specialty.trim() ? form.specialty.trim() : undefined,
       clinicIds: form.clinicIds.length > 0 ? form.clinicIds : undefined,
+      permissions: form.permissions,
     };
 
     try {
-      const res = await fetch("/api/users", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-      const data = await res.json();
-      if (!data.ok) {
-        setApiError(data.error ?? "No se pudo crear el usuario.");
-        return;
-      }
+      await createUserUseCase.execute(payload);
       closeModal();
       setSuccessMessage("Usuario creado exitosamente.");
       await loadUsers();
-    } catch {
-      setApiError("No se pudo crear el usuario.");
+    } catch (error) {
+      setApiError(error instanceof Error ? error.message : "No se pudo crear el usuario.");
     } finally {
       setSaving(false);
     }
@@ -212,22 +213,17 @@ export function useDoctorsViewModel() {
     setDeleteError(null);
     setDeletingId(deleteTarget.id);
     try {
-      const res = await fetch(`/api/users/${deleteTarget.id}`, { method: "DELETE" });
-      const data = await res.json();
-      if (!data.ok) {
-        setDeleteError(data.error ?? "No se pudo eliminar el usuario.");
-        return;
-      }
+      const result = await deleteUserUseCase.execute(deleteTarget.id);
       setDeleteTarget(null);
       setDeleteError(null);
       setSuccessMessage(
-        data.softDeleted
+        result.softDeleted
           ? "Usuario desactivado porque tiene citas futuras."
           : "Usuario eliminado."
       );
       await loadUsers();
-    } catch {
-      setDeleteError("No se pudo eliminar el usuario.");
+    } catch (error) {
+      setDeleteError(error instanceof Error ? error.message : "No se pudo eliminar el usuario.");
     } finally {
       setDeletingId(null);
     }
@@ -265,6 +261,7 @@ export function useDoctorsViewModel() {
       saving,
       query,
       form,
+      availablePermissions: USER_PERMISSIONS,
       errors,
       apiError,
       successMessage,
@@ -281,6 +278,7 @@ export function useDoctorsViewModel() {
       closeModal,
       handleFieldChange,
       toggleClinic,
+      togglePermission,
       handleSubmit,
       handleDelete,
       setDeleteTarget,

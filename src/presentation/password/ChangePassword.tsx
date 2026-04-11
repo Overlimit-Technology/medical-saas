@@ -133,7 +133,7 @@ export default function ChangePassword() {
 
         <div className="mt-6 text-center">
           <p className="text-[11px] text-neutral-400">
-            (c) {new Date().getFullYear()} MediGest. Todos los derechos reservados.
+            (c) {new Date().getFullYear()} Zensya. Todos los derechos reservados.
           </p>
         </div>
       </div>

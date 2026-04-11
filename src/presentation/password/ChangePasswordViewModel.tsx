@@ -1,7 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import { AuthRepositoryHttp } from "@/data/auth/AuthRepository";
+import { ChangePasswordUseCase } from "@/domain/auth/usecases/ChangePasswordUseCase";
 
 type FieldErrors = Partial<
   Record<"currentPassword" | "newPassword" | "confirmPassword", string>
@@ -9,6 +11,10 @@ type FieldErrors = Partial<
 
 export function useChangePasswordViewModel() {
   const router = useRouter();
+  const changePasswordUseCase = useMemo(() => {
+    const repo = new AuthRepositoryHttp();
+    return new ChangePasswordUseCase(repo);
+  }, []);
 
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
@@ -52,23 +58,12 @@ export function useChangePasswordViewModel() {
 
     setLoading(true);
     try {
-      const res = await fetch("/api/auth/change-password", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({ currentPassword, newPassword }),
-      });
-
-      const data = await res.json().catch(() => null);
-      if (!res.ok) {
-        const msg = data?.error ?? "No se pudo actualizar la contrasena.";
-        setFormError(msg);
-        return;
-      }
-
+      await changePasswordUseCase.execute({ currentPassword, newPassword });
       router.push("/select-clinic");
-    } catch {
-      setFormError("No se pudo actualizar la contrasena.");
+    } catch (error) {
+      setFormError(
+        error instanceof Error ? error.message : "No se pudo actualizar la contrasena."
+      );
     } finally {
       setLoading(false);
     }

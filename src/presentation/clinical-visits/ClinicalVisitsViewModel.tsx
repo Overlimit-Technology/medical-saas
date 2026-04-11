@@ -2,22 +2,23 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
+import { AppointmentsRepositoryHttp } from "@/data/appointments/AppointmentsRepository";
+import { AuthRepositoryHttp } from "@/data/auth/AuthRepository";
+import { ClinicalVisitsRepositoryHttp } from "@/data/clinical-visits/ClinicalVisitsRepository";
+import { PatientsRepositoryHttp } from "@/data/patients/PatientsRepository";
+import { GetAppointmentsUseCase } from "@/domain/appointments/usecases/GetAppointmentsUseCase";
+import { GetCurrentSessionUseCase } from "@/domain/auth/usecases/GetCurrentSessionUseCase";
+import type { ClinicalVisit } from "@/domain/clinical-visits/entities/ClinicalVisit";
+import {
+  GetClinicalVisitsUseCase,
+  StartClinicalVisitUseCase,
+} from "@/domain/clinical-visits/usecases/ClinicalVisitsUseCases";
+import type { PatientDetail } from "@/domain/patients/entities/Patient";
+import { GetPatientsUseCase } from "@/domain/patients/usecases/PatientsUseCases";
 
-export type Patient = { id: string; firstName: string; lastName: string };
-export type Appointment = {
-  id: string;
-  startAt: string;
-  status: string;
-  patient: { id: string; firstName: string; lastName: string };
-  box: { name: string };
-};
-
-export type ClinicalVisit = {
-  id: string;
-  startedAt: string;
-  patient: { id: string; firstName: string; lastName: string };
-  appointment?: { id: string; startAt: string } | null;
-};
+export type Patient = Pick<PatientDetail, "id" | "firstName" | "lastName">;
+export type Appointment = Awaited<ReturnType<GetAppointmentsUseCase["execute"]>>[number];
+export type { ClinicalVisit };
 
 export function useClinicalVisitsViewModel() {
   const searchParams = useSearchParams();
@@ -34,43 +35,66 @@ export function useClinicalVisitsViewModel() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
+  const {
+    getCurrentSessionUseCase,
+    getPatientsUseCase,
+    getAppointmentsUseCase,
+    getClinicalVisitsUseCase,
+    startClinicalVisitUseCase,
+  } = useMemo(() => {
+    const authRepo = new AuthRepositoryHttp();
+    const patientsRepo = new PatientsRepositoryHttp();
+    const appointmentsRepo = new AppointmentsRepositoryHttp();
+    const clinicalVisitsRepo = new ClinicalVisitsRepositoryHttp();
+    return {
+      getCurrentSessionUseCase: new GetCurrentSessionUseCase(authRepo),
+      getPatientsUseCase: new GetPatientsUseCase(patientsRepo),
+      getAppointmentsUseCase: new GetAppointmentsUseCase(appointmentsRepo),
+      getClinicalVisitsUseCase: new GetClinicalVisitsUseCase(clinicalVisitsRepo),
+      startClinicalVisitUseCase: new StartClinicalVisitUseCase(clinicalVisitsRepo),
+    };
+  }, []);
+
   useEffect(() => {
-    const loadSession = async () => {
+    const load = async () => {
       try {
-        const res = await fetch("/api/auth/me", { credentials: "include" });
-        const data = await res.json();
-        if (data.ok) setRole(data.session?.role ?? null);
+        const session = await getCurrentSessionUseCase.execute();
+        setRole(session.role);
       } catch {
         setRole(null);
       }
-    };
-    loadSession();
 
-    const loadPatients = async () => {
-      const res = await fetch("/api/patients?pageSize=200");
-      const data = await res.json();
-      if (data.ok) setPatients(data.items ?? []);
+      try {
+        const patientsResult = await getPatientsUseCase.execute({ pageSize: 200 });
+        setPatients(
+          patientsResult.items.map((patient) => ({
+            id: patient.id,
+            firstName: patient.firstName,
+            lastName: patient.lastName,
+          }))
+        );
+      } catch {
+        setPatients([]);
+      }
+
+      try {
+        const from = new Date();
+        const to = new Date();
+        to.setDate(to.getDate() + 30);
+        setAppointments(await getAppointmentsUseCase.execute({ from: from.toISOString(), to: to.toISOString() }));
+      } catch {
+        setAppointments([]);
+      }
+
+      try {
+        setVisits(await getClinicalVisitsUseCase.execute());
+      } catch {
+        setVisits([]);
+      }
     };
 
-    const loadAppointments = async () => {
-      const from = new Date();
-      const to = new Date();
-      to.setDate(to.getDate() + 30);
-      const res = await fetch(`/api/appointments?from=${from.toISOString()}&to=${to.toISOString()}`);
-      const data = await res.json();
-      if (data.ok) setAppointments(data.items ?? []);
-    };
-
-    const loadVisits = async () => {
-      const res = await fetch("/api/clinical-visits");
-      const data = await res.json();
-      if (data.ok) setVisits(data.items ?? []);
-    };
-
-    loadPatients();
-    loadAppointments();
-    loadVisits();
-  }, []);
+    void load();
+  }, [getAppointmentsUseCase, getClinicalVisitsUseCase, getCurrentSessionUseCase, getPatientsUseCase]);
 
   useEffect(() => {
     if (!qsPatientId) return;
@@ -84,7 +108,7 @@ export function useClinicalVisitsViewModel() {
 
   const filteredAppointments = useMemo(() => {
     if (!patientId) return appointments;
-    return appointments.filter((appt) => appt.patient.id === patientId);
+    return appointments.filter((appointment) => appointment.patient.id === patientId);
   }, [appointments, patientId]);
 
   const handleSubmit = async (event: React.FormEvent) => {
@@ -102,23 +126,18 @@ export function useClinicalVisitsViewModel() {
     }
 
     setLoading(true);
-    const res = await fetch("/api/clinical-visits", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
+    try {
+      const item = await startClinicalVisitUseCase.execute({
         patientId,
         appointmentId: appointmentId || null,
-      }),
-    });
-    const data = await res.json();
-    setLoading(false);
-    if (!data.ok) {
-      setError(data.error ?? "No se pudo iniciar la cita clínica.");
-      return;
+      });
+      setSuccess("Cita clínica iniciada y registrada.");
+      setVisits((previous) => [item, ...previous]);
+    } catch (submitError) {
+      setError(submitError instanceof Error ? submitError.message : "No se pudo iniciar la cita clínica.");
+    } finally {
+      setLoading(false);
     }
-
-    setSuccess("Cita clínica iniciada y registrada.");
-    setVisits((prev) => [data.item, ...prev]);
   };
 
   return {

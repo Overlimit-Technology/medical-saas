@@ -1,12 +1,17 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { AuthRepositoryHttp } from "@/data/auth/AuthRepository";
+import { TreatmentsRepositoryHttp } from "@/data/treatments/TreatmentsRepository";
+import { GetCurrentSessionUseCase } from "@/domain/auth/usecases/GetCurrentSessionUseCase";
+import type { Treatment } from "@/domain/treatments/entities/Treatment";
+import {
+  DeleteTreatmentUseCase,
+  GetTreatmentsUseCase,
+  SaveTreatmentUseCase,
+} from "@/domain/treatments/usecases/TreatmentsUseCases";
 
-export type Treatment = {
-  id: string;
-  name: string;
-  price: number;
-};
+export type { Treatment };
 
 export type FormState = {
   name: string;
@@ -60,12 +65,22 @@ export function useTreatmentsViewModel() {
   const [deleteTarget, setDeleteTarget] = useState<Treatment | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
 
+  const { getCurrentSessionUseCase, getTreatmentsUseCase, saveTreatmentUseCase, deleteTreatmentUseCase } =
+    useMemo(() => {
+      const authRepo = new AuthRepositoryHttp();
+      const repo = new TreatmentsRepositoryHttp();
+      return {
+        getCurrentSessionUseCase: new GetCurrentSessionUseCase(authRepo),
+        getTreatmentsUseCase: new GetTreatmentsUseCase(repo),
+        saveTreatmentUseCase: new SaveTreatmentUseCase(repo),
+        deleteTreatmentUseCase: new DeleteTreatmentUseCase(repo),
+      };
+    }, []);
+
   const filteredItems = useMemo(() => {
     if (!query.trim()) return items;
     const term = query.toLowerCase();
-    return items.filter(
-      (item) => item.name.toLowerCase().includes(term)
-    );
+    return items.filter((item) => item.name.toLowerCase().includes(term));
   }, [items, query]);
 
   const totalLabel = `${items.length} tratamiento${items.length === 1 ? "" : "s"}`;
@@ -77,39 +92,32 @@ export function useTreatmentsViewModel() {
 
   const isSubmitDisabled = saving || Object.keys(validateForm(form)).length > 0;
 
-  const loadRole = async () => {
+  const loadRole = useCallback(async () => {
     try {
-      const res = await fetch("/api/auth/me", { credentials: "include" });
-      const data = await res.json();
-      setRole(data.ok ? data.session?.role ?? null : null);
+      const session = await getCurrentSessionUseCase.execute();
+      setRole(session.role);
     } catch {
       setRole(null);
     } finally {
       setRoleLoading(false);
     }
-  };
+  }, [getCurrentSessionUseCase]);
 
-  const loadTreatments = async () => {
+  const loadTreatments = useCallback(async () => {
     setLoading(true);
     setApiError(null);
     try {
-      const res = await fetch("/api/treatments");
-      const data = await res.json();
-      if (!data.ok) {
-        setApiError(data.error ?? "No se pudieron cargar los tratamientos.");
-        return;
-      }
-      setItems(data.items ?? []);
-    } catch {
-      setApiError("No se pudieron cargar los tratamientos.");
+      setItems(await getTreatmentsUseCase.execute());
+    } catch (error) {
+      setApiError(error instanceof Error ? error.message : "No se pudieron cargar los tratamientos.");
     } finally {
       setLoading(false);
     }
-  };
+  }, [getTreatmentsUseCase]);
 
   useEffect(() => {
-    loadRole();
-  }, []);
+    void loadRole();
+  }, [loadRole]);
 
   useEffect(() => {
     if (!successMessage) return;
@@ -123,8 +131,8 @@ export function useTreatmentsViewModel() {
       window.location.assign("/dashboard");
       return;
     }
-    loadTreatments();
-  }, [role, roleLoading]);
+    void loadTreatments();
+  }, [loadTreatments, role, roleLoading]);
 
   const openCreateModal = () => {
     setSelected(null);
@@ -171,31 +179,18 @@ export function useTreatmentsViewModel() {
     setSaving(true);
     setApiError(null);
 
-    const payload = {
-      name: form.name.trim(),
-      price: Number(form.price),
-    };
-
-    const editing = Boolean(selected);
-    const endpoint = editing ? `/api/treatments/${selected!.id}` : "/api/treatments";
-    const method = editing ? "PUT" : "POST";
-
     try {
-      const res = await fetch(endpoint, {
-        method,
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
+      await saveTreatmentUseCase.execute({
+        id: selected?.id,
+        name: form.name.trim(),
+        price: Number(form.price),
       });
-      const data = await res.json();
-      if (!data.ok) {
-        setApiError(data.error ?? "No se pudo guardar el tratamiento.");
-        return;
-      }
+      const editing = Boolean(selected);
       closeModal();
       setSuccessMessage(editing ? "Tratamiento actualizado." : "Tratamiento creado.");
       await loadTreatments();
-    } catch {
-      setApiError("No se pudo guardar el tratamiento.");
+    } catch (error) {
+      setApiError(error instanceof Error ? error.message : "No se pudo guardar el tratamiento.");
     } finally {
       setSaving(false);
     }
@@ -205,18 +200,13 @@ export function useTreatmentsViewModel() {
     if (!deleteTarget) return;
     setDeleteError(null);
     try {
-      const res = await fetch(`/api/treatments/${deleteTarget.id}`, { method: "DELETE" });
-      const data = await res.json();
-      if (!data.ok) {
-        setDeleteError(data.error ?? "No se pudo eliminar el tratamiento.");
-        return;
-      }
+      await deleteTreatmentUseCase.execute(deleteTarget.id);
       setDeleteTarget(null);
       setDeleteError(null);
       setSuccessMessage("Tratamiento eliminado.");
       await loadTreatments();
-    } catch {
-      setDeleteError("No se pudo eliminar el tratamiento.");
+    } catch (error) {
+      setDeleteError(error instanceof Error ? error.message : "No se pudo eliminar el tratamiento.");
     }
   };
 

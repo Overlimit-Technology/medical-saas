@@ -5,11 +5,13 @@ import { DeleteIconButton } from "@/presentation/common/DeleteIconButton";
 import { useDoctorsViewModel, formatRelativeDate } from "./DoctorsViewModel";
 
 const ROLE_LABELS: Record<string, string> = {
+  ADMIN: "Admin",
   DOCTOR: "Doctor",
   SECRETARY: "Secretaria",
 };
 
 const ROLE_COLORS: Record<string, string> = {
+  ADMIN: "bg-emerald-50 text-emerald-700",
   DOCTOR: "bg-blue-50 text-blue-600",
   SECRETARY: "bg-violet-50 text-violet-600",
 };
@@ -20,9 +22,7 @@ export default function Doctors() {
 
   return (
     <div className="mx-auto max-w-6xl">
-      {/* ── Panel principal ── */}
       <div className="rounded-2xl border border-slate-100 bg-white px-6 pb-6 pt-5 shadow-sm">
-        {/* Encabezado */}
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
             <h1 className="text-xl font-semibold tracking-tight text-slate-900">Usuarios</h1>
@@ -34,7 +34,6 @@ export default function Doctors() {
             </div>
           </div>
           <div className="flex items-center gap-2">
-            {/* Buscador */}
             <div className="relative">
               <svg className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-300" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></svg>
               <input
@@ -47,7 +46,6 @@ export default function Doctors() {
           </div>
         </div>
 
-        {/* Toolbar */}
         <div className="mt-4 flex items-center gap-2 border-b border-slate-100 pb-3">
           <button
             onClick={actions.openCreateModal}
@@ -58,7 +56,6 @@ export default function Doctors() {
           </button>
         </div>
 
-        {/* Tabla */}
         <div className="mt-0 overflow-x-auto">
           <table className="w-full text-left text-sm">
             <thead>
@@ -103,16 +100,23 @@ export default function Doctors() {
                     key={user.id}
                     style={{ animationDelay: `${idx * 25}ms` }}
                     className="animate-card-in group cursor-pointer border-b border-slate-50 transition-colors last:border-b-0 hover:bg-slate-50/70"
-                    onClick={() => router.push(`/doctors/${user.id}`)}
+                    onClick={() => router.push(`/usuarios/${user.id}`)}
                   >
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-3">
                         <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-slate-100 text-xs font-semibold text-slate-500">
                           {initials}
                         </div>
-                        <span className="font-medium text-slate-800">
-                          {firstName} {lastName}
-                        </span>
+                        <div className="min-w-0">
+                          <span className="block font-medium text-slate-800">
+                            {firstName} {lastName}
+                          </span>
+                          <span className="block truncate text-xs text-slate-400">
+                            {user.permissions?.length
+                              ? `${user.permissions.length} permiso${user.permissions.length === 1 ? "" : "s"}`
+                              : "Mi perfil y Vista General"}
+                          </span>
+                        </div>
                       </div>
                     </td>
                     <td className="px-4 py-3 text-slate-500">{user.email}</td>
@@ -143,7 +147,6 @@ export default function Doctors() {
         </div>
       </div>
 
-      {/* ── Modal: Crear usuario ── */}
       {state.isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-slate-900/30 backdrop-blur-sm transition-opacity" onClick={actions.closeModal} />
@@ -156,7 +159,6 @@ export default function Doctors() {
             <p className="mt-1 text-xs text-slate-500">La contraseña se genera automáticamente y se envía al correo.</p>
 
             <form onSubmit={actions.handleSubmit} className="mt-5 grid gap-4">
-              {/* Rol */}
               <div>
                 <label className="mb-1 block text-[11px] font-medium uppercase tracking-wider text-slate-400">Rol</label>
                 <select
@@ -164,12 +166,12 @@ export default function Doctors() {
                   onChange={(e) => actions.handleFieldChange("role", e.target.value)}
                   className="w-full rounded-xl border border-slate-200 bg-slate-50/40 px-3 py-2.5 text-sm transition-colors focus:border-blue-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-100"
                 >
+                  <option value="ADMIN">Admin</option>
                   <option value="DOCTOR">Doctor</option>
                   <option value="SECRETARY">Secretaria</option>
                 </select>
               </div>
 
-              {/* Nombre y Apellido */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="mb-1 block text-[11px] font-medium uppercase tracking-wider text-slate-400">Nombre</label>
@@ -193,7 +195,6 @@ export default function Doctors() {
                 </div>
               </div>
 
-              {/* Correo */}
               <div>
                 <label className="mb-1 block text-[11px] font-medium uppercase tracking-wider text-slate-400">Correo</label>
                 <input
@@ -205,7 +206,6 @@ export default function Doctors() {
                 {state.errors.email && <p className="mt-1 text-[11px] text-rose-500">{state.errors.email}</p>}
               </div>
 
-              {/* RUN */}
               <div>
                 <label className="mb-1 block text-[11px] font-medium uppercase tracking-wider text-slate-400">RUN</label>
                 <input
@@ -217,7 +217,6 @@ export default function Doctors() {
                 {state.errors.rut && <p className="mt-1 text-[11px] text-rose-500">{state.errors.rut}</p>}
               </div>
 
-              {/* Especialidad (solo doctor) */}
               {state.form.role === "DOCTOR" && (
                 <div>
                   <label className="mb-1 block text-[11px] font-medium uppercase tracking-wider text-slate-400">Especialidad</label>
@@ -230,7 +229,6 @@ export default function Doctors() {
                 </div>
               )}
 
-              {/* Sedes */}
               <div className="rounded-xl border border-slate-200 bg-slate-50/60 p-3">
                 <p className="text-[11px] font-medium uppercase tracking-wider text-slate-400">Sedes</p>
                 <p className="mt-0.5 text-[11px] text-slate-400">Selecciona una o más sedes para este usuario.</p>
@@ -239,9 +237,33 @@ export default function Doctors() {
                   {state.clinics.map((clinic) => {
                     const checked = state.form.clinicIds.includes(clinic.id);
                     return (
-                      <label key={clinic.id} className="flex items-center justify-between rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 cursor-pointer hover:border-slate-300 transition-colors">
+                      <label key={clinic.id} className="flex cursor-pointer items-center justify-between rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 transition-colors hover:border-slate-300">
                         <span>{clinic.name} · {clinic.city}</span>
                         <input type="checkbox" checked={checked} onChange={() => actions.toggleClinic(clinic.id)} className="h-4 w-4 accent-slate-900" />
+                      </label>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div className="rounded-xl border border-slate-200 bg-slate-50/60 p-3">
+                <p className="text-[11px] font-medium uppercase tracking-wider text-slate-400">Permisos</p>
+                <p className="mt-0.5 text-[11px] text-slate-400">Por defecto solo tendrá Mi perfil y Vista General.</p>
+                <div className="mt-2 grid gap-2 sm:grid-cols-2">
+                  {state.availablePermissions.map((permission) => {
+                    const checked = state.form.permissions.includes(permission.key);
+                    return (
+                      <label
+                        key={permission.key}
+                        className="flex cursor-pointer items-center justify-between rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 transition-colors hover:border-slate-300"
+                      >
+                        <span>{permission.label}</span>
+                        <input
+                          type="checkbox"
+                          checked={checked}
+                          onChange={() => actions.togglePermission(permission.key)}
+                          className="h-4 w-4 accent-slate-900"
+                        />
                       </label>
                     );
                   })}
@@ -267,14 +289,12 @@ export default function Doctors() {
         </div>
       )}
 
-      {/* ── Toast de éxito ── */}
       {state.successMessage && (
         <div className="animate-fade-in fixed bottom-6 right-6 z-50 rounded-2xl bg-emerald-500 px-4 py-3 text-sm font-medium text-white shadow-lg shadow-emerald-500/30">
           {state.successMessage}
         </div>
       )}
 
-      {/* ── Modal: Eliminar usuario ── */}
       {state.deleteTarget && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-slate-900/30 backdrop-blur-sm transition-opacity" onClick={actions.dismissDeleteModal} />
