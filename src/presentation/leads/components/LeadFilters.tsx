@@ -4,24 +4,21 @@ import { useRef } from "react";
 import type { LeadChannel, DoctorOption } from "@/domain/leads/entities/Lead";
 import { CHANNEL_LABELS } from "@/domain/leads/entities/Lead";
 import type { PipelineColumn } from "@/domain/leads/entities/Pipeline";
-import type { LeadFilters as FiltersType, ViewMode } from "../LeadsViewModel";
+import type { LeadFilters as FiltersType } from "../LeadsViewModel";
 
 type Props = {
   filters: FiltersType;
   columns: PipelineColumn[];
-  sectors: string[];
   tags: string[];
   doctors: DoctorOption[];
-  viewMode: ViewMode;
   onFiltersChange: (fn: (prev: FiltersType) => FiltersType) => void;
-  onViewModeChange: (mode: ViewMode) => void;
   onExport: () => string;
   onImport: (json: string) => void;
 };
 
 const channelOptions = Object.entries(CHANNEL_LABELS) as [LeadChannel, string][];
 
-export default function LeadFilters({ filters, columns, sectors, tags, doctors, viewMode, onFiltersChange, onViewModeChange, onExport, onImport }: Props) {
+export default function LeadFilters({ filters, columns, tags, doctors, onFiltersChange, onExport, onImport }: Props) {
   const fileRef = useRef<HTMLInputElement>(null);
 
   const set = (key: keyof FiltersType, value: string) => {

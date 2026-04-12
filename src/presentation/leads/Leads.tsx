@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useLeadsViewModel } from "./LeadsViewModel";
 import KanbanBoard from "./components/KanbanBoard";
 import LeadTable from "./components/LeadTable";
@@ -21,9 +22,8 @@ export default function Leads() {
 
   return (
     <div className="leads-module flex h-[calc(100vh-64px)] flex-col bg-white">
-      {/* Header */}
       <div className="shrink-0 border-b border-slate-100 px-6 pb-0 pt-5">
-        <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex flex-wrap items-start justify-between gap-4">
           <div className="flex items-center gap-4">
             <div>
               <h1 className="text-lg font-semibold text-slate-800">CRM Pipeline</h1>
@@ -32,17 +32,29 @@ export default function Leads() {
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-2">
-            <div className="flex overflow-hidden rounded-lg border border-slate-200">
-              <button type="button" onClick={() => actions.setViewMode("kanban")} className={`px-3 py-1.5 text-xs font-medium transition ${state.viewMode === "kanban" ? "bg-slate-800 text-white" : "bg-white text-slate-500 hover:bg-slate-50"}`}>Kanban</button>
-              <button type="button" onClick={() => actions.setViewMode("table")} className={`px-3 py-1.5 text-xs font-medium transition ${state.viewMode === "table" ? "bg-slate-800 text-white" : "bg-white text-slate-500 hover:bg-slate-50"}`}>Tabla</button>
+          <div className="flex flex-col items-stretch gap-3 sm:items-end">
+            <div className="inline-flex self-end rounded-full border border-slate-200 bg-slate-50 p-1">
+              <span className="rounded-full bg-slate-900 px-4 py-2 text-sm font-medium text-white">
+                CRM
+              </span>
+              <Link
+                href="/chat-meta"
+                className="rounded-full px-4 py-2 text-sm font-medium text-slate-600 transition hover:text-slate-900"
+              >
+                Chat Meta
+              </Link>
             </div>
-            <button type="button" onClick={() => actions.setShowColumnEditor(true)} className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-600 transition hover:bg-slate-50">Columnas</button>
-            <button type="button" onClick={actions.openCreateForm} className="rounded-lg bg-indigo-600 px-4 py-1.5 text-xs font-medium text-white transition hover:bg-indigo-700">+ Nuevo Lead</button>
+            <div className="flex flex-wrap items-center justify-end gap-2">
+              <div className="flex overflow-hidden rounded-lg border border-slate-200">
+                <button type="button" onClick={() => actions.setViewMode("kanban")} className={`px-3 py-1.5 text-xs font-medium transition ${state.viewMode === "kanban" ? "bg-slate-800 text-white" : "bg-white text-slate-500 hover:bg-slate-50"}`}>Kanban</button>
+                <button type="button" onClick={() => actions.setViewMode("table")} className={`px-3 py-1.5 text-xs font-medium transition ${state.viewMode === "table" ? "bg-slate-800 text-white" : "bg-white text-slate-500 hover:bg-slate-50"}`}>Tabla</button>
+              </div>
+              <button type="button" onClick={() => actions.setShowColumnEditor(true)} className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-600 transition hover:bg-slate-50">Columnas</button>
+              <button type="button" onClick={actions.openCreateForm} className="rounded-lg bg-indigo-600 px-4 py-1.5 text-xs font-medium text-white transition hover:bg-indigo-700">+ Nuevo Lead</button>
+            </div>
           </div>
         </div>
 
-        {/* Stats inline */}
         <div className="mt-4 flex gap-6 overflow-x-auto pb-3">
           <StatInline label="Total" value={state.stats.total} />
           <StatInline label="En proceso" value={state.stats.inProcess} />
@@ -53,7 +65,6 @@ export default function Leads() {
         </div>
       </div>
 
-      {/* Follow-up alerts */}
       {state.followUps.length > 0 && (
         <div className="shrink-0 border-b border-amber-200 bg-amber-50 px-6 py-2.5">
           <div className="flex items-center gap-2">
@@ -78,17 +89,15 @@ export default function Leads() {
         </div>
       )}
 
-      {/* Filters */}
       <div className="shrink-0 px-6 pt-4">
         <LeadFilters
-          filters={state.filters} columns={state.columns} sectors={state.sectors}
-          tags={state.tags} doctors={state.doctors} viewMode={state.viewMode}
-          onFiltersChange={actions.setFilters} onViewModeChange={actions.setViewMode}
+          filters={state.filters} columns={state.columns}
+          tags={state.tags} doctors={state.doctors}
+          onFiltersChange={actions.setFilters}
           onExport={actions.exportData} onImport={actions.importData}
         />
       </div>
 
-      {/* Main content */}
       <div className="relative min-h-0 flex-1 px-4 pt-2">
         {state.viewMode === "kanban" ? (
           <KanbanBoard
@@ -105,7 +114,6 @@ export default function Leads() {
           />
         )}
 
-        {/* Detail panel — non-blocking, pushes content */}
         {state.selectedLead && (
           <LeadDetailPanel
             lead={state.selectedLead} columns={state.columns} doctors={state.doctors}
@@ -125,7 +133,6 @@ export default function Leads() {
         )}
       </div>
 
-      {/* Modals */}
       {state.showLeadForm && (
         <LeadForm
           lead={state.editingLead} columns={state.columns} tags={state.tags} doctors={state.doctors}

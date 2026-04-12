@@ -626,27 +626,27 @@ model LeadColumn {
 }
 
 model CrmLead {
-  id               String    @id @default(cuid())
-  clinicId         String
-  columnId         String
-  name             String
-  company          String    @default("")
-  channel          String
-  phone            String    @default("")
-  email            String    @default("")
-  sector           String    @default("")
-  priority         String    @default("medium")
-  estimatedBudget  Decimal?  @db.Decimal(12, 2)
-  mainNote         String    @default("")
-  tags             Json      @default("[]")
-  scrapedData      Json      @default("{}")
-  archived         Boolean   @default(false)
-  converted        Boolean   @default(false)
+  id                 String    @id @default(cuid())
+  clinicId           String
+  columnId           String
+  name               String
+  company            String    @default("")
+  channel            String
+  phone              String    @default("")
+  email              String    @default("")
+  sector             String    @default("")
+  priority           String    @default("medium")
+  estimatedBudget    Decimal?  @db.Decimal(12, 2)
+  mainNote           String    @default("")
+  tags               Json      @default("[]")
+  scrapedData        Json      @default("{}")
+  archived           Boolean   @default(false)
+  converted          Boolean   @default(false)
   convertedPatientId String?
-  followUpDate     DateTime?
-  assignedDoctorId String?
-  createdAt        DateTime  @default(now())
-  updatedAt        DateTime  @updatedAt
+  followUpDate       DateTime?
+  assignedDoctorId   String?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
 
   clinic         Clinic             @relation(fields: [clinicId], references: [id], onDelete: Cascade)
   column         LeadColumn         @relation(fields: [columnId], references: [id], onDelete: Restrict)
@@ -689,14 +689,14 @@ model CrmLeadMessage {
 }
 
 model CrmLeadActivity {
-  id         String   @id @default(cuid())
-  leadId     String
-  type       String
-  fromValue  String?
-  toValue    String?
-  userId     String?
-  userName   String?
-  createdAt  DateTime @default(now())
+  id        String   @id @default(cuid())
+  leadId    String
+  type      String
+  fromValue String?
+  toValue   String?
+  userId    String?
+  userName  String?
+  createdAt DateTime @default(now())
 
   lead CrmLead @relation(fields: [leadId], references: [id], onDelete: Cascade)
 

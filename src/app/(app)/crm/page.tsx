@@ -1,5 +1,5 @@
-import Crm from "@/presentation/crm/Crm";
+import Leads from "@/presentation/leads/Leads";
 
 export default function CrmPage() {
-    return <Crm />;
+  return <Leads />;
 }

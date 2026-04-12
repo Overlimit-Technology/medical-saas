@@ -1,7 +1,7 @@
 "use client";
 
 import type { Lead, DoctorOption } from "@/domain/leads/entities/Lead";
-import { CHANNEL_LABELS, PRIORITY_LABELS, PRIORITY_COLORS } from "@/domain/leads/entities/Lead";
+import { CHANNEL_LABELS, PRIORITY_COLORS } from "@/domain/leads/entities/Lead";
 import type { PipelineColumn } from "@/domain/leads/entities/Pipeline";
 import type { SortConfig } from "../LeadsViewModel";
 

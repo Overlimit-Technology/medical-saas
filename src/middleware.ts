@@ -99,8 +99,10 @@ const PROTECTED_PREFIXES = [
   "/agenda",
   "/chat",
   "/chat-meta",
+  "/formulario-chat",
   "/crm",
   "/leads",
+  "/notifications",
   "/patients",
   "/usuarios",
   "/doctors",
@@ -257,7 +259,7 @@ export async function middleware(req: NextRequest) {
       isSuperAdmin,
       permissions,
       ["ADMIN"],
-      "TREATMENTS"
+      "LEADS"
     );
     const canAccessPatients = canAccess(
       sessionPayload?.role,
@@ -274,16 +276,16 @@ export async function middleware(req: NextRequest) {
       "USERS"
     );
 
+    if (pathname.startsWith("/crm") && !canAccessCrmOption) {
+      const url = req.nextUrl.clone();
+      url.pathname = sessionPayload?.role === "DOCTOR" ? "/agenda" : roleHome;
+      return NextResponse.redirect(url);
+    }
+
     if (
       pathname.startsWith("/leads") &&
       !canAccess(sessionPayload?.role, isSuperAdmin, permissions, ["ADMIN"], "LEADS")
     ) {
-      const url = req.nextUrl.clone();
-      url.pathname = roleHome;
-      return NextResponse.redirect(url);
-    }
-
-    if (pathname.startsWith("/crm") && !canAccessCrmOption) {
       const url = req.nextUrl.clone();
       url.pathname = sessionPayload?.role === "DOCTOR" ? "/agenda" : roleHome;
       return NextResponse.redirect(url);
@@ -322,6 +324,15 @@ export async function middleware(req: NextRequest) {
 
     if (
       pathname.startsWith("/chat-meta") &&
+      !canAccess(sessionPayload?.role, isSuperAdmin, permissions, ["ADMIN"], "CHAT_META")
+    ) {
+      const url = req.nextUrl.clone();
+      url.pathname = roleHome;
+      return NextResponse.redirect(url);
+    }
+
+    if (
+      pathname.startsWith("/formulario-chat") &&
       !canAccess(sessionPayload?.role, isSuperAdmin, permissions, ["ADMIN"], "CHAT_META")
     ) {
       const url = req.nextUrl.clone();
@@ -374,8 +385,10 @@ export const config = {
     "/agenda/:path*",
     "/chat/:path*",
     "/chat-meta/:path*",
+    "/formulario-chat/:path*",
     "/crm/:path*",
     "/leads/:path*",
+    "/notifications/:path*",
     "/patients/:path*",
     "/usuarios/:path*",
     "/doctors/:path*",
