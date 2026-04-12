@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useCrmViewModel, STATUS_LABEL, formatDateLabel, formatClp, fullName, type FormState } from "./CrmViewModel";
 
 export default function Crm() {
@@ -18,8 +19,11 @@ export default function Crm() {
       <div className="rounded-2xl border border-slate-100 bg-white p-6 shadow-sm">
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
-            <p className="text-sm text-slate-500">Gestion de contactos y cobros</p>
-            <h1 className="text-2xl font-semibold text-slate-900">Gestion de contactos y cobros</h1>
+            <p className="text-sm text-slate-500">CRM</p>
+            <h1 className="text-2xl font-semibold text-slate-900">CRM</h1>
+            <p className="mt-2 text-sm text-slate-500">
+              Modulo comercial con acceso rapido a cobros y conversaciones externas.
+            </p>
             {state.selectedPatient && (
               <p className="mt-2 text-sm text-slate-600">
                 Cobros y pagos del paciente <span className="font-semibold">{fullName(state.selectedPatient)}</span> - RUN{" "}
@@ -27,7 +31,17 @@ export default function Crm() {
               </p>
             )}
           </div>
-          <div className="w-full max-w-sm">
+          <div className="flex w-full flex-col gap-4 lg:w-auto lg:items-end">
+            <div className="inline-flex rounded-full border border-slate-200 bg-slate-50 p-1">
+              <span className="rounded-full bg-slate-900 px-4 py-2 text-sm font-medium text-white">CRM</span>
+              <Link
+                href="/chat-meta"
+                className="rounded-full px-4 py-2 text-sm font-medium text-slate-600 transition hover:text-slate-900"
+              >
+                Chat Meta
+              </Link>
+            </div>
+            <div className="w-full max-w-sm">
             <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-500">Paciente</label>
             <select value={state.selectedPatientId} onChange={(e) => actions.setSelectedPatientId(e.target.value)} className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm">
               {state.patients.length === 0 && <option value="">Sin pacientes</option>}
@@ -35,6 +49,7 @@ export default function Crm() {
                 <option key={patient.id} value={patient.id}>{fullName(patient)} - {patient.run}</option>
               ))}
             </select>
+          </div>
           </div>
         </div>
       </div>

@@ -101,6 +101,7 @@ const PROTECTED_PREFIXES = [
   "/chat-meta",
   "/formulario-chat",
   "/crm",
+  "/notifications",
   "/patients",
   "/usuarios",
   "/doctors",
@@ -322,7 +323,7 @@ export async function middleware(req: NextRequest) {
 
     if (
       pathname.startsWith("/formulario-chat") &&
-      !canAccess(sessionPayload?.role, isSuperAdmin, permissions, ["ADMIN"], "CHAT_FORM")
+      !canAccess(sessionPayload?.role, isSuperAdmin, permissions, ["ADMIN"], "CHAT_META")
     ) {
       const url = req.nextUrl.clone();
       url.pathname = roleHome;
@@ -376,6 +377,7 @@ export const config = {
     "/chat-meta/:path*",
     "/formulario-chat/:path*",
     "/crm/:path*",
+    "/notifications/:path*",
     "/patients/:path*",
     "/usuarios/:path*",
     "/doctors/:path*",

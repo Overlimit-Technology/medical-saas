@@ -3,7 +3,6 @@ export const USER_PERMISSIONS = [
   { key: "CLINICAL_VISITS", label: "Cita clinica" },
   { key: "CHAT", label: "Chat" },
   { key: "CHAT_META", label: "Chat Meta" },
-  { key: "CHAT_FORM", label: "Formulario Chat" },
   { key: "PATIENTS", label: "Pacientes" },
   { key: "USERS", label: "Usuario" },
   { key: "TREATMENTS", label: "Tratamientos" },

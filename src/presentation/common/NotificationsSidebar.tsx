@@ -1,10 +1,8 @@
 "use client";
 
-import Link from "next/link";
 import {
   Bell,
   CalendarClock,
-  ChevronRight,
   CircleAlert,
   CreditCard,
   MessageSquareMore,
@@ -59,7 +57,7 @@ export default function NotificationsSidebar() {
         <button
           type="button"
           onClick={actions.togglePanel}
-          className="pointer-events-auto inline-flex items-center gap-3 rounded-full border border-slate-200 bg-white/95 px-4 py-3 text-sm font-semibold text-slate-800 shadow-[0_24px_50px_-28px_rgba(15,23,42,0.4)] backdrop-blur transition-all hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-[0_30px_60px_-30px_rgba(15,23,42,0.45)]"
+          className="pointer-events-auto inline-flex items-center rounded-full border border-slate-200 bg-white/95 p-3 text-slate-800 shadow-[0_24px_50px_-28px_rgba(15,23,42,0.4)] backdrop-blur transition-all hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-[0_30px_60px_-30px_rgba(15,23,42,0.45)]"
           aria-label={state.isOpen ? "Cerrar notificaciones" : "Abrir notificaciones"}
         >
           <span className="relative flex h-10 w-10 items-center justify-center rounded-full bg-[linear-gradient(135deg,#fff7ed,#ffedd5)] text-amber-600">
@@ -70,16 +68,7 @@ export default function NotificationsSidebar() {
               </span>
             ) : null}
           </span>
-          <span className="hidden sm:block">Notificaciones</span>
         </button>
-
-        <Link
-          href="/notifications"
-          className="pointer-events-auto inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white/95 px-4 py-2.5 text-sm font-medium text-slate-700 shadow-[0_18px_42px_-28px_rgba(15,23,42,0.4)] backdrop-blur transition hover:border-slate-300 hover:text-slate-900"
-        >
-          Ver centro de notificaciones
-          <ChevronRight className="h-4 w-4" />
-        </Link>
       </div>
 
       <div
