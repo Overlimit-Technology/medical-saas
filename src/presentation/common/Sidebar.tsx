@@ -7,7 +7,7 @@ import type { LucideIcon } from "lucide-react";
 import {
   LayoutGrid,
   CalendarDays,
-  HandCoins,
+  KanbanSquare,
   Users,
   UserCog,
   Pill,
@@ -41,9 +41,9 @@ const NAV_ITEMS: NavItem[] = [
   {
     href: "/crm",
     label: "CRM",
-    icon: HandCoins,
+    icon: KanbanSquare,
     group: "escritorios",
-    permission: "TREATMENTS",
+    permission: "LEADS",
     matchPrefixes: ["/crm", "/chat-meta"],
   },
   {
