@@ -44,22 +44,22 @@ INSERT INTO "Clinic" (id, name, city, "isActive", "createdAt", "updatedAt") VALU
 -- Hash bcrypt para "Test1234!"
 -- $2b$10$MIyvJYpsIHSPrICAspagAOWq911C19L8kiIeDKmjmDOiic16JNBAq
 
-INSERT INTO "User" (id, email, name, "passwordHash", "mustChangePassword", role, status, "createdAt", "updatedAt", "lastLoginAt") VALUES
+INSERT INTO "User" (id, email, name, "passwordHash", "mustChangePassword", role, status, "isSuperAdmin", "permissions", "createdAt", "updatedAt", "lastLoginAt") VALUES
   -- ADMINS
-  ('usr_admin1',     'admin.test@medigest.cl',      'Carlos Admin',       '$2b$10$MIyvJYpsIHSPrICAspagAOWq911C19L8kiIeDKmjmDOiic16JNBAq', false, 'ADMIN',     'ACTIVE',    NOW() - INTERVAL '90 days', NOW(), NOW() - INTERVAL '1 day'),
-  ('usr_admin2',     'admin2.test@medigest.cl',     'Laura Admin',        '$2b$10$MIyvJYpsIHSPrICAspagAOWq911C19L8kiIeDKmjmDOiic16JNBAq', false, 'ADMIN',     'ACTIVE',    NOW() - INTERVAL '60 days', NOW(), NOW() - INTERVAL '3 days'),
+  ('usr_admin1',     'admin.test@medigest.cl',      'Carlos Admin',       '$2b$10$MIyvJYpsIHSPrICAspagAOWq911C19L8kiIeDKmjmDOiic16JNBAq', false, 'ADMIN',     'ACTIVE',    true,  '{"AGENDA","CLINICAL_VISITS","CHAT","CHAT_META","CHAT_FORM","PATIENTS","USERS","TREATMENTS","BOXES"}', NOW() - INTERVAL '90 days', NOW(), NOW() - INTERVAL '1 day'),
+  ('usr_admin2',     'admin2.test@medigest.cl',     'Laura Admin',        '$2b$10$MIyvJYpsIHSPrICAspagAOWq911C19L8kiIeDKmjmDOiic16JNBAq', false, 'ADMIN',     'ACTIVE',    true,  '{"AGENDA","CLINICAL_VISITS","CHAT","CHAT_META","CHAT_FORM","PATIENTS","USERS","TREATMENTS","BOXES"}', NOW() - INTERVAL '60 days', NOW(), NOW() - INTERVAL '3 days'),
   -- DOCTORES
-  ('usr_doc1',       'doctor1.test@medigest.cl',    'Dr. Andrés Muñoz',   '$2b$10$MIyvJYpsIHSPrICAspagAOWq911C19L8kiIeDKmjmDOiic16JNBAq', false, 'DOCTOR',    'ACTIVE',    NOW() - INTERVAL '80 days', NOW(), NOW() - INTERVAL '1 hour'),
-  ('usr_doc2',       'doctor2.test@medigest.cl',    'Dra. Valentina Soto','$2b$10$MIyvJYpsIHSPrICAspagAOWq911C19L8kiIeDKmjmDOiic16JNBAq', false, 'DOCTOR',    'ACTIVE',    NOW() - INTERVAL '70 days', NOW(), NOW() - INTERVAL '2 hours'),
-  ('usr_doc3',       'doctor3.test@medigest.cl',    'Dr. Felipe Reyes',   '$2b$10$MIyvJYpsIHSPrICAspagAOWq911C19L8kiIeDKmjmDOiic16JNBAq', false, 'DOCTOR',    'ACTIVE',    NOW() - INTERVAL '50 days', NOW(), NULL),
-  ('usr_doc_multi',  'doctor.multi@medigest.cl',    'Dra. Camila Lagos',  '$2b$10$MIyvJYpsIHSPrICAspagAOWq911C19L8kiIeDKmjmDOiic16JNBAq', false, 'DOCTOR',    'ACTIVE',    NOW() - INTERVAL '40 days', NOW(), NOW()),
+  ('usr_doc1',       'doctor1.test@medigest.cl',    'Dr. Andrés Muñoz',   '$2b$10$MIyvJYpsIHSPrICAspagAOWq911C19L8kiIeDKmjmDOiic16JNBAq', false, 'DOCTOR',    'ACTIVE',    false, '{"AGENDA","CLINICAL_VISITS","CHAT","TREATMENTS"}', NOW() - INTERVAL '80 days', NOW(), NOW() - INTERVAL '1 hour'),
+  ('usr_doc2',       'doctor2.test@medigest.cl',    'Dra. Valentina Soto','$2b$10$MIyvJYpsIHSPrICAspagAOWq911C19L8kiIeDKmjmDOiic16JNBAq', false, 'DOCTOR',    'ACTIVE',    false, '{"AGENDA","CLINICAL_VISITS","CHAT","TREATMENTS"}', NOW() - INTERVAL '70 days', NOW(), NOW() - INTERVAL '2 hours'),
+  ('usr_doc3',       'doctor3.test@medigest.cl',    'Dr. Felipe Reyes',   '$2b$10$MIyvJYpsIHSPrICAspagAOWq911C19L8kiIeDKmjmDOiic16JNBAq', false, 'DOCTOR',    'ACTIVE',    false, '{"AGENDA","CLINICAL_VISITS","CHAT","TREATMENTS"}', NOW() - INTERVAL '50 days', NOW(), NULL),
+  ('usr_doc_multi',  'doctor.multi@medigest.cl',    'Dra. Camila Lagos',  '$2b$10$MIyvJYpsIHSPrICAspagAOWq911C19L8kiIeDKmjmDOiic16JNBAq', false, 'DOCTOR',    'ACTIVE',    false, '{"AGENDA","CLINICAL_VISITS","CHAT","TREATMENTS"}', NOW() - INTERVAL '40 days', NOW(), NOW()),
   -- SECRETARIAS
-  ('usr_sec1',       'secretaria1.test@medigest.cl','Sofía Secretaria',   '$2b$10$MIyvJYpsIHSPrICAspagAOWq911C19L8kiIeDKmjmDOiic16JNBAq', false, 'SECRETARY', 'ACTIVE',    NOW() - INTERVAL '85 days', NOW(), NOW() - INTERVAL '5 hours'),
-  ('usr_sec2',       'secretaria2.test@medigest.cl','María Secretaria',   '$2b$10$MIyvJYpsIHSPrICAspagAOWq911C19L8kiIeDKmjmDOiic16JNBAq', false, 'SECRETARY', 'ACTIVE',    NOW() - INTERVAL '30 days', NOW(), NOW() - INTERVAL '1 day'),
+  ('usr_sec1',       'secretaria1.test@medigest.cl','Sofía Secretaria',   '$2b$10$MIyvJYpsIHSPrICAspagAOWq911C19L8kiIeDKmjmDOiic16JNBAq', false, 'SECRETARY', 'ACTIVE',    false, '{"AGENDA","CHAT","CHAT_META","CHAT_FORM","PATIENTS","USERS","BOXES"}', NOW() - INTERVAL '85 days', NOW(), NOW() - INTERVAL '5 hours'),
+  ('usr_sec2',       'secretaria2.test@medigest.cl','María Secretaria',   '$2b$10$MIyvJYpsIHSPrICAspagAOWq911C19L8kiIeDKmjmDOiic16JNBAq', false, 'SECRETARY', 'ACTIVE',    false, '{"AGENDA","CHAT","CHAT_META","CHAT_FORM","PATIENTS","USERS","BOXES"}', NOW() - INTERVAL '30 days', NOW(), NOW() - INTERVAL '1 day'),
   -- CASOS EDGE
-  ('usr_suspended',  'suspended@medigest.cl',       'Usuario Suspendido', '$2b$10$MIyvJYpsIHSPrICAspagAOWq911C19L8kiIeDKmjmDOiic16JNBAq', false, 'DOCTOR',    'SUSPENDED', NOW() - INTERVAL '100 days', NOW(), NOW() - INTERVAL '30 days'),
-  ('usr_pending',    'pending@medigest.cl',          'Usuario Pendiente',  '$2b$10$MIyvJYpsIHSPrICAspagAOWq911C19L8kiIeDKmjmDOiic16JNBAq', true,  'SECRETARY', 'PENDING',   NOW() - INTERVAL '2 days',   NOW(), NULL),
-  ('usr_mustchange', 'mustchange@medigest.cl',       'Cambiar Password',  '$2b$10$MIyvJYpsIHSPrICAspagAOWq911C19L8kiIeDKmjmDOiic16JNBAq', true,  'DOCTOR',    'ACTIVE',    NOW() - INTERVAL '1 day',   NOW(), NULL);
+  ('usr_suspended',  'suspended@medigest.cl',       'Usuario Suspendido', '$2b$10$MIyvJYpsIHSPrICAspagAOWq911C19L8kiIeDKmjmDOiic16JNBAq', false, 'DOCTOR',    'SUSPENDED', false, '{"AGENDA","CLINICAL_VISITS","CHAT","TREATMENTS"}', NOW() - INTERVAL '100 days', NOW(), NOW() - INTERVAL '30 days'),
+  ('usr_pending',    'pending@medigest.cl',          'Usuario Pendiente',  '$2b$10$MIyvJYpsIHSPrICAspagAOWq911C19L8kiIeDKmjmDOiic16JNBAq', true,  'SECRETARY', 'PENDING',   false, '{"AGENDA","CHAT","CHAT_META","PATIENTS"}', NOW() - INTERVAL '2 days',   NOW(), NULL),
+  ('usr_mustchange', 'mustchange@medigest.cl',       'Cambiar Password',  '$2b$10$MIyvJYpsIHSPrICAspagAOWq911C19L8kiIeDKmjmDOiic16JNBAq', true,  'DOCTOR',    'ACTIVE',    false, '{"AGENDA","CLINICAL_VISITS","CHAT","TREATMENTS"}', NOW() - INTERVAL '1 day',   NOW(), NULL);
 
 -- ============================================================================
 -- 3. PERFILES DE USUARIO

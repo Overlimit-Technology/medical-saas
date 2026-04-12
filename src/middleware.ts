@@ -99,8 +99,8 @@ const PROTECTED_PREFIXES = [
   "/agenda",
   "/chat",
   "/chat-meta",
-  "/formulario-chat",
   "/crm",
+  "/leads",
   "/patients",
   "/usuarios",
   "/doctors",
@@ -274,6 +274,15 @@ export async function middleware(req: NextRequest) {
       "USERS"
     );
 
+    if (
+      pathname.startsWith("/leads") &&
+      !canAccess(sessionPayload?.role, isSuperAdmin, permissions, ["ADMIN"], "LEADS")
+    ) {
+      const url = req.nextUrl.clone();
+      url.pathname = roleHome;
+      return NextResponse.redirect(url);
+    }
+
     if (pathname.startsWith("/crm") && !canAccessCrmOption) {
       const url = req.nextUrl.clone();
       url.pathname = sessionPayload?.role === "DOCTOR" ? "/agenda" : roleHome;
@@ -314,15 +323,6 @@ export async function middleware(req: NextRequest) {
     if (
       pathname.startsWith("/chat-meta") &&
       !canAccess(sessionPayload?.role, isSuperAdmin, permissions, ["ADMIN"], "CHAT_META")
-    ) {
-      const url = req.nextUrl.clone();
-      url.pathname = roleHome;
-      return NextResponse.redirect(url);
-    }
-
-    if (
-      pathname.startsWith("/formulario-chat") &&
-      !canAccess(sessionPayload?.role, isSuperAdmin, permissions, ["ADMIN"], "CHAT_FORM")
     ) {
       const url = req.nextUrl.clone();
       url.pathname = roleHome;
@@ -374,8 +374,8 @@ export const config = {
     "/agenda/:path*",
     "/chat/:path*",
     "/chat-meta/:path*",
-    "/formulario-chat/:path*",
     "/crm/:path*",
+    "/leads/:path*",
     "/patients/:path*",
     "/usuarios/:path*",
     "/doctors/:path*",

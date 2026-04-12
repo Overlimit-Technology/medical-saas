@@ -147,6 +147,7 @@ model User {
   internalAlertsAsDoctor InternalAlert[]         @relation("InternalAlertDoctor")
   internalAlertReceipts InternalAlertRecipient[]
   clinicalRecordsAsDoctor ClinicalRecord[]       @relation("ClinicalRecordDoctor")
+  assignedLeads           CrmLead[]              @relation("LeadAssignedDoctor")
 }
 
 model UserProfile {
@@ -254,6 +255,8 @@ model Clinic {
   formTemplates   FormTemplate[]
   clinicalRecords ClinicalRecord[]
   settings        ClinicSettings?
+  leadColumns     LeadColumn[]
+  crmLeads        CrmLead[]
 }
 
 model ClinicSettings {
@@ -605,4 +608,97 @@ model ClinicalRecordValue {
   field          FormTemplateField @relation(fields: [fieldId], references: [id], onDelete: Restrict)
 
   @@unique([clinicalRecordId, fieldId])
+}
+
+model LeadColumn {
+  id        String   @id @default(cuid())
+  clinicId  String
+  name      String
+  color     String   @default("#818cf8")
+  position  Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  clinic Clinic    @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+  leads  CrmLead[]
+
+  @@index([clinicId, position])
+}
+
+model CrmLead {
+  id               String    @id @default(cuid())
+  clinicId         String
+  columnId         String
+  name             String
+  company          String    @default("")
+  channel          String
+  phone            String    @default("")
+  email            String    @default("")
+  sector           String    @default("")
+  priority         String    @default("medium")
+  estimatedBudget  Decimal?  @db.Decimal(12, 2)
+  mainNote         String    @default("")
+  tags             Json      @default("[]")
+  scrapedData      Json      @default("{}")
+  archived         Boolean   @default(false)
+  converted        Boolean   @default(false)
+  convertedPatientId String?
+  followUpDate     DateTime?
+  assignedDoctorId String?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  clinic         Clinic             @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+  column         LeadColumn         @relation(fields: [columnId], references: [id], onDelete: Restrict)
+  assignedDoctor User?              @relation("LeadAssignedDoctor", fields: [assignedDoctorId], references: [id], onDelete: SetNull)
+  notes          CrmLeadNote[]
+  messages       CrmLeadMessage[]
+  activities     CrmLeadActivity[]
+
+  @@index([clinicId, columnId])
+  @@index([clinicId, channel])
+  @@index([clinicId, createdAt])
+  @@index([clinicId, archived])
+  @@index([clinicId, followUpDate])
+}
+
+model CrmLeadNote {
+  id        String   @id @default(cuid())
+  leadId    String
+  text      String
+  createdAt DateTime @default(now())
+
+  lead CrmLead @relation(fields: [leadId], references: [id], onDelete: Cascade)
+
+  @@index([leadId, createdAt])
+}
+
+model CrmLeadMessage {
+  id             String   @id @default(cuid())
+  leadId         String
+  text           String
+  direction      String
+  channel        String
+  attachmentUrl  String?
+  attachmentName String?
+  createdAt      DateTime @default(now())
+
+  lead CrmLead @relation(fields: [leadId], references: [id], onDelete: Cascade)
+
+  @@index([leadId, createdAt])
+}
+
+model CrmLeadActivity {
+  id         String   @id @default(cuid())
+  leadId     String
+  type       String
+  fromValue  String?
+  toValue    String?
+  userId     String?
+  userName   String?
+  createdAt  DateTime @default(now())
+
+  lead CrmLead @relation(fields: [leadId], references: [id], onDelete: Cascade)
+
+  @@index([leadId, createdAt])
 }

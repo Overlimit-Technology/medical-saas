@@ -8,6 +8,7 @@ import {
   LayoutGrid,
   CalendarDays,
   HandCoins,
+  Kanban,
   Users,
   UserCog,
   Pill,
@@ -39,7 +40,7 @@ const NAV_ITEMS: NavItem[] = [
   { href: "/agenda", label: "Agenda", icon: CalendarDays, group: "escritorios", permission: "AGENDA" },
   { href: "/chat", label: "Chat", icon: MessageCircle, group: "escritorios", permission: "CHAT" },
   { href: "/chat-meta", label: "Chat Meta", icon: MessageCircle, group: "escritorios", permission: "CHAT_META" },
-  { href: "/formulario-chat", label: "Formulario Chat", icon: MessageCircle, group: "escritorios", permission: "CHAT_FORM" },
+  { href: "/leads", label: "CRM Leads", icon: Kanban, group: "escritorios", permission: "LEADS" },
   { href: "/crm", label: "Gestion de contactos y cobros", icon: HandCoins, group: "escritorios", permission: "TREATMENTS" },
   { href: "/patients", label: "Pacientes", icon: Users, group: "paginas", permission: "PATIENTS" },
   {
