@@ -148,9 +148,9 @@ export default function Doctors() {
       </div>
 
       {state.isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto p-4 py-6 sm:items-center">
           <div className="absolute inset-0 bg-slate-900/30 backdrop-blur-sm transition-opacity" onClick={actions.closeModal} />
-          <div className="relative w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl shadow-slate-900/10 animate-modal-in">
+          <div className="relative flex max-h-[calc(100vh-3rem)] w-full max-w-md flex-col overflow-hidden rounded-2xl bg-white p-6 shadow-2xl shadow-slate-900/10 animate-modal-in">
             <div className="mb-6 flex h-14 w-14 items-center justify-center rounded-full bg-slate-100">
               <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-slate-800"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><line x1="19" y1="8" x2="19" y2="14" /><line x1="22" y1="11" x2="16" y2="11" /></svg>
             </div>
@@ -158,7 +158,7 @@ export default function Doctors() {
             <h2 className="text-lg font-semibold text-slate-900">Nuevo usuario</h2>
             <p className="mt-1 text-xs text-slate-500">La contraseña se genera automáticamente y se envía al correo.</p>
 
-            <form onSubmit={actions.handleSubmit} className="mt-5 grid gap-4">
+            <form onSubmit={actions.handleSubmit} className="mt-5 grid gap-4 overflow-y-auto pr-1">
               <div>
                 <label className="mb-1 block text-[11px] font-medium uppercase tracking-wider text-slate-400">Rol</label>
                 <select
