@@ -18,6 +18,7 @@ import {
   LogOut,
   UserCircle,
   MessageCircle,
+  Activity,
 } from "lucide-react";
 import { hasPermission, type UserPermission } from "@/lib/permissions";
 import { useSidebarViewModel } from "./SidebarViewModel";
@@ -62,6 +63,7 @@ const NAV_ITEMS: NavItem[] = [
     matchPrefixes: ["/usuarios", "/doctors"],
   },
   { href: "/treatments", label: "Tratamientos", icon: Pill, group: "paginas", permission: "TREATMENTS" },
+  { href: "/seguimiento", label: "Seguimiento", icon: Activity, group: "paginas", permission: "SEGUIMIENTO" },
   { href: "/boxes", label: "Boxes", icon: DoorOpen, group: "paginas", permission: "BOXES" },
   {
     href: "/clinical-visits",
