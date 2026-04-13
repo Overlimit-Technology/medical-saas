@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 type MetaChannel = "WHATSAPP" | "INSTAGRAM" | "MESSENGER";
@@ -373,19 +374,27 @@ export default function ChatMetaPage() {
     <div className="flex h-full min-h-0 flex-col gap-6 overflow-hidden">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
         <div>
-          <p className="text-xs font-medium uppercase tracking-[0.34em] text-slate-400">
-            Omnicanal Meta
-          </p>
-          <h1 className="mt-2 text-3xl font-semibold tracking-tight text-slate-900">
-            Bandeja chat-meta
-          </h1>
+          <p className="text-sm text-slate-500">CRM</p>
+          <h1 className="mt-2 text-3xl font-semibold tracking-tight text-slate-900">CRM</h1>
           <p className="mt-2 max-w-2xl text-sm text-slate-500">
             WhatsApp, Instagram y Facebook Messenger en una sola vista, sin alterar el chat
             interno actual de ZENSYA H.I.S.
           </p>
         </div>
 
-        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <div className="flex flex-col gap-4 lg:items-end">
+          <div className="inline-flex rounded-full border border-slate-200 bg-slate-50 p-1">
+            <Link
+              href="/crm"
+              className="rounded-full px-4 py-2 text-sm font-medium text-slate-600 transition hover:text-slate-900"
+            >
+              CRM
+            </Link>
+            <span className="rounded-full bg-slate-900 px-4 py-2 text-sm font-medium text-white">
+              Chat Meta
+            </span>
+          </div>
+          <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
           <div className="rounded-[26px] border border-white/70 bg-white/80 px-4 py-3 shadow-[0_18px_45px_-30px_rgba(15,23,42,0.4)] backdrop-blur">
             <p className="text-xs uppercase tracking-[0.22em] text-slate-400">Conversaciones</p>
             <p className="mt-2 text-2xl font-semibold text-slate-900">{summary.total}</p>
@@ -404,6 +413,7 @@ export default function ChatMetaPage() {
               {summary.instagram + summary.messenger}
             </p>
           </div>
+        </div>
         </div>
       </div>
 

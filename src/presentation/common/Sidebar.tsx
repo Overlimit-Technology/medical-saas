@@ -7,16 +7,18 @@ import type { LucideIcon } from "lucide-react";
 import {
   LayoutGrid,
   CalendarDays,
-  HandCoins,
+  KanbanSquare,
   Users,
   UserCog,
   Pill,
   DoorOpen,
   ClipboardList,
+  Bell,
   ChevronsUpDown,
   LogOut,
   UserCircle,
   MessageCircle,
+  Activity,
 } from "lucide-react";
 import { hasPermission, type UserPermission } from "@/lib/permissions";
 import { useSidebarViewModel } from "./SidebarViewModel";
@@ -37,11 +39,21 @@ type NavItem = {
 const NAV_ITEMS: NavItem[] = [
   { href: "/dashboard", label: "Vista General", icon: LayoutGrid, group: "escritorios" },
   { href: "/agenda", label: "Agenda", icon: CalendarDays, group: "escritorios", permission: "AGENDA" },
-  { href: "/chat", label: "Chat", icon: MessageCircle, group: "escritorios", permission: "CHAT" },
-  { href: "/chat-meta", label: "Chat Meta", icon: MessageCircle, group: "escritorios", permission: "CHAT_META" },
-  { href: "/formulario-chat", label: "Formulario Chat", icon: MessageCircle, group: "escritorios", permission: "CHAT_FORM" },
-  { href: "/crm", label: "Gestion de contactos y cobros", icon: HandCoins, group: "escritorios", permission: "TREATMENTS" },
-  { href: "/patients", label: "Pacientes", icon: Users, group: "paginas", permission: "PATIENTS" },
+  {
+    href: "/crm",
+    label: "CRM",
+    icon: KanbanSquare,
+    group: "escritorios",
+    permission: "LEADS",
+    matchPrefixes: ["/crm", "/chat-meta"],
+  },
+  {
+    href: "/patients",
+    label: "Historial paciente",
+    icon: Users,
+    group: "paginas",
+    permission: "PATIENTS",
+  },
   {
     href: "/usuarios",
     label: "Usuario",
@@ -51,6 +63,7 @@ const NAV_ITEMS: NavItem[] = [
     matchPrefixes: ["/usuarios", "/doctors"],
   },
   { href: "/treatments", label: "Tratamientos", icon: Pill, group: "paginas", permission: "TREATMENTS" },
+  { href: "/seguimiento", label: "Seguimiento", icon: Activity, group: "paginas", permission: "SEGUIMIENTO" },
   { href: "/boxes", label: "Boxes", icon: DoorOpen, group: "paginas", permission: "BOXES" },
   {
     href: "/clinical-visits",
@@ -66,6 +79,20 @@ const NAV_ITEMS: NavItem[] = [
     icon: ClipboardList,
     group: "paginas",
     roles: ["ADMIN", "DOCTOR"],
+  },
+  {
+    href: "/notifications",
+    label: "Notificaciones",
+    icon: Bell,
+    group: "paginas",
+    roles: ["ADMIN", "SECRETARY", "DOCTOR"],
+  },
+  {
+    href: "/chat",
+    label: "Mensajeria interna",
+    icon: MessageCircle,
+    group: "paginas",
+    permission: "CHAT",
   },
   {
     href: "/profile",

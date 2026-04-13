@@ -1,0 +1,307 @@
+{
+  "version": 1,
+  "pipeline": {
+    "columns": [
+      { "id": "col_nuevo", "name": "Nuevo Lead", "color": "#818cf8", "position": 0 },
+      { "id": "col_contactado", "name": "Contactado", "color": "#f59e0b", "position": 1 },
+      { "id": "col_negociacion", "name": "En Negociacion", "color": "#3b82f6", "position": 2 },
+      { "id": "col_propuesta", "name": "Propuesta Enviada", "color": "#8b5cf6", "position": 3 },
+      { "id": "col_ganado", "name": "Ganado", "color": "#10b981", "position": 4 },
+      { "id": "col_perdido", "name": "Perdido", "color": "#ef4444", "position": 5 }
+    ]
+  },
+  "tags": ["vip", "urgente", "clinica", "estetica", "dermatologia", "seguimiento", "referido", "corporativo", "primera-consulta", "recontactar"],
+  "leads": [
+    {
+      "id": "lead_test_001",
+      "name": "Maria Gonzalez",
+      "company": "Clinica Santa Maria",
+      "channel": "whatsapp",
+      "phone": "+56 9 8765 4321",
+      "email": "maria.gonzalez@clinicasm.cl",
+      "sector": "Salud",
+      "columnId": "col_nuevo",
+      "priority": "high",
+      "estimatedBudget": 2500000,
+      "mainNote": "Interesada en sistema de gestion para 3 sedes. Tiene urgencia por implementar antes de julio.",
+      "notes": [
+        { "id": "note_001a", "text": "Primer contacto via WhatsApp. Pidio informacion general.", "createdAt": "2026-04-01T10:30:00.000Z" },
+        { "id": "note_001b", "text": "Tiene 3 sedes en Santiago y 45 profesionales.", "createdAt": "2026-04-02T14:15:00.000Z" }
+      ],
+      "messages": [
+        { "id": "msg_001a", "text": "Hola, me interesa su software de gestion clinica. Tenemos 3 sedes.", "direction": "inbound", "channel": "whatsapp", "createdAt": "2026-04-01T10:30:00.000Z" },
+        { "id": "msg_001b", "text": "Hola Maria! Claro, con gusto te ayudo. Nuestro sistema soporta multi-sede. Podemos agendar una demo?", "direction": "outbound", "channel": "whatsapp", "createdAt": "2026-04-01T10:35:00.000Z" },
+        { "id": "msg_001c", "text": "Si, perfecto. Puede ser el jueves a las 15:00?", "direction": "inbound", "channel": "whatsapp", "createdAt": "2026-04-01T10:38:00.000Z" },
+        { "id": "msg_001d", "text": "Agendado! Te envio link de la reunion por correo.", "direction": "outbound", "channel": "whatsapp", "createdAt": "2026-04-01T10:40:00.000Z" }
+      ],
+      "tags": ["vip", "clinica", "urgente"],
+      "createdAt": "2026-04-01T10:30:00.000Z",
+      "updatedAt": "2026-04-02T14:15:00.000Z",
+      "scrapedData": {}
+    },
+    {
+      "id": "lead_test_002",
+      "name": "Carlos Muñoz",
+      "company": "DermaCare SpA",
+      "channel": "instagram",
+      "phone": "+56 9 6543 2109",
+      "email": "carlos@dermacare.cl",
+      "sector": "Estetica",
+      "columnId": "col_contactado",
+      "priority": "medium",
+      "estimatedBudget": 800000,
+      "mainNote": "Vio una publicacion en Instagram. Tiene un centro de estetica pequeño.",
+      "notes": [
+        { "id": "note_002a", "text": "Respondio a un reel. Interesado en modulo de agenda.", "createdAt": "2026-03-28T09:00:00.000Z" },
+        { "id": "note_002b", "text": "Le enviamos brochure por DM. Queda pendiente llamada.", "createdAt": "2026-03-29T16:20:00.000Z" }
+      ],
+      "messages": [
+        { "id": "msg_002a", "text": "Vi su post sobre gestion clinica, me interesa!", "direction": "inbound", "channel": "instagram", "createdAt": "2026-03-28T09:00:00.000Z" },
+        { "id": "msg_002b", "text": "Hola Carlos! Gracias por tu interes. Te cuento que ofrecemos gestion de agenda, pacientes y cobros. Te envio mas info.", "direction": "outbound", "channel": "instagram", "createdAt": "2026-03-28T09:15:00.000Z" },
+        { "id": "msg_002c", "text": "Genial, lo revisare y les escribo.", "direction": "inbound", "channel": "instagram", "createdAt": "2026-03-28T09:20:00.000Z" }
+      ],
+      "tags": ["estetica", "seguimiento"],
+      "createdAt": "2026-03-28T09:00:00.000Z",
+      "updatedAt": "2026-03-29T16:20:00.000Z",
+      "scrapedData": {}
+    },
+    {
+      "id": "lead_test_003",
+      "name": "Ana Torres",
+      "company": "Consulta Medica Torres",
+      "channel": "facebook",
+      "phone": "+56 9 7777 8888",
+      "email": "ana.torres@gmail.com",
+      "sector": "Salud",
+      "columnId": "col_negociacion",
+      "priority": "high",
+      "estimatedBudget": 1500000,
+      "mainNote": "Quiere migrar desde software antiguo. Necesita exportar datos de pacientes actuales.",
+      "notes": [
+        { "id": "note_003a", "text": "Demo completada. Muy interesada, pidio cotizacion formal.", "createdAt": "2026-03-20T11:00:00.000Z" },
+        { "id": "note_003b", "text": "Tiene ~800 pacientes en sistema actual (Excel + software local).", "createdAt": "2026-03-22T09:30:00.000Z" },
+        { "id": "note_003c", "text": "Pidio plan de migracion de datos. Preparar propuesta.", "createdAt": "2026-03-25T15:00:00.000Z" }
+      ],
+      "messages": [
+        { "id": "msg_003a", "text": "Hola, vi su pagina en Facebook. Necesito cambiar de sistema.", "direction": "inbound", "channel": "facebook", "createdAt": "2026-03-18T14:00:00.000Z" },
+        { "id": "msg_003b", "text": "Hola Ana! Con gusto. Que sistema usan actualmente?", "direction": "outbound", "channel": "facebook", "createdAt": "2026-03-18T14:10:00.000Z" },
+        { "id": "msg_003c", "text": "Usamos un Excel enorme y un programa viejo que ya no tiene soporte.", "direction": "inbound", "channel": "facebook", "createdAt": "2026-03-18T14:15:00.000Z" },
+        { "id": "msg_003d", "text": "Entiendo. Podemos ayudarte con la migracion. Agendamos una demo?", "direction": "outbound", "channel": "facebook", "createdAt": "2026-03-18T14:20:00.000Z" },
+        { "id": "msg_003e", "text": "La demo estuvo excelente! Necesito la cotizacion para presentar al directorio.", "direction": "inbound", "channel": "facebook", "createdAt": "2026-03-20T12:00:00.000Z" }
+      ],
+      "tags": ["clinica", "vip", "seguimiento"],
+      "createdAt": "2026-03-18T14:00:00.000Z",
+      "updatedAt": "2026-03-25T15:00:00.000Z",
+      "scrapedData": {}
+    },
+    {
+      "id": "lead_test_004",
+      "name": "Roberto Soto",
+      "company": "Dental Pro",
+      "channel": "telegram",
+      "phone": "+56 9 3333 4444",
+      "email": "rsoto@dentalpro.cl",
+      "sector": "Odontologia",
+      "columnId": "col_propuesta",
+      "priority": "urgent",
+      "estimatedBudget": 3200000,
+      "mainNote": "Cadena de 5 clinicas dentales. Propuesta enviada por $3.200.000. Espera respuesta del gerente general.",
+      "notes": [
+        { "id": "note_004a", "text": "Contacto inicial via Telegram. Busca solucion para 5 sedes.", "createdAt": "2026-03-10T08:00:00.000Z" },
+        { "id": "note_004b", "text": "Demo exitosa. Impresionado con modulo FHIR.", "createdAt": "2026-03-14T16:00:00.000Z" },
+        { "id": "note_004c", "text": "Propuesta formal enviada. Incluye implementacion + migracion.", "createdAt": "2026-03-18T10:00:00.000Z" },
+        { "id": "note_004d", "text": "Gerente pidio una semana mas para evaluar. Seguimiento el lunes.", "createdAt": "2026-03-25T11:00:00.000Z" }
+      ],
+      "messages": [
+        { "id": "msg_004a", "text": "Buenos dias, me recomendaron su sistema. Tenemos 5 clinicas dentales.", "direction": "inbound", "channel": "telegram", "createdAt": "2026-03-10T08:00:00.000Z" },
+        { "id": "msg_004b", "text": "Hola Roberto! Excelente. Podemos coordinar una demo personalizada para su caso.", "direction": "outbound", "channel": "telegram", "createdAt": "2026-03-10T08:30:00.000Z" },
+        { "id": "msg_004c", "text": "Le envie la propuesta al correo. Quedamos atentos!", "direction": "outbound", "channel": "telegram", "createdAt": "2026-03-18T10:05:00.000Z" },
+        { "id": "msg_004d", "text": "Recibida. La estoy revisando con el gerente. Les aviso la proxima semana.", "direction": "inbound", "channel": "telegram", "createdAt": "2026-03-18T15:00:00.000Z" }
+      ],
+      "tags": ["vip", "corporativo", "urgente"],
+      "createdAt": "2026-03-10T08:00:00.000Z",
+      "updatedAt": "2026-03-25T11:00:00.000Z",
+      "scrapedData": {}
+    },
+    {
+      "id": "lead_test_005",
+      "name": "Valentina Reyes",
+      "company": "Centro Medico Vida",
+      "channel": "email",
+      "phone": "+56 9 1111 2222",
+      "email": "vreyes@centrovida.cl",
+      "sector": "Salud",
+      "columnId": "col_ganado",
+      "priority": "medium",
+      "estimatedBudget": 1200000,
+      "mainNote": "Cerrado! Contrato firmado por 12 meses. Implementacion comienza en mayo.",
+      "notes": [
+        { "id": "note_005a", "text": "Lead via formulario web. Centro medico general.", "createdAt": "2026-02-15T10:00:00.000Z" },
+        { "id": "note_005b", "text": "Demo realizada. Le gusto el modulo de agenda.", "createdAt": "2026-02-20T14:00:00.000Z" },
+        { "id": "note_005c", "text": "Negociacion cerrada. Contrato firmado por $1.200.000/año.", "createdAt": "2026-03-05T09:00:00.000Z" }
+      ],
+      "messages": [],
+      "tags": ["clinica", "referido"],
+      "createdAt": "2026-02-15T10:00:00.000Z",
+      "updatedAt": "2026-03-05T09:00:00.000Z",
+      "scrapedData": {}
+    },
+    {
+      "id": "lead_test_006",
+      "name": "Felipe Herrera",
+      "company": "Kinesiologia Activa",
+      "channel": "whatsapp",
+      "phone": "+56 9 5555 6666",
+      "email": "felipe@kineactiva.cl",
+      "sector": "Kinesiologia",
+      "columnId": "col_ganado",
+      "priority": "low",
+      "estimatedBudget": 600000,
+      "mainNote": "Clinica de kinesiologia. Contrato firmado plan basico.",
+      "notes": [
+        { "id": "note_006a", "text": "Cerrado con plan basico. Inicio inmediato.", "createdAt": "2026-03-12T16:00:00.000Z" }
+      ],
+      "messages": [
+        { "id": "msg_006a", "text": "Hola! Quiero contratar el plan basico que me mostraron.", "direction": "inbound", "channel": "whatsapp", "createdAt": "2026-03-12T10:00:00.000Z" },
+        { "id": "msg_006b", "text": "Perfecto Felipe! Te envio el link de pago y empezamos la configuracion.", "direction": "outbound", "channel": "whatsapp", "createdAt": "2026-03-12T10:15:00.000Z" }
+      ],
+      "tags": ["primera-consulta"],
+      "createdAt": "2026-03-01T08:00:00.000Z",
+      "updatedAt": "2026-03-12T16:00:00.000Z",
+      "scrapedData": {}
+    },
+    {
+      "id": "lead_test_007",
+      "name": "Camila Fernandez",
+      "company": "Optica Vision Plus",
+      "channel": "tiktok",
+      "phone": "+56 9 4444 3333",
+      "email": "",
+      "sector": "Oftalmologia",
+      "columnId": "col_perdido",
+      "priority": "low",
+      "estimatedBudget": 500000,
+      "mainNote": "Decidio quedarse con su sistema actual. Posible recontacto en 6 meses.",
+      "notes": [
+        { "id": "note_007a", "text": "Lead desde TikTok ads. Optica con 1 sucursal.", "createdAt": "2026-03-01T12:00:00.000Z" },
+        { "id": "note_007b", "text": "No avanzo. Dice que su sistema actual le funciona. Recontactar en septiembre.", "createdAt": "2026-03-15T10:00:00.000Z" }
+      ],
+      "messages": [
+        { "id": "msg_007a", "text": "Vi su anuncio en TikTok. Cuanto cuesta?", "direction": "inbound", "channel": "tiktok", "createdAt": "2026-03-01T12:00:00.000Z" },
+        { "id": "msg_007b", "text": "Hola Camila! Los planes parten desde $500.000/año. Te cuento mas?", "direction": "outbound", "channel": "tiktok", "createdAt": "2026-03-01T12:30:00.000Z" },
+        { "id": "msg_007c", "text": "Por ahora no, ya tengo un sistema. Gracias!", "direction": "inbound", "channel": "tiktok", "createdAt": "2026-03-05T09:00:00.000Z" }
+      ],
+      "tags": ["recontactar"],
+      "createdAt": "2026-03-01T12:00:00.000Z",
+      "updatedAt": "2026-03-15T10:00:00.000Z",
+      "scrapedData": {}
+    },
+    {
+      "id": "lead_test_008",
+      "name": "Diego Vargas",
+      "company": "Traumatologia Deportiva",
+      "channel": "referral",
+      "phone": "+56 9 2222 1111",
+      "email": "dvargas@traumadep.cl",
+      "sector": "Traumatologia",
+      "columnId": "col_negociacion",
+      "priority": "medium",
+      "estimatedBudget": 1800000,
+      "mainNote": "Referido por Valentina Reyes (Centro Medico Vida). Clinica de traumatologia deportiva.",
+      "notes": [
+        { "id": "note_008a", "text": "Referido por cliente actual. Muy buena señal.", "createdAt": "2026-03-28T10:00:00.000Z" },
+        { "id": "note_008b", "text": "Demo agendada para el viernes. Necesita integracion con equipos medicos.", "createdAt": "2026-04-01T14:00:00.000Z" }
+      ],
+      "messages": [],
+      "tags": ["referido", "clinica", "seguimiento"],
+      "createdAt": "2026-03-28T10:00:00.000Z",
+      "updatedAt": "2026-04-01T14:00:00.000Z",
+      "scrapedData": {}
+    },
+    {
+      "id": "lead_test_009",
+      "name": "Lucia Morales",
+      "company": "Psicologia Integral",
+      "channel": "website",
+      "phone": "+56 9 9999 0000",
+      "email": "lucia@psicologiaintegral.cl",
+      "sector": "Psicologia",
+      "columnId": "col_nuevo",
+      "priority": "medium",
+      "estimatedBudget": 450000,
+      "mainNote": "Completo formulario del sitio web. Consultorio de psicologia, 3 profesionales.",
+      "notes": [
+        { "id": "note_009a", "text": "Formulario web completado hoy. Llamar mañana.", "createdAt": "2026-04-04T18:00:00.000Z" }
+      ],
+      "messages": [],
+      "tags": ["primera-consulta"],
+      "createdAt": "2026-04-04T18:00:00.000Z",
+      "updatedAt": "2026-04-04T18:00:00.000Z",
+      "scrapedData": {}
+    },
+    {
+      "id": "lead_test_010",
+      "name": "Pedro Alvarez",
+      "company": "Laboratorio BioAnalisis",
+      "channel": "phone",
+      "phone": "+56 9 8888 7777",
+      "email": "palvarez@bioanalisis.cl",
+      "sector": "Laboratorio",
+      "columnId": "col_contactado",
+      "priority": "high",
+      "estimatedBudget": 4000000,
+      "mainNote": "Laboratorio clinico grande. Llamo por telefono directo. Necesita integracion FHIR obligatoria.",
+      "notes": [
+        { "id": "note_010a", "text": "Llamada entrante. 2 sedes, 30 empleados. Presupuesto alto.", "createdAt": "2026-04-03T09:00:00.000Z" },
+        { "id": "note_010b", "text": "Muy interesado en FHIR R4. Agendar demo tecnica con equipo de TI.", "createdAt": "2026-04-03T09:30:00.000Z" }
+      ],
+      "messages": [],
+      "tags": ["vip", "corporativo", "urgente"],
+      "createdAt": "2026-04-03T09:00:00.000Z",
+      "updatedAt": "2026-04-03T09:30:00.000Z",
+      "scrapedData": {}
+    },
+    {
+      "id": "lead_test_011",
+      "name": "Isabella Contreras",
+      "company": "Dermatologia Estetica IC",
+      "channel": "instagram",
+      "phone": "+56 9 6666 5555",
+      "email": "isabella@dermaIC.cl",
+      "sector": "Dermatologia",
+      "columnId": "col_nuevo",
+      "priority": "low",
+      "estimatedBudget": null,
+      "mainNote": "Consulta basica por Instagram. Sin presupuesto definido aun.",
+      "notes": [],
+      "messages": [
+        { "id": "msg_011a", "text": "Hola! Tienen software para clinica de dermatologia?", "direction": "inbound", "channel": "instagram", "createdAt": "2026-04-05T11:00:00.000Z" }
+      ],
+      "tags": ["dermatologia", "estetica"],
+      "createdAt": "2026-04-05T11:00:00.000Z",
+      "updatedAt": "2026-04-05T11:00:00.000Z",
+      "scrapedData": {}
+    },
+    {
+      "id": "lead_test_012",
+      "name": "Andres Figueroa",
+      "company": "",
+      "channel": "whatsapp",
+      "phone": "+56 9 1234 5678",
+      "email": "",
+      "sector": "Salud",
+      "columnId": "col_perdido",
+      "priority": "low",
+      "estimatedBudget": 300000,
+      "mainNote": "Consulta individual. Presupuesto muy bajo. No califica.",
+      "notes": [
+        { "id": "note_012a", "text": "Medico independiente. Solo queria agenda basica. No es nuestro perfil de cliente.", "createdAt": "2026-02-20T10:00:00.000Z" }
+      ],
+      "messages": [],
+      "tags": [],
+      "createdAt": "2026-02-20T10:00:00.000Z",
+      "updatedAt": "2026-02-22T10:00:00.000Z",
+      "scrapedData": {}
+    }
+  ]
+}

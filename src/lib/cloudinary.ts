@@ -60,3 +60,19 @@ export async function uploadProfileImage(fileBuffer: Buffer, userId: string) {
 
   return result.secure_url;
 }
+
+export async function uploadImagingAsset(fileBuffer: Buffer, userId: string, mimeType: string) {
+  ensureCloudinaryConfig();
+
+  const safeMimeType = mimeType?.trim() || "application/octet-stream";
+  const dataUri = `data:${safeMimeType};base64,${fileBuffer.toString("base64")}`;
+
+  const result = await cloudinary.uploader.upload(dataUri, {
+    folder: "medigest/imaging",
+    public_id: `imaging-${userId}-${Date.now()}`,
+    overwrite: false,
+    resource_type: "auto",
+  });
+
+  return result.secure_url;
+}
