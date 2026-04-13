@@ -8,6 +8,7 @@ export const USER_PERMISSIONS = [
   { key: "USERS", label: "Usuario" },
   { key: "TREATMENTS", label: "Tratamientos" },
   { key: "BOXES", label: "Boxes" },
+  { key: "SEGUIMIENTO", label: "Seguimiento" },
 ] as const;
 
 export type UserPermission = (typeof USER_PERMISSIONS)[number]["key"];
