@@ -45,7 +45,7 @@ const NAV_ITEMS: NavItem[] = [
     icon: KanbanSquare,
     group: "escritorios",
     permission: "LEADS",
-    matchPrefixes: ["/crm", "/chat-meta"],
+    matchPrefixes: ["/crm", "/chat-meta", "/leads"],
   },
   {
     href: "/patients",
