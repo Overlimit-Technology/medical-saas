@@ -60,18 +60,16 @@ export default function AppointmentDetailModal({
     "flex w-full items-center justify-between px-4 py-3 text-left text-sm transition-colors duration-200 hover:bg-[#19b3bc]/5";
   const fieldClassName =
     "w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm text-slate-700 transition-all duration-200 focus:border-[#19b3bc] focus:outline-none focus:ring-2 focus:ring-[#19b3bc]/15";
-  const [openDropdown, setOpenDropdown] = useState<"appointmentStatus" | "treatment" | "paymentStatus" | null>(null);
+  const [openDropdown, setOpenDropdown] = useState<"appointmentStatus" | "treatment" | null>(null);
   const appointmentStatusRef = useRef<HTMLDivElement | null>(null);
   const treatmentRef = useRef<HTMLDivElement | null>(null);
-  const paymentStatusRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     const handlePointerDown = (event: PointerEvent) => {
       const target = event.target as Node;
       if (
         appointmentStatusRef.current?.contains(target) ||
-        treatmentRef.current?.contains(target) ||
-        paymentStatusRef.current?.contains(target)
+        treatmentRef.current?.contains(target)
       ) {
         return;
       }
@@ -84,8 +82,16 @@ export default function AppointmentDetailModal({
 
   const selectedTreatmentLabel = useMemo(() => {
     const treatment = treatments.find((item) => item.id === paymentForm.treatmentId);
-    return treatment ? `${treatment.name} · ${formatCurrency(treatment.price)}` : "Tratamiento";
-  }, [paymentForm.treatmentId, treatments]);
+    if (treatment) {
+      return `${treatment.name} · ${formatCurrency(treatment.price)}`;
+    }
+
+    if (appointment.paymentEntry?.treatment.id === paymentForm.treatmentId) {
+      return `${appointment.paymentEntry.treatment.name} · ${formatCurrency(appointment.paymentEntry.treatment.price)}`;
+    }
+
+    return "Tratamiento";
+  }, [appointment.paymentEntry, paymentForm.treatmentId, treatments]);
 
   const selectedPaymentStatusLabel = PAYMENT_STATUS_LABELS[paymentForm.status] ?? "Estado de pago";
   const selectedAppointmentStatusLabel =
@@ -275,65 +281,47 @@ export default function AppointmentDetailModal({
                   </div>
 
                   <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_160px]">
-                    <div ref={paymentStatusRef} className="relative">
-                      <button
-                        type="button"
-                        onClick={() =>
-                          setOpenDropdown((current) => (current === "paymentStatus" ? null : "paymentStatus"))
-                        }
-                        className={`${dropdownTriggerClassName} ${
-                          openDropdown === "paymentStatus" ? "border-[#19b3bc] ring-2 ring-[#19b3bc]/15" : ""
-                        }`}
-                      >
-                        <span className="truncate text-slate-700">{selectedPaymentStatusLabel}</span>
-                        <span
-                          className={`text-[#19b3bc] transition-transform duration-200 ${
-                            openDropdown === "paymentStatus" ? "rotate-180" : ""
-                          }`}
-                        >
-                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9" /></svg>
-                        </span>
-                      </button>
+                    <label className="flex cursor-pointer items-center justify-between rounded-xl border border-slate-200 bg-white px-4 py-3">
+                      <div className="pr-4">
+                        <p className="text-sm font-medium text-slate-700">Pagado</p>
+                        <p className="mt-1 text-xs text-slate-400">
+                          {paymentForm.status === "PAID"
+                            ? "Este cobro se suma a la caja del dia."
+                            : paymentForm.status === "WAIVED"
+                              ? "Actualmente esta marcado como exento y no suma a la caja del dia."
+                              : "Desmarcado queda pendiente y no suma a la caja del dia."}
+                        </p>
+                        <p className="mt-2 text-xs font-medium text-[#0f8f98]">
+                          Estado actual: {selectedPaymentStatusLabel}
+                        </p>
+                      </div>
+                      <span className="relative inline-flex h-6 w-11 shrink-0 items-center">
+                        <input
+                          type="checkbox"
+                          checked={paymentForm.status === "PAID"}
+                          onChange={(event) =>
+                            onPaymentFieldChange(
+                              "status",
+                              (event.target.checked ? "PAID" : "PENDING") as PaymentStatus,
+                            )
+                          }
+                          className="peer sr-only"
+                        />
+                        <span className="absolute inset-0 rounded-full bg-slate-200 transition-colors peer-checked:bg-[#19b3bc]" />
+                        <span className="absolute left-0.5 h-5 w-5 rounded-full bg-white shadow-sm transition-transform peer-checked:translate-x-5" />
+                      </span>
+                    </label>
 
-                      {openDropdown === "paymentStatus" && (
-                        <div className={dropdownPanelClassName}>
-                          <div className="max-h-64 overflow-y-auto py-1">
-                            {Object.entries(PAYMENT_STATUS_LABELS).map(([value, label]) => {
-                              const isSelected = paymentForm.status === value;
-                              return (
-                                <button
-                                  key={value}
-                                  type="button"
-                                  onClick={() => {
-                                    onPaymentFieldChange("status", value as PaymentStatus);
-                                    setOpenDropdown(null);
-                                  }}
-                                  className={`${dropdownItemClassName} ${
-                                    isSelected ? "bg-[#19b3bc]/10 text-[#0f8f98]" : "text-slate-700"
-                                  }`}
-                                >
-                                  <span>{label}</span>
-                                  {isSelected ? (
-                                    <span className="text-[#19b3bc]">
-                                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
-                                    </span>
-                                  ) : null}
-                                </button>
-                              );
-                            })}
-                          </div>
-                        </div>
-                      )}
+                    <div>
+                      <input
+                        type="number"
+                        min="1"
+                        value={paymentForm.amount}
+                        onChange={(event) => onPaymentFieldChange("amount", event.target.value)}
+                        placeholder="Monto"
+                        className={fieldClassName}
+                      />
                     </div>
-
-                    <input
-                      type="number"
-                      min="1"
-                      value={paymentForm.amount}
-                      onChange={(event) => onPaymentFieldChange("amount", event.target.value)}
-                      placeholder="Monto"
-                      className={fieldClassName}
-                    />
                   </div>
 
                   <div className="relative">

@@ -23,6 +23,15 @@ export interface AppointmentsRepository {
     input: { reason: string; cancelledBy: "STAFF" | "PATIENT" | "SYSTEM" }
   ): Promise<void>;
   updateAppointmentStatus(appointmentId: string, status: string): Promise<Appointment>;
+  updateAppointmentPayment(
+    appointmentId: string,
+    input: {
+      treatmentId: string;
+      status: "PENDING" | "PAID" | "WAIVED";
+      amount: number;
+      notes: string | null;
+    }
+  ): Promise<Appointment>;
   updateAppointmentSchedule(
     appointmentId: string,
     input: { startAt: string; endAt: string }

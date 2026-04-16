@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { DeleteIconButton } from "@/presentation/common/DeleteIconButton";
 import { usePatientsViewModel, formatRelativeDate } from "./PatientsViewModel";
@@ -18,6 +18,7 @@ type ImagingUploadForm = {
 
 type ImagingStudy = {
   title: string;
+  patientId?: string | null;
   patient: string;
   date: string;
   doctor: string;
@@ -27,6 +28,7 @@ type ImagingStudy = {
 
 type ImagingRecentItem = {
   name: string;
+  patientId?: string | null;
   patient: string;
   time: string;
 };
@@ -111,6 +113,14 @@ function formatTodayLabel() {
   }).format(new Date());
 }
 
+function getPatientFullName(patient: {
+  firstName: string;
+  lastName: string;
+  secondLastName?: string | null;
+}) {
+  return [patient.firstName, patient.lastName, patient.secondLastName ?? ""].join(" ").trim();
+}
+
 function roleLabel(role: SessionRole, isSuperAdmin: boolean) {
   if (role === "ADMIN") return isSuperAdmin ? "Super admin" : "Admin";
   if (role === "DOCTOR") return "Doctor";
@@ -120,6 +130,9 @@ function roleLabel(role: SessionRole, isSuperAdmin: boolean) {
 
 function ImagingSection({
   patients,
+  selectedPatientId,
+  onSelectPatient,
+  onBackToPatients,
 }: {
   patients: Array<{
     id: string;
@@ -127,6 +140,9 @@ function ImagingSection({
     lastName: string;
     secondLastName?: string | null;
   }>;
+  selectedPatientId: string | null;
+  onSelectPatient: (patientId: string | null) => void;
+  onBackToPatients: () => void;
 }) {
   const [studies, setStudies] = useState<ImagingStudy[]>(IMAGING_STUDIES.slice(0, 0));
   const [recentItems, setRecentItems] = useState<ImagingRecentItem[]>(IMAGING_RECENT.slice(0, 0));
@@ -138,6 +154,28 @@ function ImagingSection({
   const [sessionName, setSessionName] = useState("Cargando...");
   const [sessionRole, setSessionRole] = useState<SessionRole>(null);
   const [isSuperAdmin, setIsSuperAdmin] = useState(false);
+
+  const selectedPatient = useMemo(
+    () => patients.find((patient) => patient.id === selectedPatientId) ?? null,
+    [patients, selectedPatientId]
+  );
+  const selectedPatientName = selectedPatient ? getPatientFullName(selectedPatient) : null;
+
+  const filteredStudies = useMemo(() => {
+    if (!selectedPatientId || !selectedPatientName) return studies;
+
+    return studies.filter(
+      (study) => study.patientId === selectedPatientId || study.patient === selectedPatientName
+    );
+  }, [selectedPatientId, selectedPatientName, studies]);
+
+  const filteredRecentItems = useMemo(() => {
+    if (!selectedPatientId || !selectedPatientName) return recentItems;
+
+    return recentItems.filter(
+      (item) => item.patientId === selectedPatientId || item.patient === selectedPatientName
+    );
+  }, [recentItems, selectedPatientId, selectedPatientName]);
 
   useEffect(() => {
     const loadSession = async () => {
@@ -198,7 +236,10 @@ function ImagingSection({
 
   const handleOpenModal = () => {
     setSelectedFile(null);
-    setForm(EMPTY_IMAGING_FORM);
+    setForm({
+      ...EMPTY_IMAGING_FORM,
+      patientId: selectedPatientId ?? "",
+    });
     setSubmitError(null);
     setIsUploadModalOpen(true);
   };
@@ -223,11 +264,9 @@ function ImagingSection({
       return;
     }
 
-    const selectedPatient = patients.find((patient) => patient.id === form.patientId) ?? null;
-    const patientName = selectedPatient
-      ? [selectedPatient.firstName, selectedPatient.lastName, selectedPatient.secondLastName ?? ""]
-          .join(" ")
-          .trim()
+    const uploadPatient = patients.find((patient) => patient.id === form.patientId) ?? null;
+    const patientName = uploadPatient
+      ? getPatientFullName(uploadPatient)
       : "Sin paciente asociado";
 
     const uploadedBy = sessionRole === "DOCTOR" ? sessionName : "Admin";
@@ -266,6 +305,7 @@ function ImagingSection({
     setStudies((current) => [
       {
         title: form.studyName.trim(),
+        patientId: uploadPatient?.id ?? null,
         patient: patientName,
         date: formatTodayLabel(),
         doctor: uploadedBy,
@@ -278,6 +318,7 @@ function ImagingSection({
     setRecentItems((current) => [
       {
         name: fileName,
+        patientId: uploadPatient?.id ?? null,
         patient: patientName,
         time: "Hoy",
       },
@@ -304,18 +345,42 @@ function ImagingSection({
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
             <p className="text-sm text-slate-500">Historial paciente</p>
-            <h2 className="text-2xl font-semibold text-slate-900">Imagenologia</h2>
+            <h2 className="text-2xl font-semibold text-slate-900">
+              {selectedPatientName ? `Imagenologia de ${selectedPatientName}` : "Imagenologia"}
+            </h2>
             <p className="mt-2 max-w-2xl text-sm text-slate-500">
-              Gestiona radiografias, tomografias y estudios de imagen desde un solo lugar.
+              {selectedPatientName
+                ? "Panel filtrado con los estudios de imagen del paciente seleccionado."
+                : "Gestiona radiografias, tomografias y estudios de imagen desde un solo lugar."}
             </p>
           </div>
-          <button
-            type="button"
-            onClick={handleOpenModal}
-            className="rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-700"
-          >
-            Subir imagenologia
-          </button>
+          <div className="flex flex-wrap items-center gap-3">
+            {selectedPatientName ? (
+              <>
+                <button
+                  type="button"
+                  onClick={() => onSelectPatient(null)}
+                  className="rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-medium text-slate-700 transition hover:border-slate-300 hover:bg-slate-50"
+                >
+                  Ver todas
+                </button>
+                <button
+                  type="button"
+                  onClick={onBackToPatients}
+                  className="rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-medium text-slate-700 transition hover:border-slate-300 hover:bg-slate-50"
+                >
+                  Volver a pacientes
+                </button>
+              </>
+            ) : null}
+            <button
+              type="button"
+              onClick={handleOpenModal}
+              className="rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-700"
+            >
+              Subir imagenologia
+            </button>
+          </div>
         </div>
       </div>
 
@@ -323,9 +388,9 @@ function ImagingSection({
         {IMAGING_SUMMARY.map((item) => {
           const dynamicValue =
             item.label === "Pendientes"
-              ? `${studies.filter((study) => study.status === "pendiente").length}`
+              ? `${filteredStudies.filter((study) => study.status === "pendiente").length}`
               : item.label === "Imagenes totales"
-                ? `${studies.length}`
+                ? `${filteredStudies.length}`
                 : item.value;
 
           return (
@@ -366,10 +431,10 @@ function ImagingSection({
               <h3 className="text-xl font-semibold text-slate-900">Imagenes recientes</h3>
             </div>
             <div className="space-y-4 px-5 py-5">
-              {recentItems.length === 0 ? (
+              {filteredRecentItems.length === 0 ? (
                 <p className="text-sm text-slate-400">Aun no hay imagenes recientes cargadas.</p>
               ) : (
-                recentItems.map((item) => (
+                filteredRecentItems.map((item) => (
                   <article key={`${item.name}-${item.time}`} className="flex items-center gap-3">
                     <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-slate-100 text-slate-500">
                       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
@@ -392,7 +457,9 @@ function ImagingSection({
 
         <section className="rounded-2xl border border-slate-100 bg-white shadow-sm">
           <div className="flex flex-wrap items-center justify-between gap-4 border-b border-slate-100 px-5 py-5">
-            <h3 className="text-xl font-semibold text-slate-900">Estudios de imagen</h3>
+            <h3 className="text-xl font-semibold text-slate-900">
+              {selectedPatientName ? `Estudios de ${selectedPatientName}` : "Estudios de imagen"}
+            </h3>
             <div className="flex flex-wrap items-center gap-3">
               <div className="relative">
                 <svg className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-300" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -407,7 +474,7 @@ function ImagingSection({
                 />
               </div>
               <button className="rounded-full border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700">
-                Todos
+                {selectedPatientName ? "Paciente filtrado" : "Todos"}
               </button>
             </div>
           </div>
@@ -426,12 +493,14 @@ function ImagingSection({
           </div>
 
           <div className="grid gap-4 px-5 pb-5 md:grid-cols-2 xl:grid-cols-3">
-            {studies.length === 0 ? (
+            {filteredStudies.length === 0 ? (
               <div className="md:col-span-2 xl:col-span-3 rounded-2xl border border-dashed border-slate-200 bg-slate-50/60 p-8 text-center text-sm text-slate-400">
-                Aun no hay estudios cargados. Usa &quot;Subir imagenologia&quot; para agregar el primero.
+                {selectedPatientName
+                  ? "Este paciente aun no tiene estudios cargados. Usa \"Subir imagenologia\" para agregar el primero."
+                  : "Aun no hay estudios cargados. Usa \"Subir imagenologia\" para agregar el primero."}
               </div>
             ) : (
-              studies.map((study, index) => (
+              filteredStudies.map((study, index) => (
                 <article
                   key={`${study.title}-${study.patient}-${study.date}`}
                   className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"
@@ -586,12 +655,15 @@ function ImagingSection({
                 <select
                   value={form.patientId}
                   onChange={(event) => setForm((current) => ({ ...current, patientId: event.target.value }))}
+                  disabled={Boolean(selectedPatientId)}
                   className="w-full rounded-xl border border-slate-200 bg-slate-50/40 px-3 py-2.5 text-sm"
                 >
-                  <option value="">Selecciona un paciente de la sede (opcional)</option>
+                  <option value="">
+                    {selectedPatientName ? selectedPatientName : "Selecciona un paciente de la sede (opcional)"}
+                  </option>
                   {patients.map((patient) => (
                     <option key={patient.id} value={patient.id}>
-                      {[patient.firstName, patient.lastName, patient.secondLastName ?? ""].join(" ").trim()}
+                      {getPatientFullName(patient)}
                     </option>
                   ))}
                 </select>
@@ -645,6 +717,12 @@ export default function Patients() {
   const router = useRouter();
   const { state, actions } = usePatientsViewModel();
   const [activeTab, setActiveTab] = useState<PatientsTab>("patients");
+  const [selectedImagingPatientId, setSelectedImagingPatientId] = useState<string | null>(null);
+
+  const openPatientImaging = (patientId: string) => {
+    setSelectedImagingPatientId(patientId);
+    setActiveTab("imaging");
+  };
 
   return (
     <div className="mx-auto max-w-6xl space-y-6">
@@ -670,7 +748,10 @@ export default function Patients() {
             </button>
             <button
               type="button"
-              onClick={() => setActiveTab("imaging")}
+              onClick={() => {
+                setSelectedImagingPatientId(null);
+                setActiveTab("imaging");
+              }}
               className={`rounded-full px-4 py-2 text-sm font-medium transition ${
                 activeTab === "imaging" ? "bg-slate-900 text-white" : "text-slate-600 hover:text-slate-900"
               }`}
@@ -682,7 +763,12 @@ export default function Patients() {
       </div>
 
       {activeTab === "imaging" ? (
-        <ImagingSection patients={state.items} />
+        <ImagingSection
+          patients={state.items}
+          selectedPatientId={selectedImagingPatientId}
+          onSelectPatient={setSelectedImagingPatientId}
+          onBackToPatients={() => setActiveTab("patients")}
+        />
       ) : (
         <>
           <div className="rounded-2xl border border-slate-100 bg-white px-6 pb-6 pt-5 shadow-sm">
@@ -783,6 +869,12 @@ export default function Patients() {
                         </td>
                         <td className="px-4 py-3 text-right">
                           <div className="flex items-center justify-end gap-1 opacity-0 transition-opacity group-hover:opacity-100" onClick={(e) => e.stopPropagation()}>
+                            <button
+                              className="rounded-full border border-blue-200 px-3 py-1 text-xs font-medium text-blue-700 transition-colors hover:border-blue-300 hover:bg-blue-50"
+                              onClick={() => openPatientImaging(patient.id)}
+                            >
+                              Ver imagenologia
+                            </button>
                             <button
                               className="rounded-full border border-slate-200 px-3 py-1 text-xs font-medium text-slate-600 transition-colors hover:border-slate-300 hover:text-slate-800"
                               onClick={() => actions.openEditModal(patient)}

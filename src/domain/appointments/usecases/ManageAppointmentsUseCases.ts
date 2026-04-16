@@ -42,6 +42,22 @@ export class UpdateAppointmentStatusUseCase {
   }
 }
 
+export class UpdateAppointmentPaymentUseCase {
+  constructor(private readonly repo: AppointmentsRepository) {}
+
+  async execute(
+    appointmentId: string,
+    input: {
+      treatmentId: string;
+      status: "PENDING" | "PAID" | "WAIVED";
+      amount: number;
+      notes: string | null;
+    }
+  ): Promise<Appointment> {
+    return this.repo.updateAppointmentPayment(appointmentId, input);
+  }
+}
+
 export class UpdateAppointmentScheduleUseCase {
   constructor(private readonly repo: AppointmentsRepository) {}
 
