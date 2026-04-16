@@ -247,6 +247,10 @@ export class AppointmentsService {
     const recordedAt = input.recordedAt ?? new Date();
     const performedAt = input.performedAt ?? appointment.startAt;
     const currentPayment = appointment.paymentHistory;
+    const shouldAutoCompleteAppointment =
+      nextStatus === "PAID" &&
+      appointment.startAt.getTime() <= recordedAt.getTime() &&
+      (appointment.status === "SCHEDULED" || appointment.status === "CONFIRMED");
 
     const item = await prisma.$transaction(async (tx) => {
       if (currentPayment) {
@@ -268,6 +272,7 @@ export class AppointmentsService {
           where: { id },
           data: {
             paymentStatus: nextStatus,
+            status: shouldAutoCompleteAppointment ? "COMPLETED" : undefined,
             paymentHistory: {
               update: {
                 recordedAt: nextRecordedAt,
@@ -285,6 +290,7 @@ export class AppointmentsService {
         where: { id },
         data: {
           paymentStatus: nextStatus,
+          status: shouldAutoCompleteAppointment ? "COMPLETED" : undefined,
           paymentHistory: {
             create: {
               recordedAt,

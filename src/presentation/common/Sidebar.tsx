@@ -18,6 +18,7 @@ import {
   Activity,
   Building2,
   ChevronDown,
+  Wallet,
 } from "lucide-react";
 import { hasPermission, type UserPermission } from "@/lib/permissions";
 import { useSidebarViewModel } from "./SidebarViewModel";
@@ -53,6 +54,13 @@ const NAV_ITEMS: NavItem[] = [
     group: "escritorios",
     permission: "LEADS",
     matchPrefixes: ["/crm", "/chat-meta", "/leads"],
+  },
+  {
+    href: "/liquidaciones",
+    label: "Liquidaciones",
+    icon: Wallet,
+    group: "escritorios",
+    roles: ["ADMIN"],
   },
   {
     href: "/patients",
@@ -313,7 +321,7 @@ export default function Sidebar() {
           }`}
         >
           <Building2 className="h-[18px] w-[18px] shrink-0" strokeWidth={2} />
-          {!collapsed && <span className="min-w-0 truncate">Mi clínica</span>}
+          {!collapsed && <span className="min-w-0 truncate">Mi Clínica</span>}
         </Link>
 
         <button

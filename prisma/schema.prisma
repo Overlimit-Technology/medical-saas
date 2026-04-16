@@ -267,11 +267,13 @@ model Clinic {
 }
 
 model ClinicSettings {
-  id           String   @id @default(cuid())
-  clinicId     String   @unique
-  statusColors Json?
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  id                                 String   @id @default(cuid())
+  clinicId                           String   @unique
+  statusColors                       Json?
+  professionalPayoutClinicPercentage Decimal? @db.Decimal(5, 2)
+  professionalPayoutSiiPercentage    Decimal? @db.Decimal(5, 2)
+  createdAt                          DateTime @default(now())
+  updatedAt                          DateTime @updatedAt
 
   clinic Clinic @relation(fields: [clinicId], references: [id], onDelete: Cascade)
 }
