@@ -25,6 +25,12 @@ export function startOfDay(date: Date) {
   return normalized;
 }
 
+export function addDays(date: Date, amount: number) {
+  const nextDate = new Date(date);
+  nextDate.setDate(nextDate.getDate() + amount);
+  return nextDate;
+}
+
 export function formatDateValue(date: Date) {
   const year = date.getFullYear();
   const month = `${date.getMonth() + 1}`.padStart(2, "0");
@@ -92,10 +98,24 @@ export function buildWeekDays(weekStart: Date) {
   });
 }
 
+export function isSameDay(left: Date, right: Date) {
+  return (
+    left.getFullYear() === right.getFullYear() &&
+    left.getMonth() === right.getMonth() &&
+    left.getDate() === right.getDate()
+  );
+}
+
 export function buildSlots() {
   const slotsPerHour = 60 / SLOT_MINUTES;
   const totalSlots = (END_HOUR - START_HOUR) * slotsPerHour;
   return Array.from({ length: totalSlots }).map((_, index) => index);
+}
+
+export function slotToDateForDay(day: Date, slotIndex: number) {
+  const base = startOfDay(day);
+  base.setHours(START_HOUR, 0, 0, 0);
+  return new Date(base.getTime() + slotIndex * SLOT_MINUTES * 60000);
 }
 
 export function slotToDate(weekStart: Date, dayIndex: number, slotIndex: number) {
@@ -121,6 +141,19 @@ export function buildWeekLabel(weekStart: Date) {
   }
 
   return `${capitalize(startMonth)} ${weekStart.getDate()} - ${capitalize(endMonth)} ${end.getDate()}`;
+}
+
+export function buildDayLabel(date: Date) {
+  const formatter = new Intl.DateTimeFormat("es-CL", {
+    weekday: "short",
+    day: "numeric",
+    month: "short",
+  });
+
+  return formatter
+    .format(date)
+    .replaceAll(".", "")
+    .replace(/^./, (character) => character.toUpperCase());
 }
 
 export function hasAppointmentOverlap(
@@ -160,6 +193,7 @@ export function createEmptyAppointmentForm(date = new Date()): AppointmentFormSt
 
   return {
     patientId: "",
+    patientRun: "",
     patientFirstName: "",
     patientLastName: "",
     patientEmail: "",

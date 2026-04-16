@@ -62,7 +62,7 @@ export default function AdminDashboard() {
         <p className="text-sm">{error}</p>
         <button
           onClick={fetchData}
-          className="text-sm text-indigo-600 underline hover:text-indigo-800"
+          className="text-sm text-[#19b3bc] underline hover:text-[#159ea7]"
         >
           Reintentar
         </button>
@@ -104,7 +104,7 @@ export default function AdminDashboard() {
             <RefreshCw size={12} className={loading ? "animate-spin" : ""} />
             Actualizar
           </button>
-          <span className="inline-flex items-center gap-1.5 rounded-full bg-indigo-50 border border-indigo-100 px-3 py-1.5 text-xs font-medium text-indigo-700">
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-[#19b3bc]/15 bg-[#19b3bc]/10 px-3 py-1.5 text-xs font-medium text-[#0f8f98]">
             Panel Administrativo
           </span>
         </div>
@@ -116,7 +116,7 @@ export default function AdminDashboard() {
           label="Citas de hoy"
           value={kpis.todayAppointments}
           icon={CalendarDays}
-          iconColor="bg-blue-50 text-blue-600"
+          iconColor="bg-cyan-50 text-cyan-700"
           delay={0}
         />
         <StatCard
@@ -124,7 +124,7 @@ export default function AdminDashboard() {
           value={kpis.newPatientsMonth}
           delta={kpis.newPatientsDelta}
           icon={Users}
-          iconColor="bg-violet-50 text-violet-600"
+          iconColor="bg-[#e8f8f9] text-[#0f8f98]"
           delay={60}
         />
         <StatCard
@@ -132,7 +132,7 @@ export default function AdminDashboard() {
           value={kpis.monthAppointments}
           delta={kpis.monthAppointmentsDelta}
           icon={Activity}
-          iconColor="bg-emerald-50 text-emerald-600"
+          iconColor="bg-teal-50 text-teal-700"
           delay={120}
         />
         <StatCard
@@ -140,20 +140,21 @@ export default function AdminDashboard() {
           value={formatCurrency(kpis.revenue)}
           delta={kpis.revenueDelta}
           icon={DollarSign}
-          iconColor="bg-amber-50 text-amber-600"
+          iconColor="bg-[#e8f8f9] text-[#19b3bc]"
           delay={180}
+          highlighted
         />
       </div>
 
       {/* Second row: quick stats */}
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
         {[
-          { label: "Completadas hoy", value: kpis.todayCompleted, icon: CheckCircle2, color: "text-emerald-600" },
-          { label: "Pendientes hoy", value: kpis.todayScheduled, icon: Clock, color: "text-blue-600" },
-          { label: "No asistieron", value: kpis.todayNoShow, icon: XCircle, color: "text-rose-500" },
+          { label: "Completadas hoy", value: kpis.todayCompleted, icon: CheckCircle2, color: "text-[#0f8f98]" },
+          { label: "Pendientes hoy", value: kpis.todayScheduled, icon: Clock, color: "text-cyan-700" },
+          { label: "No asistieron", value: kpis.todayNoShow, icon: XCircle, color: "text-red-500" },
           { label: "Total pacientes", value: kpis.totalPatients, icon: UserCheck, color: "text-slate-700" },
-          { label: "Doctores activos", value: kpis.totalDoctors, icon: Stethoscope, color: "text-indigo-600" },
-          { label: "Boxes activos", value: kpis.totalBoxes, icon: DoorOpen, color: "text-teal-600" },
+          { label: "Doctores activos", value: kpis.totalDoctors, icon: Stethoscope, color: "text-[#19b3bc]" },
+          { label: "Boxes activos", value: kpis.totalBoxes, icon: DoorOpen, color: "text-teal-700" },
         ].map((item, i) => (
           <div
             key={item.label}
@@ -191,7 +192,7 @@ export default function AdminDashboard() {
                       </div>
                       <div className="h-1.5 rounded-full bg-slate-100">
                         <div
-                          className="h-1.5 rounded-full bg-gradient-to-r from-indigo-400 to-sky-300 transition-all duration-500"
+                          className="h-1.5 rounded-full bg-gradient-to-r from-[#19b3bc] to-cyan-300 transition-all duration-500"
                           style={{ width: `${pct}%` }}
                         />
                       </div>
@@ -218,7 +219,7 @@ export default function AdminDashboard() {
                   <div key={i}>
                     <div className="flex items-center justify-between text-sm text-slate-700 mb-1">
                       <div className="flex items-center gap-2 min-w-0">
-                        <span className="flex h-6 w-6 items-center justify-center rounded-full bg-indigo-100 text-[10px] font-bold text-indigo-700 shrink-0">
+                        <span className="flex h-6 w-6 items-center justify-center rounded-full bg-[#e8f8f9] text-[10px] font-bold text-[#0f8f98] shrink-0">
                           {doctor.name.charAt(0)}
                         </span>
                         <span className="truncate text-sm">{doctor.name}</span>
@@ -227,7 +228,7 @@ export default function AdminDashboard() {
                     </div>
                     <div className="h-1.5 rounded-full bg-slate-100">
                       <div
-                        className="h-1.5 rounded-full bg-gradient-to-r from-indigo-400 to-violet-400 transition-all duration-500"
+                        className="h-1.5 rounded-full bg-gradient-to-r from-[#19b3bc] to-teal-300 transition-all duration-500"
                         style={{ width: `${pct}%` }}
                       />
                     </div>
@@ -254,11 +255,11 @@ export default function AdminDashboard() {
               {topTreatments.map((treatment, i) => {
                 const pct = ((treatment.count / totalTreatmentCount) * 100).toFixed(1);
                 const colors = [
-                  "bg-indigo-400",
-                  "bg-sky-400",
-                  "bg-emerald-400",
-                  "bg-amber-400",
-                  "bg-rose-400",
+                  "bg-[#19b3bc]",
+                  "bg-cyan-400",
+                  "bg-teal-400",
+                  "bg-[#7adbe1]",
+                  "bg-[#0f8f98]",
                 ];
                 return (
                   <div key={i} className="flex items-center justify-between">
@@ -354,8 +355,8 @@ export default function AdminDashboard() {
                 />
                 <defs>
                   <linearGradient id="attendanceGrad" x1="0" y1="0" x2="1" y2="1">
-                    <stop offset="0%" stopColor="#818cf8" />
-                    <stop offset="100%" stopColor="#38bdf8" />
+                    <stop offset="0%" stopColor="#19b3bc" />
+                    <stop offset="100%" stopColor="#7adbe1" />
                   </linearGradient>
                 </defs>
               </svg>
@@ -365,11 +366,11 @@ export default function AdminDashboard() {
             </div>
             <div className="space-y-2 text-sm">
               <div className="flex items-center gap-2">
-                <span className="h-2.5 w-2.5 rounded-full bg-emerald-400" />
+                <span className="h-2.5 w-2.5 rounded-full bg-[#19b3bc]" />
                 <span className="text-slate-600">Completadas: {kpis.todayCompleted}</span>
               </div>
               <div className="flex items-center gap-2">
-                <span className="h-2.5 w-2.5 rounded-full bg-rose-400" />
+                <span className="h-2.5 w-2.5 rounded-full bg-red-400" />
                 <span className="text-slate-600">No asistieron: {kpis.todayNoShow}</span>
               </div>
               <div className="flex items-center gap-2">
@@ -377,14 +378,14 @@ export default function AdminDashboard() {
                 <span className="text-slate-600">Canceladas: {kpis.todayCancelled}</span>
               </div>
               <div className="flex items-center gap-2">
-                <span className="h-2.5 w-2.5 rounded-full bg-blue-400" />
+                <span className="h-2.5 w-2.5 rounded-full bg-cyan-400" />
                 <span className="text-slate-600">Pendientes: {kpis.todayScheduled}</span>
               </div>
             </div>
           </div>
         </div>
 
-        <div className="rounded-2xl bg-gradient-to-br from-indigo-500 to-violet-600 p-6 shadow-sm text-white animate-card-in" style={{ animationDelay: "600ms" }}>
+        <div className="rounded-2xl bg-gradient-to-br from-[#19b3bc] to-[#0f8f98] p-6 shadow-sm text-white animate-card-in" style={{ animationDelay: "600ms" }}>
           <p className="text-sm font-medium text-white/80 mb-3">Resumen del mes</p>
           <div className="grid grid-cols-2 gap-4">
             <div>

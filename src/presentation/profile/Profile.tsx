@@ -30,13 +30,13 @@ export default function Profile() {
                 className="h-28 w-28 rounded-[28px] object-cover shadow-sm"
               />
             ) : (
-              <div className="flex h-28 w-28 items-center justify-center rounded-[28px] bg-slate-900 text-3xl font-semibold text-white">
+              <div className="flex h-28 w-28 items-center justify-center rounded-[28px] bg-[#19b3bc] text-3xl font-semibold text-white">
                 {getInitials(form.firstName, form.lastName, form.email)}
               </div>
             )}
             <h2 className="mt-4 text-xl font-semibold text-slate-900">{fullName}</h2>
             <p className="mt-1 text-sm text-slate-500">{form.email}</p>
-            <div className="mt-4 rounded-full bg-sky-50 px-3 py-1 text-xs font-medium text-sky-700">
+            <div className="mt-4 rounded-full bg-[#19b3bc]/10 px-3 py-1 text-xs font-medium text-[#0f8f98]">
               {clinicLabel}
             </div>
           </div>
@@ -115,7 +115,7 @@ export default function Profile() {
               <button
                 type="submit"
                 disabled={loading || saving || uploading}
-                className="rounded-2xl bg-slate-900 px-5 py-3 text-sm font-medium text-white disabled:cursor-not-allowed disabled:bg-slate-300"
+                className="rounded-2xl bg-[#19b3bc] px-5 py-3 text-sm font-medium text-white transition-colors hover:bg-[#159ea7] disabled:cursor-not-allowed disabled:bg-[#19b3bc]/45"
               >
                 {saving ? "Guardando..." : "Guardar"}
               </button>

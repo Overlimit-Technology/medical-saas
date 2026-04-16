@@ -32,6 +32,7 @@ export class PatientsService {
     const pageSize = params.pageSize ?? 20;
     const skip = (page - 1) * pageSize;
     const q = params.q?.trim();
+    const normalizedQ = q ? normalizeId(q) : "";
 
     const where: Prisma.PatientWhereInput = {
       clinicId: params.clinicId,
@@ -43,6 +44,7 @@ export class PatientsService {
         { firstName: { contains: q, mode: "insensitive" } },
         { lastName: { contains: q, mode: "insensitive" } },
         { run: { contains: q, mode: "insensitive" } },
+        ...(normalizedQ ? [{ runNormalized: { contains: normalizedQ } }] : []),
         { email: { contains: q, mode: "insensitive" } },
       ];
     }
