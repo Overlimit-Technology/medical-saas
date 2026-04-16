@@ -30,6 +30,7 @@ type CreateInternalAlertInput = {
   referenceId?: string | null;
   targetRoles?: Array<"ADMIN" | "DOCTOR" | "SECRETARY">;
   includeActor?: boolean;
+  dispatchEmail?: boolean;
 };
 
 type CandidateRecipient = {
@@ -89,6 +90,7 @@ export class InternalAlertsService {
     }
 
     const eventType = normalizeEventType(input.eventType);
+    const shouldDispatchEmail = input.dispatchEmail ?? true;
     const recipientResolution = await this.resolveRecipients({
       actorRole,
       actorUserId: input.actorUserId,
@@ -117,10 +119,15 @@ export class InternalAlertsService {
           data: recipientResolution.recipients.map((recipient) => ({
             alertId: createdAlert.id,
             userId: recipient.userId,
-            deliveryStatus: recipient.canReceive ? "PENDING" : "SKIPPED",
-            deliveryError: recipient.canReceive
-              ? null
-              : recipient.skipReason ?? "El destinatario no cumple las reglas de sede.",
+            deliveryStatus:
+              recipient.canReceive && shouldDispatchEmail ? "PENDING" : "SKIPPED",
+            deliveryError:
+              recipient.canReceive && shouldDispatchEmail
+                ? null
+                : recipient.skipReason ??
+                  (shouldDispatchEmail
+                    ? "El destinatario no cumple las reglas de sede."
+                    : "Despacho por correo deshabilitado para este evento."),
           })),
           skipDuplicates: true,
         });
@@ -166,6 +173,42 @@ export class InternalAlertsService {
           )
         )
       );
+    }
+
+    const emailDispatchSkippedRecipients =
+      !shouldDispatchEmail
+        ? recipientResolution.recipients.filter((recipient) => recipient.canReceive)
+        : [];
+
+    if (emailDispatchSkippedRecipients.length > 0) {
+      await Promise.all(
+        emailDispatchSkippedRecipients.map((recipient) =>
+          AuditService.log(
+            "internal_alert.delivery.skipped",
+            input.actorUserId,
+            toAuditDetail({
+              alertId: alert.id,
+              recipientUserId: recipient.userId,
+              role: recipient.role,
+              clinicId: input.clinicId,
+              reason: "Despacho por correo deshabilitado para este evento.",
+            })
+          )
+        )
+      );
+    }
+
+    if (!shouldDispatchEmail) {
+      return {
+        alertId: alert.id,
+        sentCount: 0,
+        failedCount: 0,
+        skippedCount:
+          skippedRecipients.length +
+          recipientResolution.externalSkipDetails.length +
+          emailDispatchSkippedRecipients.length,
+        warning: null,
+      };
     }
 
     const clinicLabel = await resolveSingleClinicLabel(input.clinicId);

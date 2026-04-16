@@ -2,8 +2,6 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { requireClinicSession, requireRole } from "@/server/auth/requireSession";
 import { AppointmentsService } from "@/server/appointments/AppointmentsService";
-import { resolveSingleClinicLabel } from "@/server/clinics/clinicDisplay";
-import { sendEmail } from "@/server/notifications/email";
 import { InternalAlertsService } from "@/server/internal-alerts/InternalAlertsService";
 import { PatientsService } from "@/server/patients/PatientsService";
 
@@ -156,32 +154,7 @@ export async function POST(req: Request) {
       .join(" ")
       .trim() || item.doctor.email;
 
-    let notificationWarning: string | null = null;
-    if (item.patient.email) {
-      const clinicLabel = await resolveSingleClinicLabel(session.clinicId);
-      const subject = "Cita agendada en ZENSYA";
-      const text = [
-        `Hola ${patientName || item.patient.firstName},`,
-        "",
-        "Tu cita fue agendada correctamente en ZENSYA.",
-        `Fecha y hora: ${formatDateTime(item.startAt)}`,
-        `Profesional: ${doctorName}`,
-        `Sede: ${clinicLabel}`,
-        "",
-        "Si necesitas reagendar, responde a este correo o contacta a la clinica.",
-      ].join("\n");
-
-      const origin = new URL(req.url).origin;
-      const sent = await sendEmail({
-        origin,
-        to: item.patient.email,
-        subject,
-        text,
-      });
-      if (!sent.ok) {
-        notificationWarning = sent.error;
-      }
-    }
+    const notificationWarning: string | null = null;
 
     let internalAlertWarning: string | null = null;
     try {
@@ -196,6 +169,7 @@ export async function POST(req: Request) {
         message: `Paciente: ${patientName || item.patient.firstName}. Doctor: ${doctorName}. Fecha: ${formatDateTime(item.startAt)}.`,
         referenceType: "APPOINTMENT",
         referenceId: item.id,
+        dispatchEmail: false,
       });
       internalAlertWarning = alert.warning;
     } catch (error) {

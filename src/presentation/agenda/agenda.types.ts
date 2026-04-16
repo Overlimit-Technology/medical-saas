@@ -9,22 +9,33 @@ import type { User } from "@/domain/users/entities/User";
 import type { AppointmentStatus, StatusColorMap } from "./statusColors";
 
 export type AgendaAppointment = Appointment;
-export type AgendaPatient = Pick<Patient, "id" | "firstName" | "lastName" | "email" | "phone">;
+export type AgendaPatient = Pick<Patient, "id" | "firstName" | "lastName" | "run" | "email" | "phone">;
 export type AgendaDoctor = Pick<User, "id" | "profile">;
 export type AgendaBox = Pick<Box, "id" | "name">;
 export type AgendaTreatment = Treatment;
 
 export type AgendaView = "agenda" | "dailyCash";
+export type AgendaCalendarMode = "general" | "boxDay" | "doctor";
+export type AgendaDoctorViewMode = "day" | "week";
 export type PaymentStatus = "PENDING" | "PAID" | "WAIVED";
 
 export type AgendaSelection = {
-  dayIndex: number;
+  columnIndex: number;
   startSlot: number;
   endSlot: number;
 };
 
+export type AgendaGridColumn = {
+  id: string;
+  caption: string;
+  label: string;
+  variant?: "date" | "resource";
+  isToday?: boolean;
+};
+
 export type AppointmentFormState = {
   patientId: string;
+  patientRun: string;
   patientFirstName: string;
   patientLastName: string;
   patientEmail: string;

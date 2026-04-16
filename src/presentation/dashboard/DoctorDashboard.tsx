@@ -52,7 +52,7 @@ export default function DoctorDashboard() {
       <div className="flex flex-col items-center justify-center gap-4 py-20 text-slate-500">
         <AlertCircle size={40} className="text-rose-400" />
         <p className="text-sm">{error}</p>
-        <button onClick={fetchData} className="text-sm text-indigo-600 underline hover:text-indigo-800">
+        <button onClick={fetchData} className="text-sm text-[#19b3bc] underline hover:text-[#159ea7]">
           Reintentar
         </button>
       </div>
@@ -96,7 +96,7 @@ export default function DoctorDashboard() {
             <RefreshCw size={12} className={loading ? "animate-spin" : ""} />
             Actualizar
           </button>
-          <span className="inline-flex items-center gap-1.5 rounded-full bg-sky-50 border border-sky-100 px-3 py-1.5 text-xs font-medium text-sky-700">
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-[#19b3bc]/15 bg-[#19b3bc]/10 px-3 py-1.5 text-xs font-medium text-[#0f8f98]">
             Panel Doctor
           </span>
         </div>
@@ -108,14 +108,14 @@ export default function DoctorDashboard() {
           label="Mis citas hoy"
           value={kpis.todayAppointments}
           icon={CalendarDays}
-          iconColor="bg-blue-50 text-blue-600"
+          iconColor="bg-cyan-50 text-cyan-700"
           delay={0}
         />
         <StatCard
           label="Mis pacientes"
           value={kpis.totalPatients}
           icon={Users}
-          iconColor="bg-violet-50 text-violet-600"
+          iconColor="bg-[#e8f8f9] text-[#0f8f98]"
           delay={60}
         />
         <StatCard
@@ -123,7 +123,7 @@ export default function DoctorDashboard() {
           value={kpis.monthAppointments}
           delta={kpis.monthAppointmentsDelta}
           icon={Activity}
-          iconColor="bg-emerald-50 text-emerald-600"
+          iconColor="bg-teal-50 text-teal-700"
           delay={120}
         />
         <StatCard
@@ -131,18 +131,19 @@ export default function DoctorDashboard() {
           value={formatCurrency(kpis.revenue)}
           delta={kpis.revenueDelta}
           icon={DollarSign}
-          iconColor="bg-amber-50 text-amber-600"
+          iconColor="bg-[#e8f8f9] text-[#19b3bc]"
           delay={180}
+          highlighted
         />
       </div>
 
       {/* Second row: quick stats */}
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
         {[
-          { label: "Completadas hoy", value: kpis.todayCompleted, icon: CheckCircle2, color: "text-emerald-600" },
-          { label: "Pendientes hoy", value: kpis.todayScheduled, icon: Clock, color: "text-blue-600" },
-          { label: "No asistieron", value: kpis.todayNoShow, icon: XCircle, color: "text-rose-500" },
-          { label: "Asistencia hoy", value: `${kpis.attendanceRate}%`, icon: Activity, color: "text-indigo-600" },
+          { label: "Completadas hoy", value: kpis.todayCompleted, icon: CheckCircle2, color: "text-[#0f8f98]" },
+          { label: "Pendientes hoy", value: kpis.todayScheduled, icon: Clock, color: "text-cyan-700" },
+          { label: "No asistieron", value: kpis.todayNoShow, icon: XCircle, color: "text-red-500" },
+          { label: "Asistencia hoy", value: `${kpis.attendanceRate}%`, icon: Activity, color: "text-[#19b3bc]" },
         ].map((item, i) => (
           <div
             key={item.label}
@@ -180,7 +181,7 @@ export default function DoctorDashboard() {
                       </div>
                       <div className="h-1.5 rounded-full bg-slate-100">
                         <div
-                          className="h-1.5 rounded-full bg-gradient-to-r from-sky-400 to-indigo-400 transition-all duration-500"
+                          className="h-1.5 rounded-full bg-gradient-to-r from-[#19b3bc] to-cyan-300 transition-all duration-500"
                           style={{ width: `${pct}%` }}
                         />
                       </div>
@@ -204,11 +205,11 @@ export default function DoctorDashboard() {
               {topTreatments.map((treatment, i) => {
                 const pct = ((treatment.count / totalTreatmentCount) * 100).toFixed(1);
                 const colors = [
-                  "bg-sky-400",
-                  "bg-indigo-400",
-                  "bg-emerald-400",
-                  "bg-amber-400",
-                  "bg-rose-400",
+                  "bg-[#19b3bc]",
+                  "bg-cyan-400",
+                  "bg-teal-400",
+                  "bg-[#7adbe1]",
+                  "bg-[#0f8f98]",
                 ];
                 return (
                   <div key={i} className="flex items-center justify-between">
@@ -282,7 +283,7 @@ export default function DoctorDashboard() {
       </div>
 
       {/* Monthly summary card */}
-      <div className="rounded-2xl bg-gradient-to-br from-sky-500 to-indigo-600 p-6 shadow-sm text-white animate-card-in" style={{ animationDelay: "480ms" }}>
+      <div className="rounded-2xl bg-gradient-to-br from-[#19b3bc] to-[#0f8f98] p-6 shadow-sm text-white animate-card-in" style={{ animationDelay: "480ms" }}>
         <p className="text-sm font-medium text-white/80 mb-3">Mi resumen del mes</p>
         <div className="grid grid-cols-3 gap-4">
           <div>

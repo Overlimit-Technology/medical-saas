@@ -2,9 +2,9 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { requireClinicSession, requireRole } from "@/server/auth/requireSession";
 import { AppointmentsService, type AppointmentInput } from "@/server/appointments/AppointmentsService";
-import { resolveSingleClinicLabel } from "@/server/clinics/clinicDisplay";
 import { prisma } from "@/lib/prisma";
 import { sendEmail } from "@/server/notifications/email";
+import { resolveSingleClinicLabel } from "@/server/clinics/clinicDisplay";
 import { InternalAlertsService } from "@/server/internal-alerts/InternalAlertsService";
 
 const appointmentUpdateSchema = z.object({
@@ -188,37 +188,11 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
         : (["ADMIN", "SECRETARY", "DOCTOR"] as const);
     const includeActorInInternalAlert = session.role === "ADMIN";
 
-    let notificationWarning: string | null = null;
+    const notificationWarning: string | null = null;
     const wasRescheduled =
       current.startAt.getTime() !== item.startAt.getTime() ||
       current.endAt.getTime() !== item.endAt.getTime();
     const becameNoShow = current.status !== "NO_SHOW" && item.status === "NO_SHOW";
-
-    if (wasRescheduled && item.patient.email) {
-      const clinicLabel = await resolveSingleClinicLabel(session.clinicId);
-      const subject = "Tu cita fue reagendada en ZENSYA";
-      const text = [
-        `Hola ${patientName || item.patient.firstName},`,
-        "",
-        "Tu cita fue actualizada en ZENSYA.",
-        `Nueva fecha y hora: ${formatDateTime(item.startAt)}`,
-        `Profesional: ${doctorName}`,
-        `Sede: ${clinicLabel}`,
-        "",
-        "Si tienes dudas, contacta a la clinica.",
-      ].join("\n");
-
-      const origin = new URL(req.url).origin;
-      const sent = await sendEmail({
-        origin,
-        to: item.patient.email,
-        subject,
-        text,
-      });
-      if (!sent.ok) {
-        notificationWarning = sent.error;
-      }
-    }
 
     let internalAlertWarning: string | null = null;
     const internalAlertWarnings: string[] = [];
@@ -238,6 +212,7 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
           referenceId: item.id,
           targetRoles: [...notifyRolesForAction],
           includeActor: includeActorInInternalAlert,
+          dispatchEmail: false,
         });
         if (alert.warning) internalAlertWarnings.push(alert.warning);
       } catch (error) {

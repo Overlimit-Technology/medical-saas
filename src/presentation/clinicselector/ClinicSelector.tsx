@@ -13,12 +13,12 @@ export default function ClinicSelector() {
   const { state, actions } = useClinicSelectorViewModel()
 
   return (
-    <div className="min-h-screen bg-neutral-50 flex items-center justify-center px-4">
+    <div className="min-h-screen bg-[#dff7f9] flex items-center justify-center px-4">
       <div className="w-full max-w-md">
         {/* Separacion vertical del logo respecto a la tarjeta: cambia mb-8. */}
         <div className="mb-8 text-center">
           {/* Espacio lateral/logo pill: cambia px-8 y py-4 para mas/menos aire. */}
-          <div className="inline-flex items-center justify-center rounded-full bg-blue-50 px-8 py-4 shadow-sm">
+          <div className="inline-flex items-center justify-center rounded-full bg-white/80 px-8 py-4 shadow-sm shadow-[#19b3bc]/10">
             <Image
               src="/images/branding/Zensya.png"
               alt="Zensya"
@@ -31,25 +31,25 @@ export default function ClinicSelector() {
           </div>
         </div>
 
-        <div className="rounded-3xl bg-white border border-neutral-100 shadow-lg px-8 py-10">
+        <div className="rounded-3xl border border-[#19b3bc]/20 bg-[#19b3bc] px-8 py-10 text-white shadow-lg shadow-[#19b3bc]/25">
           <div className="mb-6 text-center">
-            <h1 className="text-xl font-semibold text-neutral-900">Selecciona tu sede</h1>
-            <p className="mt-1 text-sm text-neutral-500">
+            <h1 className="text-xl font-semibold text-white">Selecciona tu sede</h1>
+            <p className="mt-1 text-sm text-white/80">
               Elige la clínica/hospital donde gestionarás tu trabajo hoy
             </p>
           </div>
 
           {state.error && (
-            <div className="mb-4 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+            <div className="mb-4 rounded-2xl border border-white/30 bg-white/15 px-4 py-3 text-sm text-white">
               {state.error}
             </div>
           )}
 
           {state.loading ? (
-            <div className="text-sm text-neutral-500">Cargando sedes...</div>
+            <div className="text-sm text-white/85">Cargando sedes...</div>
           ) : state.clinics.length === 0 ? (
             <div className="space-y-4">
-              <div className="rounded-2xl border border-neutral-200 bg-neutral-50 px-4 py-3 text-sm text-neutral-700">
+              <div className="rounded-2xl border border-white/20 bg-white/12 px-4 py-3 text-sm text-white/90">
                 No tienes sedes activas asignadas.
               </div>
               <button
@@ -69,10 +69,10 @@ export default function ClinicSelector() {
                   type="button"
                   disabled={state.selecting}
                   onClick={() => actions.selectClinic(c.id)}
-                  className="w-full text-left rounded-2xl border border-neutral-200 bg-neutral-50/60 px-4 py-3 transition hover:bg-white hover:border-blue-200 focus:outline-none focus:ring-2 focus:ring-blue-100 disabled:opacity-60"
+                  className="w-full rounded-2xl border border-[#8fe4ea]/35 bg-[#149ca5] px-4 py-3 text-left transition-all duration-200 hover:-translate-y-0.5 hover:border-white/60 hover:bg-[#118b93] hover:shadow-lg hover:shadow-[#0c7780]/20 focus:outline-none focus:ring-2 focus:ring-white/30 disabled:opacity-60"
                 >
-                  <div className="text-sm font-semibold text-neutral-900">{c.name}</div>
-                  <div className="text-xs text-neutral-500">{c.city}</div>
+                  <div className="text-sm font-semibold text-white">{c.name}</div>
+                  <div className="text-xs text-white/75">{c.city}</div>
                 </button>
               ))}
 
@@ -88,14 +88,14 @@ export default function ClinicSelector() {
               </div>
 
               {state.selecting && (
-                <p className="text-xs text-neutral-500 text-center pt-2">Procesando...</p>
+                <p className="pt-2 text-center text-xs text-white/80">Procesando...</p>
               )}
             </div>
           )}
         </div>
 
         <div className="mt-6 text-center">
-          <p className="text-[11px] text-neutral-400">
+          <p className="text-[11px] text-[#0f8f98]/70">
             © {new Date().getFullYear()} Zensya. Todos los derechos reservados.
           </p>
         </div>
