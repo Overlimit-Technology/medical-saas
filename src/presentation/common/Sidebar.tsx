@@ -111,6 +111,13 @@ const NAV_GROUPS: NavGroupItem[] = [
       { href: "/boxes", label: "Boxes", icon: DoorOpen, group: "paginas", permission: "BOXES" },
       { href: "/treatments", label: "Tratamientos", icon: Pill, group: "paginas", permission: "TREATMENTS" },
       {
+        href: "/vacaciones",
+        label: "Vacaciones",
+        icon: CalendarDays,
+        group: "paginas",
+        permission: "USERS",
+      },
+      {
         href: "/usuarios",
         label: "Usuarios",
         icon: UserCog,

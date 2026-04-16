@@ -62,17 +62,40 @@ const TABS: { key: CrmTab; label: string; icon: React.ReactNode }[] = [
 
 export default function CrmDesktop() {
   const [activeTab, setActiveTab] = useState<CrmTab>("pipeline");
+  const activeTabLabel = TABS.find((tab) => tab.key === activeTab)?.label ?? "CRM";
+
+  const activeContent = (() => {
+    if (activeTab === "pipeline") return <Leads />;
+    if (activeTab === "inbox") return <CrmInbox />;
+    if (activeTab === "dashboard") return <CrmDashboard />;
+    if (activeTab === "activities") return <CrmActivities />;
+    return <CrmContacts />;
+  })();
 
   return (
-    <div className="flex h-[calc(100vh-64px)] -mx-8 -my-8 flex-col bg-slate-50">
-      {/* Top navigation bar */}
-      <div className="shrink-0 bg-white border-b border-slate-200">
-        <div className="flex items-center justify-between px-6">
-          {/* Left: CRM title + tabs */}
-          <div className="flex items-center gap-6">
-            <h1 className="text-base font-semibold text-slate-800 py-3">CRM</h1>
+    <div className="flex h-[calc(100vh-64px)] -mx-8 -my-8 bg-slate-100">
+      <div className="min-w-0 flex-1 p-4 sm:p-5">
+        <div className="flex h-full min-h-0 flex-col rounded-3xl border border-slate-200 bg-slate-50">
+          <header className="shrink-0 border-b border-slate-200 bg-white/80 px-4 py-3 backdrop-blur sm:px-6">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <p className="text-xs font-medium uppercase tracking-[0.11em] text-slate-400">CRM</p>
+                <h1 className="text-xl font-semibold text-slate-900">{activeTabLabel}</h1>
+              </div>
+              <div className="flex items-center gap-2 text-xs">
+                <div className="hidden rounded-full border border-slate-200 bg-white px-3 py-1.5 text-slate-500 sm:block">
+                  Modulo CRM
+                </div>
+                <button
+                  type="button"
+                  className="rounded-full bg-slate-900 px-4 py-1.5 font-medium text-white transition hover:bg-slate-700"
+                >
+                  Nuevo
+                </button>
+              </div>
+            </div>
 
-            <nav className="flex items-center -mb-px">
+            <div className="mt-3 flex overflow-x-auto pb-1">
               {TABS.map((tab) => {
                 const isActive = activeTab === tab.key;
                 return (
@@ -80,38 +103,24 @@ export default function CrmDesktop() {
                     key={tab.key}
                     type="button"
                     onClick={() => setActiveTab(tab.key)}
-                    className={`
-                      group relative flex items-center gap-2 px-4 py-3.5
-                      text-sm font-medium transition-colors duration-150
-                      ${isActive
-                        ? "text-slate-900"
-                        : "text-slate-400 hover:text-slate-600"
-                      }
-                    `}
+                    className={`mr-2 inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-medium transition ${
+                      isActive
+                        ? "border-slate-800 bg-slate-800 text-white"
+                        : "border-slate-200 bg-white text-slate-500 hover:text-slate-700"
+                    }`}
                   >
-                    <span className={`transition-colors duration-150 ${isActive ? "text-slate-700" : "text-slate-400 group-hover:text-slate-500"}`}>
-                      {tab.icon}
-                    </span>
+                    {tab.icon}
                     {tab.label}
-                    {/* Active indicator */}
-                    {isActive && (
-                      <span className="absolute bottom-0 left-2 right-2 h-0.5 rounded-full bg-slate-800" />
-                    )}
                   </button>
                 );
               })}
-            </nav>
-          </div>
-        </div>
-      </div>
+            </div>
+          </header>
 
-      {/* Tab content */}
-      <div className="min-h-0 flex-1 overflow-hidden">
-        {activeTab === "pipeline" && <Leads />}
-        {activeTab === "inbox" && <CrmInbox />}
-        {activeTab === "dashboard" && <CrmDashboard />}
-        {activeTab === "activities" && <CrmActivities />}
-        {activeTab === "contacts" && <CrmContacts />}
+          <main className="min-h-0 flex-1 overflow-hidden rounded-b-3xl">
+            {activeContent}
+          </main>
+        </div>
       </div>
     </div>
   );

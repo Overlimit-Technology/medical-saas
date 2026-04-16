@@ -92,6 +92,29 @@ export default function CrmDashboard() {
   const maxFunnel = Math.max(...stats.funnel.map((f) => f.count), 1);
   const channelEntries = Object.entries(stats.byChannel).sort((a, b) => b[1] - a[1]);
   const maxChannel = Math.max(...channelEntries.map(([, v]) => v), 1);
+  const activeTasks = stats.inProcess;
+  const totalAssignees = Math.max(1, Math.min(stats.total, 9));
+  const projects = stats.funnel
+    .filter((stage) => stage.count > 0)
+    .slice(0, 6)
+    .map((stage, index) => ({
+      id: `PRJ-${String(index + 1).padStart(4, "0")}`,
+      name: stage.name,
+      count: stage.count,
+      color: stage.color,
+    }));
+  const tasks = (data?.leads ?? [])
+    .filter((lead) => !lead.archived)
+    .slice(0, 8)
+    .map((lead) => ({
+      id: lead.id,
+      name: lead.name || "Lead sin nombre",
+      estimate: lead.estimatedBudget ? `$${Number(lead.estimatedBudget).toLocaleString("es-CL")}` : "Sin presupuesto",
+      priority: lead.priority,
+      status: data?.columns.find((column) => column.id === lead.columnId)?.name ?? "Sin estado",
+      channel: CHANNEL_LABELS[lead.channel] ?? lead.channel,
+      done: lead.converted,
+    }));
 
   return (
     <div className="h-full overflow-y-auto">
@@ -105,6 +128,66 @@ export default function CrmDashboard() {
           <KpiCard label="Conversion" value={`${stats.conversionRate}%`} />
           <KpiCard label="Nuevos (7d)" value={stats.recentCount} color="text-indigo-600" />
         </div>
+
+        {/* Figma-inspired Projects + Tasks section (without external sidebar) */}
+        <section className="grid grid-cols-1 gap-6 xl:grid-cols-[280px_minmax(0,1fr)]">
+          <div className="rounded-3xl border border-slate-200 bg-white">
+            <div className="border-b border-slate-100 px-5 py-4">
+              <h3 className="text-base font-semibold text-slate-900">Current Projects</h3>
+            </div>
+            <div className="max-h-[520px] space-y-2 overflow-y-auto p-3">
+              {projects.map((project, index) => (
+                <button
+                  key={project.id}
+                  type="button"
+                  className={`w-full rounded-2xl border px-4 py-3 text-left transition ${
+                    index === 0
+                      ? "border-blue-100 bg-slate-50"
+                      : "border-transparent hover:border-slate-200 hover:bg-slate-50"
+                  }`}
+                >
+                  <p className="text-[11px] text-slate-400">{project.id}</p>
+                  <p className="mt-1 text-base font-semibold text-slate-800">{project.name}</p>
+                  <p className="mt-2 text-xs text-blue-600">Ver detalles ({project.count})</p>
+                </button>
+              ))}
+              {projects.length === 0 && <p className="px-2 py-4 text-xs text-slate-400">Sin proyectos activos.</p>}
+            </div>
+          </div>
+
+          <div className="rounded-3xl border border-slate-200 bg-white">
+            <div className="flex items-center justify-between border-b border-slate-100 px-5 py-4">
+              <h3 className="text-base font-semibold text-slate-900">Active Tasks</h3>
+              <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-500">{tasks.length}</span>
+            </div>
+            <div className="space-y-2 p-3">
+              {tasks.map((task) => (
+                <article key={task.id} className="grid grid-cols-1 gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 md:grid-cols-[minmax(0,1.4fr)_130px_110px_130px_90px] md:items-center">
+                  <div>
+                    <p className="text-[11px] text-slate-400">Task Name</p>
+                    <p className="text-sm font-semibold text-slate-800">{task.name}</p>
+                  </div>
+                  <InfoColumn label="Estimate" value={task.estimate} />
+                  <InfoColumn label="Canal" value={task.channel} />
+                  <InfoColumn label="Prioridad" value={priorityLabel(task.priority)} />
+                  <StatusBadge status={task.status} done={task.done} />
+                </article>
+              ))}
+              {tasks.length === 0 && <p className="px-2 py-8 text-center text-xs text-slate-400">Sin tareas activas.</p>}
+            </div>
+          </div>
+        </section>
+
+        <ProjectDataCard
+          code="CRM-0001265"
+          title="Medical SaaS CRM Pipeline"
+          createdAtLabel="Creado Sep 12, 2020"
+          priorityLabel={stats.byPriority.medium > 0 ? "Media" : "Normal"}
+          totalTasks={stats.total}
+          activeTasks={activeTasks}
+          assignees={Math.min(totalAssignees, 3)}
+          extraAssignees={Math.max(totalAssignees - 3, 0)}
+        />
 
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
           {/* Pipeline Funnel */}
@@ -202,6 +285,75 @@ function KpiCard({ label, value, color }: { label: string; value: string | numbe
   );
 }
 
+function ProjectDataCard({
+  code,
+  title,
+  createdAtLabel,
+  priorityLabel,
+  totalTasks,
+  activeTasks,
+  assignees,
+  extraAssignees,
+}: {
+  code: string;
+  title: string;
+  createdAtLabel: string;
+  priorityLabel: string;
+  totalTasks: number;
+  activeTasks: number;
+  assignees: number;
+  extraAssignees: number;
+}) {
+  return (
+    <section className="rounded-3xl border border-slate-200 bg-white shadow-sm">
+      <div className="grid grid-cols-1 divide-y divide-slate-200 lg:grid-cols-2 lg:divide-x lg:divide-y-0">
+        <div className="p-5 sm:p-6">
+          <p className="text-sm text-slate-400">{code}</p>
+          <h3 className="mt-1 text-xl font-semibold text-slate-900">{title}</h3>
+          <div className="mt-5 flex flex-wrap items-center gap-5 text-sm">
+            <p className="text-slate-500">{createdAtLabel}</p>
+            <p className="font-semibold text-amber-500">{priorityLabel}</p>
+          </div>
+        </div>
+        <div className="p-5 sm:p-6">
+          <h4 className="text-2xl font-semibold text-slate-900">Project Data</h4>
+          <div className="mt-3 grid grid-cols-3 gap-3">
+            <Metric label="All tasks" value={totalTasks} />
+            <Metric label="Active tasks" value={activeTasks} />
+            <div>
+              <p className="text-sm text-slate-400">Assignees</p>
+              <div className="mt-2 flex items-center">
+                {Array.from({ length: assignees }).map((_, i) => (
+                  <span
+                    key={i}
+                    className="-ml-1.5 inline-flex h-7 w-7 items-center justify-center rounded-full border-2 border-white bg-slate-500 text-[10px] font-semibold text-white first:ml-0"
+                  >
+                    {String.fromCharCode(65 + i)}
+                  </span>
+                ))}
+                {extraAssignees > 0 && (
+                  <span className="-ml-1.5 inline-flex h-7 w-7 items-center justify-center rounded-full border-2 border-white bg-blue-500 text-[10px] font-semibold text-white">
+                    +{extraAssignees}
+                  </span>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function Metric({ label, value }: { label: string; value: number }) {
+  return (
+    <div>
+      <p className="text-sm text-slate-400">{label}</p>
+      <p className="mt-1 text-3xl font-semibold leading-none text-slate-900">{value}</p>
+    </div>
+  );
+}
+
 function PriorityCard({ label, count, color }: { label: string; count: number; color: string }) {
   return (
     <div className="flex items-center gap-3 rounded-lg bg-slate-50 p-3">
@@ -212,4 +364,27 @@ function PriorityCard({ label, count, color }: { label: string; count: number; c
       </div>
     </div>
   );
+}
+
+function InfoColumn({ label, value }: { label: string; value: string }) {
+  return (
+    <div>
+      <p className="text-[11px] text-slate-400">{label}</p>
+      <p className="text-xs font-semibold text-slate-700">{value}</p>
+    </div>
+  );
+}
+
+function StatusBadge({ status, done }: { status: string; done: boolean }) {
+  const tone = done
+    ? "bg-emerald-100 text-emerald-700"
+    : "bg-indigo-100 text-indigo-700";
+  return <span className={`inline-flex w-fit rounded-full px-2.5 py-1 text-[11px] font-semibold ${tone}`}>{status}</span>;
+}
+
+function priorityLabel(value: Lead["priority"]) {
+  if (value === "urgent") return "Urgente";
+  if (value === "high") return "Alta";
+  if (value === "medium") return "Media";
+  return "Baja";
 }
