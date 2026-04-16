@@ -106,6 +106,15 @@ export class CrmService {
               treatment: { select: { name: true } },
             },
           },
+          appointment: {
+            select: {
+              createdByUser: {
+                select: {
+                  profile: { select: { firstName: true, lastName: true } },
+                },
+              },
+            },
+          },
         },
         orderBy: { recordedAt: "desc" },
       }),
@@ -134,6 +143,11 @@ export class CrmService {
         .join(" ")
         .trim();
 
+      const createdByProfile = row.appointment?.createdByUser?.profile;
+      const userName = createdByProfile
+        ? `${createdByProfile.firstName} ${createdByProfile.lastName}`.trim()
+        : null;
+
       return {
         id: row.id,
         recordedAt: row.recordedAt,
@@ -143,7 +157,7 @@ export class CrmService {
         patientName,
         treatmentName: row.patientTreatment.treatment.name,
         movementType: "PAYMENT" as const,
-        userName: null as string | null,
+        userName,
       };
     });
 

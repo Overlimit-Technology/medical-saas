@@ -1,7 +1,6 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { PAYMENT_STATUS_LABELS } from "../agenda.constants";
 import type { AgendaDailyCashItem, AgendaDailyCashSummary } from "../agenda.types";
 import {
   formatCurrency,
