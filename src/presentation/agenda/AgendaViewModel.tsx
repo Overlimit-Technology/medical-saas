@@ -12,6 +12,7 @@ import { GetAppointmentsUseCase } from "@/domain/appointments/usecases/GetAppoin
 import {
   CancelAppointmentUseCase,
   SaveAppointmentUseCase,
+  UpdateAppointmentPaymentUseCase,
   UpdateAppointmentScheduleUseCase,
   UpdateAppointmentStatusUseCase,
 } from "@/domain/appointments/usecases/ManageAppointmentsUseCases";
@@ -22,7 +23,7 @@ import {
   ResetStatusColorsUseCase,
   SaveStatusColorsUseCase,
 } from "@/domain/clinic-settings/usecases/ClinicSettingsUseCases";
-import { GetCrmTreatmentsUseCase, GetDailyCashUseCase, SavePaymentHistoryUseCase } from "@/domain/crm/usecases/CrmUseCases";
+import { GetCrmTreatmentsUseCase, GetDailyCashUseCase } from "@/domain/crm/usecases/CrmUseCases";
 import { GetPatientDetailUseCase, GetPatientsUseCase } from "@/domain/patients/usecases/PatientsUseCases";
 import { GetUsersUseCase } from "@/domain/users/usecases/UserUseCases";
 import { normalizeId } from "@/lib/normalize";
@@ -75,13 +76,20 @@ function createInitialPaymentForm(
   appointment: AgendaAppointment | null,
   treatments: AgendaTreatment[],
 ): PaymentFormState {
+  const paymentEntry = appointment?.paymentEntry ?? null;
   const defaultTreatment = treatments[0];
+  const selectedTreatment =
+    treatments.find((item) => item.id === paymentEntry?.treatment.id) ?? defaultTreatment;
 
   return {
-    treatmentId: defaultTreatment?.id ?? "",
-    status: "PAID",
-    amount: defaultTreatment ? `${Math.round(defaultTreatment.price)}` : "",
-    notes: (appointment?.notes ?? "").slice(0, NOTE_MAX_LENGTH),
+    treatmentId: paymentEntry?.treatment.id ?? selectedTreatment?.id ?? "",
+    status: paymentEntry?.status ?? appointment?.paymentStatus ?? "PENDING",
+    amount: paymentEntry
+      ? `${Math.round(paymentEntry.amount)}`
+      : selectedTreatment
+        ? `${Math.round(selectedTreatment.price)}`
+        : "",
+    notes: (paymentEntry?.notes ?? "").slice(0, NOTE_MAX_LENGTH),
   };
 }
 
@@ -99,7 +107,7 @@ export function useAgendaViewModel() {
     getBoxesUseCase,
     getCrmTreatmentsUseCase,
     getDailyCashUseCase,
-    savePaymentHistoryUseCase,
+    updateAppointmentPaymentUseCase,
     getStatusColorsUseCase,
     saveStatusColorsUseCase,
     resetStatusColorsUseCase,
@@ -125,7 +133,7 @@ export function useAgendaViewModel() {
       getBoxesUseCase: new GetBoxesUseCase(boxesRepo),
       getCrmTreatmentsUseCase: new GetCrmTreatmentsUseCase(crmRepo),
       getDailyCashUseCase: new GetDailyCashUseCase(crmRepo),
-      savePaymentHistoryUseCase: new SavePaymentHistoryUseCase(crmRepo),
+      updateAppointmentPaymentUseCase: new UpdateAppointmentPaymentUseCase(appointmentsRepo),
       getStatusColorsUseCase: new GetStatusColorsUseCase(clinicSettingsRepo),
       saveStatusColorsUseCase: new SaveStatusColorsUseCase(clinicSettingsRepo),
       resetStatusColorsUseCase: new ResetStatusColorsUseCase(clinicSettingsRepo),
@@ -176,13 +184,13 @@ export function useAgendaViewModel() {
   const [paymentAppointment, setPaymentAppointment] = useState<AgendaAppointment | null>(null);
   const [paymentForm, setPaymentForm] = useState<PaymentFormState>({
     treatmentId: "",
-    status: "PAID",
+    status: "PENDING",
     amount: "",
     notes: "",
   });
   const [initialPaymentForm, setInitialPaymentForm] = useState<PaymentFormState>({
     treatmentId: "",
-    status: "PAID",
+    status: "PENDING",
     amount: "",
     notes: "",
   });
@@ -1103,16 +1111,10 @@ export function useAgendaViewModel() {
   };
 
   const openPaymentModal = (item: AgendaAppointment) => {
-    const defaultTreatment = treatments[0];
     setPaymentAppointment(item);
     setPaymentError(null);
     setPaymentSuccess(null);
-    setPaymentForm({
-      treatmentId: defaultTreatment?.id ?? "",
-      status: "PAID",
-      amount: defaultTreatment ? `${Math.round(defaultTreatment.price)}` : "",
-      notes: (item.notes ?? "").slice(0, NOTE_MAX_LENGTH),
-    });
+    setPaymentForm(createInitialPaymentForm(item, treatments));
     setPaymentModalOpen(true);
   };
 
@@ -1170,21 +1172,30 @@ export function useAgendaViewModel() {
     setPaymentError(null);
 
     try {
-      await savePaymentHistoryUseCase.execute({
-        patientId: paymentAppointment.patientId,
+      const updatedAppointment = await updateAppointmentPaymentUseCase.execute(paymentAppointment.id, {
         treatmentId: paymentForm.treatmentId,
-        performedAt: paymentAppointment.startAt,
         status: paymentForm.status,
         amount,
         notes: paymentForm.notes.trim() || null,
       });
+
+      const nextPaymentForm = createInitialPaymentForm(updatedAppointment, treatments);
+
+      setAppointments((previous) =>
+        previous.map((item) => (item.id === updatedAppointment.id ? updatedAppointment : item))
+      );
+      setDetailAppointment((previous) =>
+        previous?.id === updatedAppointment.id ? updatedAppointment : previous
+      );
+      setPaymentAppointment(updatedAppointment);
       setPaymentSaving(false);
-      setInitialPaymentForm(paymentForm);
-      setPaymentSuccess("Cobro registrado correctamente.");
+      setPaymentForm(nextPaymentForm);
+      setInitialPaymentForm(nextPaymentForm);
+      setPaymentSuccess("Cobro actualizado correctamente.");
       await loadDailyCash();
       return true;
     } catch (error) {
-      setPaymentError(error instanceof Error ? error.message : "No se pudo registrar el cobro.");
+      setPaymentError(error instanceof Error ? error.message : "No se pudo actualizar el cobro.");
       setPaymentSaving(false);
       return false;
     }

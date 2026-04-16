@@ -367,6 +367,7 @@ model Appointment {
   createdByUser   User?           @relation("AppointmentCreatedBy", fields: [createdBy], references: [id], onDelete: SetNull)
   clinicalVisits  ClinicalVisit[]
   clinicalRecords ClinicalRecord[]
+  paymentHistory  PaymentHistory?
 
   @@index([clinicId, startAt])
   @@index([doctorId, startAt])
@@ -513,6 +514,7 @@ model PatientTreatment {
 model PaymentHistory {
   id                 String        @id @default(cuid())
   patientTreatmentId String
+  appointmentId      String?       @unique
   recordedAt         DateTime      @default(now())
   status             PaymentStatus @default(PENDING)
   amount             Decimal       @db.Decimal(10, 2)
@@ -521,6 +523,7 @@ model PaymentHistory {
   updatedAt          DateTime      @updatedAt
 
   patientTreatment PatientTreatment @relation(fields: [patientTreatmentId], references: [id], onDelete: Cascade)
+  appointment      Appointment?    @relation(fields: [appointmentId], references: [id], onDelete: SetNull)
 
   @@index([patientTreatmentId, recordedAt])
   @@index([status])

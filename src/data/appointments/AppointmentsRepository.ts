@@ -96,6 +96,34 @@ export class AppointmentsRepositoryHttp implements AppointmentsRepository {
     return data.item;
   }
 
+  async updateAppointmentPayment(
+    appointmentId: string,
+    input: {
+      treatmentId: string;
+      status: "PENDING" | "PAID" | "WAIVED";
+      amount: number;
+      notes: string | null;
+    }
+  ): Promise<Appointment> {
+    const res = await fetch(`/api/appointments/${appointmentId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        paymentTreatmentId: input.treatmentId,
+        paymentStatus: input.status,
+        paymentAmount: input.amount,
+        paymentNotes: input.notes,
+      }),
+    });
+    const data = (await res.json().catch(() => null)) as AppointmentResponse | null;
+
+    if (!res.ok || !data?.ok || !data.item) {
+      throw new Error(data?.error ?? "No se pudo actualizar el cobro de la cita.");
+    }
+
+    return data.item;
+  }
+
   async updateAppointmentSchedule(
     appointmentId: string,
     input: { startAt: string; endAt: string }
