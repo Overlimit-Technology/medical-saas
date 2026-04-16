@@ -3,7 +3,6 @@
 import { useEffect, useMemo, useState } from "react";
 import type { Lead, LeadActivity } from "@/domain/leads/entities/Lead";
 import { CHANNEL_LABELS } from "@/domain/leads/entities/Lead";
-import type { PipelineColumn } from "@/domain/leads/entities/Pipeline";
 
 type ActivityRow = {
   leadId: string;
@@ -14,7 +13,6 @@ type ActivityRow = {
 
 export default function CrmActivities() {
   const [leads, setLeads] = useState<Lead[]>([]);
-  const [columns, setColumns] = useState<PipelineColumn[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<"all" | "moved" | "created" | "note">("all");
 
@@ -24,7 +22,6 @@ export default function CrmActivities() {
       .then((d) => {
         if (d.ok) {
           setLeads(d.leads ?? []);
-          setColumns(d.columns ?? []);
         }
       })
       .finally(() => setLoading(false));

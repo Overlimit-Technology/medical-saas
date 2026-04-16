@@ -9,9 +9,6 @@ import {
   CalendarDays,
   KanbanSquare,
   Users,
-  UserCog,
-  Pill,
-  DoorOpen,
   ClipboardList,
   Bell,
   ChevronsUpDown,
@@ -43,6 +40,7 @@ type NavGroupItem = {
   icon: LucideIcon;
   group: "escritorios" | "paginas";
   children: NavItem[];
+  href?: string; // Optional: if provided, the group label becomes a link
 };
 
 const NAV_ITEMS: NavItem[] = [
@@ -95,32 +93,7 @@ const NAV_ITEMS: NavItem[] = [
   },
 ];
 
-const NAV_GROUPS: NavGroupItem[] = [
-  {
-    label: "Mi clinica",
-    icon: Building2,
-    group: "escritorios",
-    children: [
-      {
-        href: "/form-templates",
-        label: "Fichas Clínicas",
-        icon: ClipboardList,
-        group: "paginas",
-        roles: ["ADMIN", "DOCTOR"],
-      },
-      { href: "/boxes", label: "Boxes", icon: DoorOpen, group: "paginas", permission: "BOXES" },
-      { href: "/treatments", label: "Tratamientos", icon: Pill, group: "paginas", permission: "TREATMENTS" },
-      {
-        href: "/usuarios",
-        label: "Usuarios",
-        icon: UserCog,
-        group: "paginas",
-        permission: "USERS",
-        matchPrefixes: ["/usuarios", "/doctors"],
-      },
-    ],
-  },
-];
+const NAV_GROUPS: NavGroupItem[] = [];
 
 export default function Sidebar() {
   const { state, actions } = useSidebarViewModel();
@@ -204,41 +177,58 @@ export default function Sidebar() {
 
   const renderGroup = (group: NavGroupItem) => {
     const groupActive = group.children.some(isItemActive);
+    const currentGroupActive = group.href ? pathname === group.href || pathname.startsWith(`${group.href}/`) : groupActive;
     const groupExpanded = !collapsed && (expandedGroups[group.label] ?? groupActive);
     const GroupIcon = group.icon;
 
+    // Content part - Link if href, otherwise just a div
+    const contentClasses = `flex items-center flex-1 rounded-xl text-sm font-medium transition-colors ${
+      collapsed ? "justify-center px-0 py-2.5" : "gap-3 px-3 py-2.5"
+    } ${
+      currentGroupActive
+        ? "bg-white text-[#19b3bc]"
+        : "text-white/90 hover:bg-white/10 hover:text-white"
+    }`;
+
+    const contentContent = (
+      <>
+        <GroupIcon
+          className={`h-[18px] w-[18px] shrink-0 ${currentGroupActive ? "text-[#19b3bc]" : "text-white/90"}`}
+          strokeWidth={2}
+        />
+        {!collapsed && <span className="min-w-0 truncate text-left">{group.label}</span>}
+      </>
+    );
+
     return (
       <div key={group.label} className="flex flex-col gap-1">
-        <button
-          type="button"
-          onClick={() =>
-            setExpandedGroups((current) => ({
-              ...current,
-              [group.label]: !(current[group.label] ?? groupActive),
-            }))
-          }
-          className={`flex items-center rounded-xl text-sm font-medium transition-colors ${
-            collapsed ? "justify-center px-0 py-2.5" : "gap-3 px-3 py-2.5"
-          } ${
-            groupActive
-              ? "bg-white text-[#19b3bc]"
-              : "text-white/90 hover:bg-white/10 hover:text-white"
-          }`}
-          aria-expanded={groupExpanded}
-        >
-          <GroupIcon
-            className={`h-[18px] w-[18px] shrink-0 ${groupActive ? "text-[#19b3bc]" : "text-white/90"}`}
-            strokeWidth={2}
-          />
-          {!collapsed && (
-            <>
-              <span className="min-w-0 flex-1 truncate text-left">{group.label}</span>
-              <ChevronDown
-                className={`h-4 w-4 shrink-0 transition-transform ${groupExpanded ? "rotate-180" : ""}`}
-              />
-            </>
+        <div className="flex items-center gap-1">
+          {group.href ? (
+            <Link href={group.href} className={`${contentClasses}`}>
+              {contentContent}
+            </Link>
+          ) : (
+            <div className={contentClasses}>{contentContent}</div>
           )}
-        </button>
+
+          {!collapsed && (
+            <button
+              type="button"
+              onClick={() =>
+                setExpandedGroups((current) => ({
+                  ...current,
+                  [group.label]: !(current[group.label] ?? groupActive),
+                }))
+              }
+              className="flex items-center justify-center rounded-xl px-2 py-2.5 text-white/90 hover:bg-white/10 transition"
+              aria-label={groupExpanded ? "Contraer" : "Expandir"}
+            >
+              <ChevronDown
+                className={`h-4 w-4 transition-transform ${groupExpanded ? "rotate-180" : ""}`}
+              />
+            </button>
+          )}
+        </div>
 
         {groupExpanded ? <div className="flex flex-col gap-1">{group.children.map((item) => renderItem(item, true))}</div> : null}
       </div>
@@ -312,6 +302,20 @@ export default function Sidebar() {
       </div>
 
       <div className="mt-auto space-y-2 pt-6">
+        <Link
+          href="/clinic-dashboard"
+          className={`flex items-center rounded-xl text-sm font-medium transition-colors ${
+            collapsed ? "justify-center px-0 py-2.5" : "gap-3 px-3 py-2.5"
+          } ${
+            pathname === "/clinic-dashboard" || pathname.startsWith("/clinic-dashboard/")
+              ? "bg-white text-[#19b3bc]"
+              : "text-white/90 hover:bg-white/10 hover:text-white"
+          }`}
+        >
+          <Building2 className="h-[18px] w-[18px] shrink-0" strokeWidth={2} />
+          {!collapsed && <span className="min-w-0 truncate">Mi clínica</span>}
+        </Link>
+
         <button
           type="button"
           onClick={actions.handleChangeClinic}
