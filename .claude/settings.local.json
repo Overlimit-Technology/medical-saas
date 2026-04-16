@@ -28,7 +28,9 @@
       "Bash(wc:*)",
       "Bash(npm run:*)",
       "mcp__ide__getDiagnostics",
-      "Read(//c/Users/migue/Desktop/**)"
+      "Read(//c/Users/migue/Desktop/**)",
+      "Bash(xargs find:*)",
+      "Bash(grep -E \"page\\\\.tsx$\")"
     ]
   }
 }

@@ -2,9 +2,9 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { requireClinicSession, requireRole } from "@/server/auth/requireSession";
 import { AppointmentsService, type AppointmentInput } from "@/server/appointments/AppointmentsService";
-import { resolveSingleClinicLabel } from "@/server/clinics/clinicDisplay";
 import { prisma } from "@/lib/prisma";
 import { sendEmail } from "@/server/notifications/email";
+import { resolveSingleClinicLabel } from "@/server/clinics/clinicDisplay";
 import { InternalAlertsService } from "@/server/internal-alerts/InternalAlertsService";
 
 const appointmentUpdateSchema = z.object({
@@ -15,6 +15,9 @@ const appointmentUpdateSchema = z.object({
   endAt: z.string().min(1).optional(),
   status: z.string().optional(),
   paymentStatus: z.string().optional(),
+  paymentTreatmentId: z.string().min(1).optional(),
+  paymentAmount: z.coerce.number().positive().optional(),
+  paymentNotes: z.string().max(250).optional().nullable(),
   notes: z.string().optional().nullable(),
 });
 
@@ -41,17 +44,10 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
   try {
     const session = await requireClinicSession();
     requireRole(session, ["ADMIN"], ["AGENDA", "CLINICAL_VISITS"]);
-    const item = await prisma.appointment.findFirst({
-      where: {
-        id: params.id,
-        clinicId: session.clinicId,
-        doctorId: session.role === "DOCTOR" ? session.userId : undefined,
-      },
-      include: {
-        patient: true,
-        doctor: { include: { profile: true } },
-        box: true,
-      },
+    const item = await AppointmentsService.getById({
+      id: params.id,
+      clinicId: session.clinicId,
+      doctorId: session.role === "DOCTOR" ? session.userId : undefined,
     });
 
     if (!item) {
@@ -116,6 +112,9 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
         parsed.data.startAt !== undefined ||
         parsed.data.endAt !== undefined ||
         parsed.data.paymentStatus !== undefined ||
+        parsed.data.paymentTreatmentId !== undefined ||
+        parsed.data.paymentAmount !== undefined ||
+        parsed.data.paymentNotes !== undefined ||
         parsed.data.notes !== undefined;
 
       if (hasNonStatusChanges || !parsed.data.status) {
@@ -135,43 +134,96 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
       startAt: startAt ?? undefined,
       endAt: endAt ?? undefined,
       status: parsed.data.status,
-      paymentStatus: parsed.data.paymentStatus,
       notes: parsed.data.notes,
     };
 
-    let item: Awaited<ReturnType<typeof AppointmentsService.update>>;
-    try {
-      item = await AppointmentsService.update(params.id, session.clinicId, {
-        ...data,
-        createdBy: session.userId,
-      });
-    } catch (error) {
-      const message = error instanceof Error ? error.message : "No se pudo actualizar la cita.";
-      const lowerMessage = message.toLowerCase();
-      if (lowerMessage.includes("conflict") || lowerMessage.includes("conflicto")) {
-        const rangeLabel =
-          startAt && endAt
-            ? `${formatDateTime(startAt)} - ${formatDateTime(endAt)}`
-            : "Rango no especificado";
+    const hasAppointmentChanges =
+      data.patientId !== undefined ||
+      data.doctorId !== undefined ||
+      data.boxId !== undefined ||
+      data.startAt !== undefined ||
+      data.endAt !== undefined ||
+      data.status !== undefined ||
+      data.notes !== undefined;
 
-        try {
-          await InternalAlertsService.createAndDispatch({
-            origin: new URL(req.url).origin,
-            clinicId: session.clinicId,
-            actorUserId: session.userId,
-            actorRole: session.role,
-            doctorId: parsed.data.doctorId ?? undefined,
-            eventType: "APPOINTMENT_CONFLICT",
-            title: "Conflicto de agenda detectado",
-            message: `Se detecto conflicto al actualizar la cita ${params.id}. Rango: ${rangeLabel}.`,
-            referenceType: "APPOINTMENT",
-            referenceId: params.id,
-          });
-        } catch {
-          // No interrumpir el flujo si falla la alerta interna.
+    const hasPaymentChanges =
+      parsed.data.paymentStatus !== undefined ||
+      parsed.data.paymentTreatmentId !== undefined ||
+      parsed.data.paymentAmount !== undefined ||
+      parsed.data.paymentNotes !== undefined;
+
+    if (
+      hasPaymentChanges &&
+      (
+        parsed.data.paymentStatus === undefined ||
+        parsed.data.paymentTreatmentId === undefined ||
+        parsed.data.paymentAmount === undefined
+      )
+    ) {
+      return NextResponse.json(
+        { ok: false, error: "Para actualizar el cobro debes enviar estado, tratamiento y monto." },
+        { status: 400 }
+      );
+    }
+
+    let item: Awaited<ReturnType<typeof AppointmentsService.updatePayment>> | null = null;
+
+    if (hasAppointmentChanges) {
+      try {
+        item = await AppointmentsService.update(params.id, session.clinicId, {
+          ...data,
+          createdBy: session.userId,
+        });
+      } catch (error) {
+        const message = error instanceof Error ? error.message : "No se pudo actualizar la cita.";
+        const lowerMessage = message.toLowerCase();
+        if (lowerMessage.includes("conflict") || lowerMessage.includes("conflicto")) {
+          const rangeLabel =
+            startAt && endAt
+              ? `${formatDateTime(startAt)} - ${formatDateTime(endAt)}`
+              : "Rango no especificado";
+
+          try {
+            await InternalAlertsService.createAndDispatch({
+              origin: new URL(req.url).origin,
+              clinicId: session.clinicId,
+              actorUserId: session.userId,
+              actorRole: session.role,
+              doctorId: parsed.data.doctorId ?? undefined,
+              eventType: "APPOINTMENT_CONFLICT",
+              title: "Conflicto de agenda detectado",
+              message: `Se detecto conflicto al actualizar la cita ${params.id}. Rango: ${rangeLabel}.`,
+              referenceType: "APPOINTMENT",
+              referenceId: params.id,
+            });
+          } catch {
+            // No interrumpir el flujo si falla la alerta interna.
+          }
         }
+        throw error;
       }
-      throw error;
+    }
+
+    if (hasPaymentChanges) {
+      item = await AppointmentsService.updatePayment(params.id, {
+        clinicId: session.clinicId,
+        treatmentId: parsed.data.paymentTreatmentId!,
+        status: parsed.data.paymentStatus!,
+        amount: parsed.data.paymentAmount!,
+        notes: parsed.data.paymentNotes ?? null,
+      });
+    }
+
+    if (!item) {
+      item = await AppointmentsService.getById({
+        id: params.id,
+        clinicId: session.clinicId,
+        doctorId: session.role === "DOCTOR" ? session.userId : undefined,
+      });
+    }
+
+    if (!item) {
+      return NextResponse.json({ ok: false, error: "Cita no encontrada." }, { status: 404 });
     }
 
     const patientName = [item.patient.firstName, item.patient.lastName, item.patient.secondLastName ?? ""]
@@ -188,37 +240,11 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
         : (["ADMIN", "SECRETARY", "DOCTOR"] as const);
     const includeActorInInternalAlert = session.role === "ADMIN";
 
-    let notificationWarning: string | null = null;
+    const notificationWarning: string | null = null;
     const wasRescheduled =
       current.startAt.getTime() !== item.startAt.getTime() ||
       current.endAt.getTime() !== item.endAt.getTime();
     const becameNoShow = current.status !== "NO_SHOW" && item.status === "NO_SHOW";
-
-    if (wasRescheduled && item.patient.email) {
-      const clinicLabel = await resolveSingleClinicLabel(session.clinicId);
-      const subject = "Tu cita fue reagendada en ZENSYA";
-      const text = [
-        `Hola ${patientName || item.patient.firstName},`,
-        "",
-        "Tu cita fue actualizada en ZENSYA.",
-        `Nueva fecha y hora: ${formatDateTime(item.startAt)}`,
-        `Profesional: ${doctorName}`,
-        `Sede: ${clinicLabel}`,
-        "",
-        "Si tienes dudas, contacta a la clinica.",
-      ].join("\n");
-
-      const origin = new URL(req.url).origin;
-      const sent = await sendEmail({
-        origin,
-        to: item.patient.email,
-        subject,
-        text,
-      });
-      if (!sent.ok) {
-        notificationWarning = sent.error;
-      }
-    }
 
     let internalAlertWarning: string | null = null;
     const internalAlertWarnings: string[] = [];
@@ -238,6 +264,7 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
           referenceId: item.id,
           targetRoles: [...notifyRolesForAction],
           includeActor: includeActorInInternalAlert,
+          dispatchEmail: false,
         });
         if (alert.warning) internalAlertWarnings.push(alert.warning);
       } catch (error) {

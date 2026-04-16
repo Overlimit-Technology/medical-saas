@@ -4,21 +4,22 @@ import { useAgendaViewModel } from "./AgendaViewModel";
 import StatusColorsModal from "./StatusColorsModal";
 import AppointmentDetailModal from "./components/AppointmentDetailModal";
 import AppointmentFormModal from "./components/AppointmentFormModal";
-import AppointmentStatusModal from "./components/AppointmentStatusModal";
 import AgendaGrid from "./components/AgendaGrid";
 import AgendaHeader from "./components/AgendaHeader";
 import CancelAppointmentModal from "./components/CancelAppointmentModal";
 import DailyCashPanel from "./components/DailyCashPanel";
 import InfoBanner from "./components/InfoBanner";
-import PaymentModal from "./components/PaymentModal";
 
 export default function Agenda() {
   const { state, actions, derived } = useAgendaViewModel();
 
   if (state.roleLoading) {
     return (
-      <div className="flex h-64 items-center justify-center rounded-2xl border border-slate-100 bg-white text-sm text-slate-400 shadow-sm">
-        Cargando permisos...
+      <div className="flex min-h-[420px] items-center justify-center rounded-2xl border border-slate-100 bg-white shadow-sm">
+        <div
+          className="h-12 w-12 animate-spin rounded-full border-4 border-[#19b3bc]/20 border-t-[#19b3bc]"
+          aria-label="Cargando agenda"
+        />
       </div>
     );
   }
@@ -30,50 +31,70 @@ export default function Agenda() {
       <div className="rounded-2xl border border-slate-100 bg-white px-6 pb-6 pt-5 shadow-sm">
         <AgendaHeader
           activeView={state.activeView}
+          agendaMode={state.agendaMode}
+          doctorViewMode={state.doctorViewMode}
+          selectedDoctorId={state.selectedDoctorId}
+          doctors={state.doctors}
           isDoctor={derived.isDoctor}
-            canManageDailyCash={derived.canManageDailyCash}
-            canManageStatusColors={state.role === "ADMIN"}
-            weekLabel={derived.weekLabel}
-            dailyCashLoading={state.dailyCashLoading}
+          canManageDailyCash={derived.canManageDailyCash}
+          canManageStatusColors={state.role === "ADMIN"}
+          periodLabel={derived.periodLabel}
+          dailyCashLoading={state.dailyCashLoading}
           onSetActiveView={actions.setActiveView}
+          onSetAgendaMode={actions.setAgendaMode}
+          onSetDoctorViewMode={actions.setDoctorViewMode}
+          onSetSelectedDoctorId={actions.setSelectedDoctorId}
           onShowColorSettings={actions.openStatusColors}
           onGoToToday={actions.goToToday}
-          onGoToPreviousWeek={actions.goToPreviousWeek}
-          onGoToNextWeek={actions.goToNextWeek}
+          onGoToPreviousPeriod={actions.goToPreviousPeriod}
+          onGoToNextPeriod={actions.goToNextPeriod}
           onReloadDailyCash={() => void actions.reloadDailyCash()}
         />
 
         {state.activeView === "agenda" ? (
-          <AgendaGrid
-            weekStart={state.weekStart}
-            days={derived.days}
-            slots={derived.slots}
-            now={state.now}
-            todayIndex={derived.todayIndex}
-            isCurrentWeek={derived.isCurrentWeek}
-            isWithinHours={derived.isWithinHours}
-            nowSlot={derived.nowSlot}
-            selection={state.selection}
-            appointments={state.appointments}
-            canEdit={derived.canEdit}
-            draggingId={state.draggingId}
-            resolvedColors={derived.resolvedColors}
-            isSlotSelectionUnavailable={derived.isSlotSelectionUnavailable}
-            canDropAppointmentAt={derived.canDropAppointmentAt}
-            slotToDate={derived.slotToDate}
-            onPointerDown={actions.handlePointerDown}
-            onPointerEnter={actions.handlePointerEnter}
-            onMoveAppointment={(appointmentId, dayIndex, slot) => void actions.moveAppointment(appointmentId, dayIndex, slot)}
-            onAppointmentClick={actions.handleAppointmentClick}
-            onAppointmentDragStart={actions.handleAppointmentDragStart}
-            onAppointmentDragEnd={actions.handleAppointmentDragEnd}
-          />
+          <div className="-mx-6 overflow-x-auto px-6 pb-1">
+            <AgendaGrid
+              gridKey={`${state.agendaMode}-${state.doctorViewMode}-${state.selectedDoctorId}-${state.calendarDate.toISOString()}`}
+              columns={derived.agendaColumns}
+              slots={derived.slots}
+              now={state.now}
+              currentTimeColumnIndex={derived.currentTimeColumnIndex}
+              isCurrentRange={derived.isCurrentRange}
+              isWithinHours={derived.isWithinHours}
+              nowSlot={derived.nowSlot}
+              showCurrentTimeAcrossAllColumns={derived.showCurrentTimeAcrossAllColumns}
+              selection={state.selection}
+              appointments={derived.filteredAppointments}
+              canSelectSlots={derived.canEdit}
+              canDragAppointments={derived.canEdit && state.agendaMode !== "boxDay"}
+              canResizeAppointments={derived.canEdit}
+              draggingId={state.draggingId}
+              resolvedColors={derived.resolvedColors}
+              getAppointmentPlacement={derived.getAppointmentPlacement}
+              isSlotSelectionUnavailable={derived.isSlotSelectionUnavailable}
+              canDropAppointmentAt={derived.canDropAppointmentAt}
+              canResizeAppointmentAt={derived.canResizeAppointmentAt}
+              slotToDate={derived.slotToDate}
+              onPointerDown={actions.handlePointerDown}
+              onPointerEnter={actions.handlePointerEnter}
+              onMoveAppointment={(appointmentId, columnIndex, slot) =>
+                void actions.moveAppointment(appointmentId, columnIndex, slot)
+              }
+              onResizeAppointment={(appointmentId, columnIndex, startSlot, endSlot) =>
+                void actions.resizeAppointment(appointmentId, columnIndex, startSlot, endSlot)
+              }
+              onAppointmentClick={actions.handleAppointmentClick}
+              onAppointmentDragStart={actions.handleAppointmentDragStart}
+              onAppointmentDragEnd={actions.handleAppointmentDragEnd}
+            />
+          </div>
         ) : (
           <DailyCashPanel
             summary={state.dailyCashSummary}
             items={state.dailyCashItems}
             loading={state.dailyCashLoading}
             onBackToAgenda={() => actions.setActiveView("agenda")}
+            onCreateMovement={actions.createCashMovement}
           />
         )}
       </div>
@@ -83,12 +104,14 @@ export default function Agenda() {
           editingId={state.editingId}
           form={state.form}
           patients={state.patients}
+          patientSearchLoading={state.patientSearchLoading}
           doctors={state.doctors}
           boxes={state.boxes}
           errorMessage={state.errorMessage}
           onClose={actions.closeOverlay}
           onSubmit={(event) => void actions.createOrUpdateAppointment(event)}
           onFieldChange={actions.handleAppointmentFormChange}
+          onPatientRunChange={actions.handlePatientRunChange}
           onPatientSelect={actions.handlePatientSelection}
           onOpenCancelConfirm={actions.openCancelFromEditing}
         />
@@ -100,23 +123,20 @@ export default function Agenda() {
           canChangeStatus={derived.canChangeStatus}
           canEdit={derived.canEdit}
           canManageDailyCash={derived.canManageDailyCash}
-          errorMessage={state.errorMessage}
-          onClose={actions.closeOverlay}
-          onOpenPaymentModal={() => actions.openPaymentModal(state.detailAppointment!)}
-          onOpenStatusModal={actions.openStatusModal}
-          onEdit={actions.openEditFromDetail}
-        />
-      )}
-
-      {state.statusModalOpen && state.detailAppointment && (
-        <AppointmentStatusModal
-          appointment={state.detailAppointment}
           selectedStatus={state.selectedStatus}
           statusUpdating={state.statusUpdating}
+          paymentForm={state.paymentForm}
+          treatments={state.treatments}
+          paymentError={state.paymentError}
           errorMessage={state.errorMessage}
-          onClose={actions.closeStatusModal}
+          hasDetailChanges={derived.hasDetailChanges}
+          detailApplyLoading={derived.detailApplyLoading}
+          onClose={actions.closeOverlay}
           onSelectStatus={actions.setSelectedStatus}
-          onSubmit={() => void actions.handleStatusUpdate()}
+          onPaymentTreatmentChange={actions.handlePaymentTreatmentChange}
+          onPaymentFieldChange={actions.handlePaymentFieldChange}
+          onApplyChanges={() => void actions.applyDetailChanges()}
+          onEdit={actions.openEditFromDetail}
         />
       )}
 
@@ -130,20 +150,6 @@ export default function Agenda() {
           onClose={actions.closeCancelConfirm}
           onCancelReasonChange={actions.handleCancelReasonChange}
           onSubmit={() => void actions.handleCancelAppointment()}
-        />
-      )}
-
-      {state.paymentModalOpen && state.paymentAppointment && (
-        <PaymentModal
-          appointment={state.paymentAppointment}
-          form={state.paymentForm}
-          treatments={state.treatments}
-          saving={state.paymentSaving}
-          errorMessage={state.paymentError}
-          onClose={actions.closePaymentModal}
-          onTreatmentChange={actions.handlePaymentTreatmentChange}
-          onFieldChange={actions.handlePaymentFieldChange}
-          onSubmit={() => void actions.handleRegisterPayment()}
         />
       )}
 

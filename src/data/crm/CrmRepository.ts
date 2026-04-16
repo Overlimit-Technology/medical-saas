@@ -75,4 +75,21 @@ export class CrmRepositoryHttp implements CrmRepository {
       throw new Error(data?.error ?? "No se pudo registrar el cobro.");
     }
   }
+
+  async createCashMovement(input: {
+    type: "INCOME" | "EXPENSE";
+    description: string;
+    amount: number;
+  }): Promise<void> {
+    const res = await fetch("/api/crm/daily-cash/movement", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(input),
+    });
+    const data = (await res.json().catch(() => null)) as CrmResponse | null;
+
+    if (!res.ok || !data?.ok) {
+      throw new Error(data?.error ?? "No se pudo registrar el movimiento.");
+    }
+  }
 }

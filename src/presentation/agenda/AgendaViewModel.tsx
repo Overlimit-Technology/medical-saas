@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AppointmentsRepositoryHttp } from "@/data/appointments/AppointmentsRepository";
 import { AuthRepositoryHttp } from "@/data/auth/AuthRepository";
 import { BoxesRepositoryHttp } from "@/data/boxes/BoxesRepository";
@@ -12,6 +12,7 @@ import { GetAppointmentsUseCase } from "@/domain/appointments/usecases/GetAppoin
 import {
   CancelAppointmentUseCase,
   SaveAppointmentUseCase,
+  UpdateAppointmentPaymentUseCase,
   UpdateAppointmentScheduleUseCase,
   UpdateAppointmentStatusUseCase,
 } from "@/domain/appointments/usecases/ManageAppointmentsUseCases";
@@ -22,19 +23,24 @@ import {
   ResetStatusColorsUseCase,
   SaveStatusColorsUseCase,
 } from "@/domain/clinic-settings/usecases/ClinicSettingsUseCases";
-import { GetCrmTreatmentsUseCase, GetDailyCashUseCase, SavePaymentHistoryUseCase } from "@/domain/crm/usecases/CrmUseCases";
-import { GetPatientsUseCase } from "@/domain/patients/usecases/PatientsUseCases";
+import { CreateCashMovementUseCase, GetCrmTreatmentsUseCase, GetDailyCashUseCase } from "@/domain/crm/usecases/CrmUseCases";
+import { GetPatientDetailUseCase, GetPatientsUseCase } from "@/domain/patients/usecases/PatientsUseCases";
 import { GetUsersUseCase } from "@/domain/users/usecases/UserUseCases";
+import { normalizeId } from "@/lib/normalize";
 import {
   CANCEL_REASON_MAX_LENGTH,
   NOTE_MAX_LENGTH,
+  SLOT_MINUTES,
 } from "./agenda.constants";
 import type {
   AgendaAppointment,
   AgendaBox,
+  AgendaCalendarMode,
   AgendaDailyCashItem,
   AgendaDailyCashSummary,
   AgendaDoctor,
+  AgendaDoctorViewMode,
+  AgendaGridColumn,
   AgendaPatient,
   AgendaSelection,
   AgendaTreatment,
@@ -44,15 +50,20 @@ import type {
   StatusOption,
 } from "./agenda.types";
 import {
+  addDays,
   buildSlots,
+  buildDayLabel,
   buildWeekDays,
   buildWeekLabel,
   createEmptyAppointmentForm,
   formatDateValue,
   formatTimeValue,
   hasAppointmentOverlap,
+  isSameDay,
   isVisibleAgendaStatus,
+  slotToDateForDay,
   slotToDate,
+  startOfDay,
   startOfWeek,
   toSlotIndex,
 } from "./agenda.utils";
@@ -60,6 +71,27 @@ import { resolveStatusColors, type AppointmentStatus, type StatusColorMap } from
 
 type AppointmentFormField = keyof AppointmentFormState;
 type PaymentFormField = keyof PaymentFormState;
+
+function createInitialPaymentForm(
+  appointment: AgendaAppointment | null,
+  treatments: AgendaTreatment[],
+): PaymentFormState {
+  const paymentEntry = appointment?.paymentEntry ?? null;
+  const defaultTreatment = treatments[0];
+  const selectedTreatment =
+    treatments.find((item) => item.id === paymentEntry?.treatment.id) ?? defaultTreatment;
+
+  return {
+    treatmentId: paymentEntry?.treatment.id ?? selectedTreatment?.id ?? "",
+    status: paymentEntry?.status ?? appointment?.paymentStatus ?? "PENDING",
+    amount: paymentEntry
+      ? `${Math.round(paymentEntry.amount)}`
+      : selectedTreatment
+        ? `${Math.round(selectedTreatment.price)}`
+        : "",
+    notes: (paymentEntry?.notes ?? "").slice(0, NOTE_MAX_LENGTH),
+  };
+}
 
 export function useAgendaViewModel() {
   const {
@@ -70,11 +102,13 @@ export function useAgendaViewModel() {
     updateAppointmentStatusUseCase,
     updateAppointmentScheduleUseCase,
     getPatientsUseCase,
+    getPatientDetailUseCase,
     getUsersUseCase,
     getBoxesUseCase,
     getCrmTreatmentsUseCase,
     getDailyCashUseCase,
-    savePaymentHistoryUseCase,
+    createCashMovementUseCase,
+    updateAppointmentPaymentUseCase,
     getStatusColorsUseCase,
     saveStatusColorsUseCase,
     resetStatusColorsUseCase,
@@ -95,26 +129,33 @@ export function useAgendaViewModel() {
       updateAppointmentStatusUseCase: new UpdateAppointmentStatusUseCase(appointmentsRepo),
       updateAppointmentScheduleUseCase: new UpdateAppointmentScheduleUseCase(appointmentsRepo),
       getPatientsUseCase: new GetPatientsUseCase(patientsRepo),
+      getPatientDetailUseCase: new GetPatientDetailUseCase(patientsRepo),
       getUsersUseCase: new GetUsersUseCase(usersRepo),
       getBoxesUseCase: new GetBoxesUseCase(boxesRepo),
       getCrmTreatmentsUseCase: new GetCrmTreatmentsUseCase(crmRepo),
       getDailyCashUseCase: new GetDailyCashUseCase(crmRepo),
-      savePaymentHistoryUseCase: new SavePaymentHistoryUseCase(crmRepo),
+      createCashMovementUseCase: new CreateCashMovementUseCase(crmRepo),
+      updateAppointmentPaymentUseCase: new UpdateAppointmentPaymentUseCase(appointmentsRepo),
       getStatusColorsUseCase: new GetStatusColorsUseCase(clinicSettingsRepo),
       saveStatusColorsUseCase: new SaveStatusColorsUseCase(clinicSettingsRepo),
       resetStatusColorsUseCase: new ResetStatusColorsUseCase(clinicSettingsRepo),
     };
   }, []);
 
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [role, setRole] = useState<string | null>(null);
   const [roleLoading, setRoleLoading] = useState(true);
   const [appointments, setAppointments] = useState<AgendaAppointment[]>([]);
   const [patients, setPatients] = useState<AgendaPatient[]>([]);
+  const [patientSearchLoading, setPatientSearchLoading] = useState(false);
   const [doctors, setDoctors] = useState<AgendaDoctor[]>([]);
   const [boxes, setBoxes] = useState<AgendaBox[]>([]);
   const [treatments, setTreatments] = useState<AgendaTreatment[]>([]);
-  const [weekStart, setWeekStart] = useState(() => startOfWeek(new Date()));
+  const [calendarDate, setCalendarDate] = useState(() => startOfDay(new Date()));
   const [activeView, setActiveView] = useState<AgendaView>("agenda");
+  const [agendaMode, setAgendaMode] = useState<AgendaCalendarMode>("general");
+  const [doctorViewMode, setDoctorViewMode] = useState<AgendaDoctorViewMode>("week");
+  const [selectedDoctorId, setSelectedDoctorId] = useState("");
   const [isSelecting, setIsSelecting] = useState(false);
   const [selection, setSelection] = useState<AgendaSelection | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -145,12 +186,21 @@ export function useAgendaViewModel() {
   const [paymentAppointment, setPaymentAppointment] = useState<AgendaAppointment | null>(null);
   const [paymentForm, setPaymentForm] = useState<PaymentFormState>({
     treatmentId: "",
-    status: "PAID",
+    status: "PENDING",
+    amount: "",
+    notes: "",
+  });
+  const [initialPaymentForm, setInitialPaymentForm] = useState<PaymentFormState>({
+    treatmentId: "",
+    status: "PENDING",
     amount: "",
     notes: "",
   });
   const [form, setForm] = useState<AppointmentFormState>(() => createEmptyAppointmentForm());
+  const patientSearchCacheRef = useRef<Map<string, AgendaPatient[]>>(new Map());
 
+  const selectedDay = useMemo(() => startOfDay(calendarDate), [calendarDate]);
+  const weekStart = useMemo(() => startOfWeek(calendarDate), [calendarDate]);
   const days = useMemo(() => buildWeekDays(weekStart), [weekStart]);
   const slots = useMemo(() => buildSlots(), []);
   const resolvedColors = useMemo(() => resolveStatusColors(statusColorOverrides), [statusColorOverrides]);
@@ -177,21 +227,11 @@ export function useAgendaViewModel() {
 
   const loadLookups = useCallback(async () => {
     try {
-      const [patientsData, usersData, boxesData] = await Promise.all([
-        getPatientsUseCase.execute({ pageSize: 200 }),
+      const [usersData, boxesData] = await Promise.all([
         getUsersUseCase.execute(),
         getBoxesUseCase.execute(),
       ]);
-
-      setPatients(
-        patientsData.items.map((patient) => ({
-          id: patient.id,
-          firstName: patient.firstName,
-          lastName: patient.lastName,
-          email: patient.email ?? null,
-          phone: patient.phone ?? null,
-        }))
-      );
+      setPatients([]);
 
       setDoctors(
         usersData
@@ -205,7 +245,7 @@ export function useAgendaViewModel() {
       setDoctors([]);
       setBoxes([]);
     }
-  }, [getBoxesUseCase, getPatientsUseCase, getUsersUseCase]);
+  }, [getBoxesUseCase, getUsersUseCase]);
 
   const loadStatusColors = useCallback(async () => {
     try {
@@ -259,12 +299,26 @@ export function useAgendaViewModel() {
     }
   }, [canManageDailyCash, getDailyCashUseCase]);
 
+  const createCashMovement = useCallback(async (input: {
+    type: "INCOME" | "EXPENSE";
+    description: string;
+    amount: number;
+  }) => {
+    await createCashMovementUseCase.execute(input);
+    await loadDailyCash();
+  }, [createCashMovementUseCase, loadDailyCash]);
+
   useEffect(() => {
     const loadRole = async () => {
       try {
         const session = await getCurrentSessionUseCase.execute();
+        setCurrentUserId(session.userId ?? null);
         setRole(session.role);
+        if (session.role === "DOCTOR" && session.userId) {
+          setSelectedDoctorId(session.userId);
+        }
       } catch {
+        setCurrentUserId(null);
         setRole(null);
       } finally {
         setRoleLoading(false);
@@ -286,6 +340,25 @@ export function useAgendaViewModel() {
   useEffect(() => {
     void loadTreatments();
   }, [loadTreatments]);
+
+  useEffect(() => {
+    if (!doctors.length) {
+      setSelectedDoctorId("");
+      return;
+    }
+
+    setSelectedDoctorId((previous) => {
+      if (previous && doctors.some((doctor) => doctor.id === previous)) {
+        return previous;
+      }
+
+      if (role === "DOCTOR" && currentUserId && doctors.some((doctor) => doctor.id === currentUserId)) {
+        return currentUserId;
+      }
+
+      return doctors[0]?.id ?? "";
+    });
+  }, [currentUserId, doctors, role]);
 
   useEffect(() => {
     if (activeView !== "dailyCash") return;
@@ -329,13 +402,210 @@ export function useAgendaViewModel() {
     });
   }, [treatments]);
 
-  const slotDate = useCallback(
-    (dayIndex: number, slotIndex: number) => slotToDate(weekStart, dayIndex, slotIndex),
-    [weekStart]
+  useEffect(() => {
+    if (!detailAppointment || !treatments.length) return;
+
+    setInitialPaymentForm((previous) => {
+      if (previous.treatmentId) {
+        return previous;
+      }
+
+      return createInitialPaymentForm(detailAppointment, treatments);
+    });
+
+    setPaymentForm((previous) => {
+      if (previous.treatmentId) {
+        return previous;
+      }
+
+      return createInitialPaymentForm(detailAppointment, treatments);
+    });
+  }, [detailAppointment, treatments]);
+
+  useEffect(() => {
+    const normalizedRun = normalizeId(form.patientRun);
+
+    if (normalizedRun.length < 3) {
+      setPatients([]);
+      setPatientSearchLoading(false);
+      return;
+    }
+
+    const cached = patientSearchCacheRef.current.get(normalizedRun);
+    if (cached) {
+      setPatients(cached);
+      setPatientSearchLoading(false);
+      return;
+    }
+
+    let cancelled = false;
+    const timeoutId = window.setTimeout(async () => {
+      setPatientSearchLoading(true);
+      try {
+        const result = await getPatientsUseCase.execute({
+          query: normalizedRun,
+          pageSize: 8,
+        });
+
+        if (cancelled) return;
+
+        const nextPatients = result.items.map((patient) => ({
+          id: patient.id,
+          firstName: patient.firstName,
+          lastName: patient.lastName,
+          run: patient.run,
+          email: patient.email ?? null,
+          phone: patient.phone ?? null,
+        }));
+
+        patientSearchCacheRef.current.set(normalizedRun, nextPatients);
+        setPatients(nextPatients);
+      } catch {
+        if (!cancelled) {
+          setPatients([]);
+        }
+      } finally {
+        if (!cancelled) {
+          setPatientSearchLoading(false);
+        }
+      }
+    }, 250);
+
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timeoutId);
+    };
+  }, [form.patientRun, getPatientsUseCase]);
+
+  const isDoctorDayView = agendaMode === "doctor" && doctorViewMode === "day";
+  const usesDayNavigation = agendaMode === "boxDay" || isDoctorDayView;
+  const periodLabel = useMemo(
+    () => (usesDayNavigation ? buildDayLabel(selectedDay) : buildWeekLabel(weekStart)),
+    [selectedDay, usesDayNavigation, weekStart]
   );
 
-  const isSlotSelectionUnavailable = useCallback((dayIndex: number, slot: number) => {
-    void dayIndex;
+  const generalDateColumns = useMemo<AgendaGridColumn[]>(
+    () =>
+      days.map((day) => ({
+        id: formatDateValue(day),
+        caption: day.toLocaleDateString("es-CL", { weekday: "short" }).slice(0, 2),
+        label: `${day.getDate()}`,
+        variant: "date",
+        isToday: isSameDay(day, now),
+      })),
+    [days, now]
+  );
+
+  const doctorDateColumns = useMemo<AgendaGridColumn[]>(
+    () =>
+      (isDoctorDayView ? [selectedDay] : days).map((day) => ({
+        id: formatDateValue(day),
+        caption: day.toLocaleDateString("es-CL", { weekday: "short" }).slice(0, 2),
+        label: `${day.getDate()}`,
+        variant: "date",
+        isToday: isSameDay(day, now),
+      })),
+    [days, isDoctorDayView, now, selectedDay]
+  );
+
+  const boxColumns = useMemo<AgendaGridColumn[]>(
+    () =>
+      boxes.map((box) => ({
+        id: box.id,
+        caption: "BOX",
+        label: box.name,
+        variant: "resource",
+        isToday: isSameDay(selectedDay, now),
+      })),
+    [boxes, now, selectedDay]
+  );
+
+  const filteredAppointments = useMemo(() => {
+    if (agendaMode === "boxDay") {
+      return appointments.filter((item) => isSameDay(new Date(item.startAt), selectedDay));
+    }
+
+    if (agendaMode === "doctor") {
+      if (!selectedDoctorId) return [];
+      return appointments.filter((item) => item.doctorId === selectedDoctorId);
+    }
+
+    return appointments;
+  }, [agendaMode, appointments, selectedDay, selectedDoctorId]);
+
+  const agendaColumns = useMemo(() => {
+    if (agendaMode === "boxDay") {
+      return boxColumns;
+    }
+
+    if (agendaMode === "doctor") {
+      return doctorDateColumns;
+    }
+
+    return generalDateColumns;
+  }, [agendaMode, boxColumns, doctorDateColumns, generalDateColumns]);
+
+  const currentTimeColumnIndex = useMemo(() => {
+    if (agendaMode === "boxDay") {
+      return isSameDay(selectedDay, now) ? 0 : -1;
+    }
+
+    if (isDoctorDayView) {
+      return isSameDay(selectedDay, now) ? 0 : -1;
+    }
+
+    return days.findIndex((day) => isSameDay(day, now));
+  }, [agendaMode, days, isDoctorDayView, now, selectedDay]);
+
+  const showCurrentTimeAcrossAllColumns = agendaMode === "boxDay";
+  const isCurrentRange = currentTimeColumnIndex >= 0 && currentTimeColumnIndex < Math.max(agendaColumns.length, 1);
+
+  const getAppointmentPlacement = useCallback(
+    (appointment: AgendaAppointment) => {
+      const start = new Date(appointment.startAt);
+      const end = new Date(appointment.endAt);
+      const slotIndex = toSlotIndex(start);
+      const durationSlots = Math.max(
+        1,
+        Math.ceil((end.getTime() - start.getTime()) / (SLOT_MINUTES * 60000))
+      );
+
+      if (agendaMode === "boxDay") {
+        if (!isSameDay(start, selectedDay)) return null;
+        const columnIndex = boxes.findIndex((box) => box.id === appointment.boxId);
+        if (columnIndex < 0) return null;
+        return { columnIndex, slotIndex, durationSlots };
+      }
+
+      const rangeStart = isDoctorDayView ? selectedDay : weekStart;
+      const columnCount = isDoctorDayView ? 1 : days.length;
+      const columnIndex = Math.floor(
+        (startOfDay(start).getTime() - rangeStart.getTime()) / (24 * 60 * 60 * 1000)
+      );
+
+      if (columnIndex < 0 || columnIndex >= columnCount) {
+        return null;
+      }
+
+      return { columnIndex, slotIndex, durationSlots };
+    },
+    [agendaMode, boxes, days.length, isDoctorDayView, selectedDay, weekStart]
+  );
+
+  const slotDate = useCallback(
+    (columnIndex: number, slotIndex: number) => {
+      if (agendaMode === "boxDay" || isDoctorDayView) {
+        void columnIndex;
+        return slotToDateForDay(selectedDay, slotIndex);
+      }
+
+      return slotToDate(weekStart, columnIndex, slotIndex);
+    },
+    [agendaMode, isDoctorDayView, selectedDay, weekStart]
+  );
+
+  const isSlotSelectionUnavailable = useCallback((columnIndex: number, slot: number) => {
+    void columnIndex;
     void slot;
     return false;
   }, []);
@@ -358,19 +628,26 @@ export function useAgendaViewModel() {
     setPaymentSaving(false);
     setPaymentError(null);
     setPaymentAppointment(null);
-  }, []);
+    const emptyPaymentForm = createInitialPaymentForm(null, treatments);
+    setPaymentForm(emptyPaymentForm);
+    setInitialPaymentForm(emptyPaymentForm);
+  }, [treatments]);
 
   const openModalForRange = useCallback(
-    (dayIndex: number, startSlot: number, endSlot: number) => {
+    (columnIndex: number, startSlot: number, endSlot: number) => {
       if (!canEdit) return;
 
       const normalizedStart = Math.min(startSlot, endSlot);
       const normalizedEnd = Math.max(startSlot, endSlot) + 1;
-      const startAt = slotDate(dayIndex, normalizedStart);
-      const endAt = slotDate(dayIndex, normalizedEnd);
+      const startAt = slotDate(columnIndex, normalizedStart);
+      const endAt = slotDate(columnIndex, normalizedEnd);
+      const defaultDoctorId = agendaMode === "doctor" ? selectedDoctorId : "";
+      const defaultBoxId = agendaMode === "boxDay" ? boxes[columnIndex]?.id ?? "" : "";
 
       setForm((previous) => ({
         ...previous,
+        doctorId: defaultDoctorId || previous.doctorId,
+        boxId: defaultBoxId || previous.boxId,
         date: formatDateValue(startAt),
         start: formatTimeValue(startAt),
         end: formatTimeValue(endAt),
@@ -382,13 +659,13 @@ export function useAgendaViewModel() {
       setErrorMessage(null);
       setCancelReason("");
     },
-    [canEdit, slotDate]
+    [agendaMode, boxes, canEdit, selectedDoctorId, slotDate]
   );
 
   const finalizeSelection = useCallback(() => {
     if (!isSelecting || !selection || !canEdit) return;
     setIsSelecting(false);
-    openModalForRange(selection.dayIndex, selection.startSlot, selection.endSlot);
+    openModalForRange(selection.columnIndex, selection.startSlot, selection.endSlot);
   }, [canEdit, isSelecting, openModalForRange, selection]);
 
   useEffect(() => {
@@ -407,18 +684,25 @@ export function useAgendaViewModel() {
     };
   }, [finalizeSelection]);
 
-  const handlePointerDown = (dayIndex: number, slot: number, event?: React.PointerEvent) => {
+  const handlePointerDown = (columnIndex: number, slot: number, event?: React.PointerEvent) => {
     event?.preventDefault();
-    if (!canEdit || isSlotSelectionUnavailable(dayIndex, slot)) return;
+    if (!canEdit || isSlotSelectionUnavailable(columnIndex, slot)) return;
 
     setIsSelecting(true);
-    setSelection({ dayIndex, startSlot: slot, endSlot: slot });
+    setSelection({ columnIndex, startSlot: slot, endSlot: slot });
     setEditingId(null);
     setErrorMessage(null);
   };
 
-  const handlePointerEnter = (dayIndex: number, slot: number) => {
-    if (!isSelecting || !selection || dayIndex !== selection.dayIndex || isSlotSelectionUnavailable(dayIndex, slot)) return;
+  const handlePointerEnter = (columnIndex: number, slot: number) => {
+    if (
+      !isSelecting ||
+      !selection ||
+      columnIndex !== selection.columnIndex ||
+      isSlotSelectionUnavailable(columnIndex, slot)
+    ) {
+      return;
+    }
 
     setSelection((previous) => (previous ? { ...previous, endSlot: slot } : previous));
   };
@@ -436,14 +720,33 @@ export function useAgendaViewModel() {
     setDraggingId(null);
   };
 
+  const buildScheduleRange = useCallback(
+    (columnIndex: number, startSlot: number, endSlot: number) => ({
+      startAt: slotDate(columnIndex, startSlot),
+      endAt: slotDate(columnIndex, endSlot),
+    }),
+    [slotDate]
+  );
+
   const canDropAppointmentAt = useCallback(
-    (appointmentId: string, dayIndex: number, slot: number) => {
+    (appointmentId: string, columnIndex: number, slot: number) => {
+      if (agendaMode === "boxDay") return false;
+
       const appointment = appointments.find((item) => item.id === appointmentId);
       if (!appointment) return false;
 
-      const newStart = slotDate(dayIndex, slot);
-      const duration = new Date(appointment.endAt).getTime() - new Date(appointment.startAt).getTime();
-      const newEnd = new Date(newStart.getTime() + duration);
+      const durationSlots = Math.max(
+        1,
+        Math.ceil(
+          (new Date(appointment.endAt).getTime() - new Date(appointment.startAt).getTime()) /
+            (SLOT_MINUTES * 60000)
+        )
+      );
+      const { startAt: newStart, endAt: newEnd } = buildScheduleRange(
+        columnIndex,
+        slot,
+        slot + durationSlots
+      );
 
       return !hasAppointmentOverlap(appointments, {
         appointmentId,
@@ -454,18 +757,55 @@ export function useAgendaViewModel() {
         endAt: newEnd,
       });
     },
-    [appointments, slotDate]
+    [agendaMode, appointments, buildScheduleRange]
   );
 
-  const moveAppointment = async (appointmentId: string, dayIndex: number, slot: number) => {
-    if (!canEdit) return;
+  const canResizeAppointmentAt = useCallback(
+    (
+      appointmentId: string,
+      columnIndex: number,
+      startSlot: number,
+      endSlot: number
+    ) => {
+      const appointment = appointments.find((item) => item.id === appointmentId);
+      if (!appointment || endSlot <= startSlot) return false;
+
+      const { startAt: newStart, endAt: newEnd } = buildScheduleRange(
+        columnIndex,
+        startSlot,
+        endSlot
+      );
+
+      return !hasAppointmentOverlap(appointments, {
+        appointmentId,
+        patientId: appointment.patientId,
+        doctorId: appointment.doctorId,
+        boxId: appointment.boxId,
+        startAt: newStart,
+        endAt: newEnd,
+      });
+    },
+    [appointments, buildScheduleRange]
+  );
+
+  const moveAppointment = async (appointmentId: string, columnIndex: number, slot: number) => {
+    if (!canEdit || agendaMode === "boxDay") return;
 
     const appointment = appointments.find((item) => item.id === appointmentId);
     if (!appointment) return;
 
-    const newStart = slotDate(dayIndex, slot);
-    const duration = new Date(appointment.endAt).getTime() - new Date(appointment.startAt).getTime();
-    const newEnd = new Date(newStart.getTime() + duration);
+    const durationSlots = Math.max(
+      1,
+      Math.ceil(
+        (new Date(appointment.endAt).getTime() - new Date(appointment.startAt).getTime()) /
+          (SLOT_MINUTES * 60000)
+      )
+    );
+    const { startAt: newStart, endAt: newEnd } = buildScheduleRange(
+      columnIndex,
+      slot,
+      slot + durationSlots
+    );
 
     const hasOverlap = hasAppointmentOverlap(appointments, {
       appointmentId,
@@ -497,22 +837,94 @@ export function useAgendaViewModel() {
     }
   };
 
+  const resizeAppointment = async (
+    appointmentId: string,
+    columnIndex: number,
+    startSlot: number,
+    endSlot: number
+  ) => {
+    if (!canEdit || endSlot <= startSlot) return;
+
+    const appointment = appointments.find((item) => item.id === appointmentId);
+    if (!appointment) return;
+
+    const { startAt: newStart, endAt: newEnd } = buildScheduleRange(
+      columnIndex,
+      startSlot,
+      endSlot
+    );
+
+    const hasOverlap = hasAppointmentOverlap(appointments, {
+      appointmentId,
+      patientId: appointment.patientId,
+      doctorId: appointment.doctorId,
+      boxId: appointment.boxId,
+      startAt: newStart,
+      endAt: newEnd,
+    });
+
+    if (hasOverlap) {
+      setErrorMessage("Ya existe una cita que se superpone para ese doctor, box o paciente.");
+      return;
+    }
+
+    try {
+      const updatedAppointment = await updateAppointmentScheduleUseCase.execute(appointmentId, {
+        startAt: newStart.toISOString(),
+        endAt: newEnd.toISOString(),
+      });
+      setAppointments((previous) =>
+        previous.map((item) => (item.id === updatedAppointment.id ? updatedAppointment : item))
+      );
+      setDetailAppointment((previous) =>
+        previous?.id === updatedAppointment.id ? updatedAppointment : previous
+      );
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : "No se pudo actualizar la duración de la cita.");
+    }
+  };
+
   const handleAppointmentClick = (item: AgendaAppointment) => {
     setDetailAppointment(item);
-    setStatusModalOpen(false);
-    setSelectedStatus("");
+    setSelectedStatus(item.status);
+    const nextPaymentForm = createInitialPaymentForm(item, treatments);
+    setPaymentAppointment(item);
+    setPaymentForm(nextPaymentForm);
+    setInitialPaymentForm(nextPaymentForm);
+    setPaymentError(null);
     setErrorMessage(null);
   };
 
-  const openEditModal = (item: AgendaAppointment) => {
+  const openEditModal = async (item: AgendaAppointment) => {
     if (!canEdit) return;
 
     const startAt = new Date(item.startAt);
     const endAt = new Date(item.endAt);
+    let patientRun = "";
+
+    try {
+      const patientDetail = await getPatientDetailUseCase.execute(item.patientId);
+      patientRun = patientDetail?.run ?? "";
+      if (patientDetail) {
+        const mappedPatient = {
+          id: patientDetail.id,
+          firstName: patientDetail.firstName,
+          lastName: patientDetail.lastName,
+          run: patientDetail.run,
+          email: patientDetail.email ?? null,
+          phone: patientDetail.phone ?? null,
+        };
+        setPatients([mappedPatient]);
+        patientSearchCacheRef.current.set(normalizeId(patientDetail.run), [mappedPatient]);
+      }
+    } catch {
+      patientRun = "";
+    }
 
     setEditingId(item.id);
     setForm({
       patientId: item.patientId,
+      patientRun,
       patientFirstName: item.patient.firstName,
       patientLastName: item.patient.lastName,
       patientEmail: item.patient.email ?? "",
@@ -533,7 +945,7 @@ export function useAgendaViewModel() {
     if (!detailAppointment) return;
     const item = detailAppointment;
     resetModalState();
-    openEditModal(item);
+    void openEditModal(item);
   };
 
   const handleAppointmentFormChange = (field: AppointmentFormField, value: string) => {
@@ -548,11 +960,30 @@ export function useAgendaViewModel() {
     setForm((previous) => ({
       ...previous,
       patientId,
+      patientRun: patient?.run ?? previous.patientRun,
       patientFirstName: patient?.firstName ?? "",
       patientLastName: patient?.lastName ?? "",
       patientEmail: patient?.email ?? "",
       patientPhone: patient?.phone ?? "",
     }));
+    setPatients([]);
+  };
+
+  const handlePatientRunChange = (value: string) => {
+    const normalizedRun = normalizeId(value);
+    setForm((previous) => ({
+      ...previous,
+      patientRun: normalizedRun,
+      patientId: "",
+      patientFirstName: "",
+      patientLastName: "",
+      patientEmail: "",
+      patientPhone: "",
+    }));
+
+    if (normalizedRun.length < 3) {
+      setPatients([]);
+    }
   };
 
   const createOrUpdateAppointment = async (event: React.FormEvent) => {
@@ -643,22 +1074,8 @@ export function useAgendaViewModel() {
     setCancelConfirm(true);
   };
 
-  const openStatusModal = () => {
-    if (!detailAppointment || !canChangeStatus) return;
-    setSelectedStatus(detailAppointment.status);
-    setStatusModalOpen(true);
-    setErrorMessage(null);
-  };
-
-  const closeStatusModal = () => {
-    setStatusModalOpen(false);
-    setSelectedStatus("");
-    setErrorMessage(null);
-  };
-
   const openCancelFromStatus = () => {
     if (!detailAppointment || !canChangeStatus) return;
-    setStatusModalOpen(false);
     setCancelReason("");
     setCancelTargetAppointment(detailAppointment);
     setCancelConfirm(true);
@@ -705,16 +1122,10 @@ export function useAgendaViewModel() {
   };
 
   const openPaymentModal = (item: AgendaAppointment) => {
-    const defaultTreatment = treatments[0];
     setPaymentAppointment(item);
     setPaymentError(null);
     setPaymentSuccess(null);
-    setPaymentForm({
-      treatmentId: defaultTreatment?.id ?? "",
-      status: "PAID",
-      amount: defaultTreatment ? `${Math.round(defaultTreatment.price)}` : "",
-      notes: (item.notes ?? "").slice(0, NOTE_MAX_LENGTH),
-    });
+    setPaymentForm(createInitialPaymentForm(item, treatments));
     setPaymentModalOpen(true);
   };
 
@@ -740,57 +1151,82 @@ export function useAgendaViewModel() {
     }));
   };
 
-  const handleRegisterPayment = async () => {
-    if (!paymentAppointment || !canManageDailyCash) return;
+  const hasPaymentFormChanges = useMemo(
+    () =>
+      paymentForm.treatmentId !== initialPaymentForm.treatmentId ||
+      paymentForm.status !== initialPaymentForm.status ||
+      paymentForm.amount !== initialPaymentForm.amount ||
+      paymentForm.notes !== initialPaymentForm.notes,
+    [initialPaymentForm, paymentForm]
+  );
+
+  const hasStatusChange = useMemo(
+    () => Boolean(detailAppointment && selectedStatus && selectedStatus !== detailAppointment.status),
+    [detailAppointment, selectedStatus]
+  );
+
+  const applyPaymentChanges = async () => {
+    if (!paymentAppointment || !canManageDailyCash) return false;
 
     const amount = Number(paymentForm.amount);
     if (!paymentForm.treatmentId) {
       setPaymentError("Selecciona un tratamiento.");
-      return;
+      return false;
     }
 
     if (!Number.isFinite(amount) || amount <= 0) {
       setPaymentError("Ingresa un monto valido.");
-      return;
+      return false;
     }
 
     setPaymentSaving(true);
     setPaymentError(null);
 
     try {
-      await savePaymentHistoryUseCase.execute({
-        patientId: paymentAppointment.patientId,
+      const updatedAppointment = await updateAppointmentPaymentUseCase.execute(paymentAppointment.id, {
         treatmentId: paymentForm.treatmentId,
-        performedAt: paymentAppointment.startAt,
         status: paymentForm.status,
         amount,
         notes: paymentForm.notes.trim() || null,
       });
+
+      const nextPaymentForm = createInitialPaymentForm(updatedAppointment, treatments);
+
+      setAppointments((previous) =>
+        previous.map((item) => (item.id === updatedAppointment.id ? updatedAppointment : item))
+      );
+      setDetailAppointment((previous) =>
+        previous?.id === updatedAppointment.id ? updatedAppointment : previous
+      );
+      setPaymentAppointment(updatedAppointment);
       setPaymentSaving(false);
-      closePaymentModal();
-      setPaymentSuccess("Cobro registrado correctamente.");
+      setPaymentForm(nextPaymentForm);
+      setInitialPaymentForm(nextPaymentForm);
+      setPaymentSuccess("Cobro actualizado correctamente.");
       await loadDailyCash();
+      return true;
     } catch (error) {
-      setPaymentError(error instanceof Error ? error.message : "No se pudo registrar el cobro.");
+      setPaymentError(error instanceof Error ? error.message : "No se pudo actualizar el cobro.");
       setPaymentSaving(false);
+      return false;
     }
   };
 
   const handleStatusUpdate = async () => {
-    if (!detailAppointment || !canChangeStatus) return;
+    if (!detailAppointment || !canChangeStatus) return false;
     if (!selectedStatus) {
       setErrorMessage("Selecciona un estado.");
-      return;
+      return false;
     }
 
     if (selectedStatus === detailAppointment.status) {
       setErrorMessage("Selecciona un estado distinto al actual.");
-      return;
+      return false;
     }
 
     if (selectedStatus === "CANCELLED") {
       openCancelFromStatus();
-      return;
+      return false;
     }
 
     setStatusUpdating(true);
@@ -804,23 +1240,59 @@ export function useAgendaViewModel() {
         error instanceof Error ? error.message : "No se pudo actualizar el estado de la cita."
       );
       setStatusUpdating(false);
-      return;
+      return false;
     }
 
     if (!isVisibleAgendaStatus(nextAppointment.status as AppointmentStatus)) {
       setAppointments((previous) => previous.filter((item) => item.id !== detailAppointment.id));
       setStatusUpdating(false);
       resetModalState();
-      return;
+      return true;
     }
 
     setAppointments((previous) =>
       previous.map((item) => (item.id === nextAppointment.id ? nextAppointment : item))
     );
     setDetailAppointment(nextAppointment);
-    setStatusModalOpen(false);
-    setSelectedStatus("");
+    setSelectedStatus(nextAppointment.status);
     setStatusUpdating(false);
+    return true;
+  };
+
+  const applyDetailChanges = async () => {
+    if (!detailAppointment) return;
+
+    setErrorMessage(null);
+    setPaymentError(null);
+
+    if (hasStatusChange && selectedStatus === "CANCELLED") {
+      openCancelFromStatus();
+      return;
+    }
+
+    if (hasPaymentFormChanges) {
+      if (!paymentForm.treatmentId) {
+        setPaymentError("Selecciona un tratamiento.");
+        return;
+      }
+
+      const amount = Number(paymentForm.amount);
+      if (!Number.isFinite(amount) || amount <= 0) {
+        setPaymentError("Ingresa un monto valido.");
+        return;
+      }
+    }
+
+    if (hasStatusChange) {
+      const statusApplied = await handleStatusUpdate();
+      if (!statusApplied) {
+        return;
+      }
+    }
+
+    if (hasPaymentFormChanges) {
+      await applyPaymentChanges();
+    }
   };
 
   const saveStatusColors = async (newOverrides: StatusColorMap) => {
@@ -856,41 +1328,47 @@ export function useAgendaViewModel() {
     setShowColorSettings(false);
   };
 
-  const goToToday = () => setWeekStart(startOfWeek(new Date()));
+  const goToToday = () => setCalendarDate(startOfDay(new Date()));
 
-  const goToPreviousWeek = () => {
-    setWeekStart((previous) => {
-      const nextDate = new Date(previous);
-      nextDate.setDate(nextDate.getDate() - 7);
-      return startOfWeek(nextDate);
-    });
+  const goToPreviousPeriod = () => {
+    setCalendarDate((previous) => startOfDay(addDays(previous, usesDayNavigation ? -1 : -7)));
   };
 
-  const goToNextWeek = () => {
-    setWeekStart((previous) => {
-      const nextDate = new Date(previous);
-      nextDate.setDate(nextDate.getDate() + 7);
-      return startOfWeek(nextDate);
-    });
+  const goToNextPeriod = () => {
+    setCalendarDate((previous) => startOfDay(addDays(previous, usesDayNavigation ? 1 : 7)));
   };
 
-  const todayIndex = days.findIndex((day) => day.toDateString() === now.toDateString());
-  const isCurrentWeek = todayIndex >= 0 && todayIndex <= 6;
   const isWithinHours = now.getHours() >= 8 && now.getHours() < 20;
   const nowSlot = Math.max(0, Math.min(slots.length - 1, toSlotIndex(now)));
-  const weekLabel = useMemo(() => buildWeekLabel(weekStart), [weekStart]);
+  const selectedDoctor = useMemo(
+    () => doctors.find((doctor) => doctor.id === selectedDoctorId) ?? null,
+    [doctors, selectedDoctorId]
+  );
+  const selectedDoctorLabel = useMemo(() => {
+    const firstName = selectedDoctor?.profile?.firstName ?? "";
+    const lastName = selectedDoctor?.profile?.lastName ?? "";
+    return `${firstName} ${lastName}`.trim();
+  }, [selectedDoctor]);
+  const detailApplyLoading = statusUpdating || paymentSaving;
+  const hasDetailChanges = hasStatusChange || hasPaymentFormChanges;
 
   return {
     state: {
+      currentUserId,
       role,
       roleLoading,
       appointments,
       patients,
+      patientSearchLoading,
       doctors,
       boxes,
       treatments,
       weekStart,
+      calendarDate: selectedDay,
       activeView,
+      agendaMode,
+      doctorViewMode,
+      selectedDoctorId,
       isModalOpen,
       editingId,
       detailAppointment,
@@ -917,16 +1395,21 @@ export function useAgendaViewModel() {
       paymentSuccess,
       paymentAppointment,
       paymentForm,
+      initialPaymentForm,
       form,
       selection,
       now,
     },
     actions: {
       setActiveView,
+      setAgendaMode,
+      setDoctorViewMode,
+      setSelectedDoctorId,
       goToToday,
-      goToPreviousWeek,
-      goToNextWeek,
+      goToPreviousPeriod,
+      goToNextPeriod,
       reloadDailyCash: loadDailyCash,
+      createCashMovement,
       openStatusColors: () => setShowColorSettings(true),
       closeStatusColors,
       saveStatusColors,
@@ -935,43 +1418,53 @@ export function useAgendaViewModel() {
       handlePointerDown,
       handlePointerEnter,
       moveAppointment,
+      resizeAppointment,
       handleAppointmentDragStart,
       handleAppointmentDragEnd,
       handleAppointmentClick,
       openEditModal,
       openEditFromDetail,
       handleAppointmentFormChange,
+      handlePatientRunChange,
       handlePatientSelection,
       createOrUpdateAppointment,
       openCancelFromEditing,
       closeCancelConfirm,
       handleCancelReasonChange,
       handleCancelAppointment,
-      openStatusModal,
-      closeStatusModal,
       setSelectedStatus,
       handleStatusUpdate,
       openPaymentModal,
       closePaymentModal,
       handlePaymentTreatmentChange,
       handlePaymentFieldChange,
-      handleRegisterPayment,
+      handleRegisterPayment: applyPaymentChanges,
+      applyDetailChanges,
     },
     derived: {
       days,
+      agendaColumns,
+      filteredAppointments,
       slots,
-      weekLabel,
-      todayIndex,
-      isCurrentWeek,
+      periodLabel,
+      currentTimeColumnIndex,
+      isCurrentRange,
       isWithinHours,
       nowSlot,
+      showCurrentTimeAcrossAllColumns,
+      selectedDoctor,
+      selectedDoctorLabel,
+      hasDetailChanges,
+      detailApplyLoading,
       resolvedColors,
       isDoctor,
       canEdit,
       canChangeStatus,
       canManageDailyCash,
+      getAppointmentPlacement,
       isSlotSelectionUnavailable,
       canDropAppointmentAt,
+      canResizeAppointmentAt,
       slotToDate: slotDate,
     },
   };

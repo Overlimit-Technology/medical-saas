@@ -6,7 +6,20 @@ export type Appointment = {
   startAt: string;
   endAt: string;
   status: "SCHEDULED" | "CONFIRMED" | "CANCELLED" | "COMPLETED" | "NO_SHOW";
+  paymentStatus: "PENDING" | "PAID" | "WAIVED";
   notes?: string | null;
+  paymentEntry?: {
+    id: string;
+    recordedAt: string;
+    status: "PENDING" | "PAID" | "WAIVED";
+    amount: number;
+    notes?: string | null;
+    treatment: {
+      id: string;
+      name: string;
+      price: number;
+    };
+  } | null;
   patient: {
     id: string;
     firstName: string;

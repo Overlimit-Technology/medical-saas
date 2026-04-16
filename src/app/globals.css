@@ -11,6 +11,70 @@ body {
   color: var(--foreground);
   background: var(--background);
   font-family: var(--font-geist-sans), system-ui, sans-serif;
+  scrollbar-width: thin;
+  scrollbar-color: #19b3bc #e9f7f8;
+}
+
+html {
+  scrollbar-width: thin;
+  scrollbar-color: #19b3bc #e9f7f8;
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #19b3bc #e9f7f8;
+}
+
+html::-webkit-scrollbar,
+body::-webkit-scrollbar,
+*::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+html::-webkit-scrollbar-track,
+body::-webkit-scrollbar-track,
+*::-webkit-scrollbar-track {
+  background: #e9f7f8;
+  border-radius: 999px;
+}
+
+html::-webkit-scrollbar-thumb,
+body::-webkit-scrollbar-thumb,
+*::-webkit-scrollbar-thumb {
+  background: #19b3bc;
+  border-radius: 999px;
+  border: 2px solid #e9f7f8;
+}
+
+html::-webkit-scrollbar-thumb:hover,
+body::-webkit-scrollbar-thumb:hover,
+*::-webkit-scrollbar-thumb:hover {
+  background: #159ea7;
+}
+
+.sidebar-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: #19b3bc #e9f7f8;
+}
+
+.sidebar-scrollbar::-webkit-scrollbar {
+  width: 10px;
+}
+
+.sidebar-scrollbar::-webkit-scrollbar-track {
+  background: #e9f7f8;
+  border-radius: 999px;
+}
+
+.sidebar-scrollbar::-webkit-scrollbar-thumb {
+  background: #19b3bc;
+  border-radius: 999px;
+  border: 2px solid #e9f7f8;
+}
+
+.sidebar-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #159ea7;
 }
 
 @layer utilities {
