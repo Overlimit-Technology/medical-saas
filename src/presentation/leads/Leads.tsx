@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useLeadsViewModel } from "./LeadsViewModel";
 import KanbanBoard from "./components/KanbanBoard";
 import LeadTable from "./components/LeadTable";
@@ -8,6 +7,7 @@ import LeadDetailPanel from "./components/LeadDetailPanel";
 import LeadForm from "./components/LeadForm";
 import LeadFilters from "./components/LeadFilters";
 import ColumnEditor from "./components/ColumnEditor";
+import ChannelFilter from "./components/ChannelFilter";
 
 export default function Leads() {
   const { state, actions } = useLeadsViewModel();
@@ -15,81 +15,110 @@ export default function Leads() {
   if (!state.loaded) {
     return (
       <div className="flex h-64 items-center justify-center">
-        <p className="text-sm text-slate-400">Cargando CRM...</p>
+        <p className="text-sm text-slate-400">Cargando pipeline...</p>
       </div>
     );
   }
 
   return (
-    <div className="leads-module flex h-[calc(100vh-64px)] flex-col bg-white">
-      <div className="shrink-0 border-b border-slate-100 px-6 pb-0 pt-5">
-        <div className="flex flex-wrap items-start justify-between gap-4">
+    <div className="leads-module flex h-full flex-col">
+      {/* Toolbar */}
+      <div className="shrink-0 border-b border-slate-200/60 bg-white px-5 py-3">
+        <div className="flex items-center justify-between gap-4">
           <div className="flex items-center gap-4">
-            <div>
-              <h1 className="text-lg font-semibold text-slate-800">CRM Pipeline</h1>
-              <p className="text-xs text-slate-400">
-                {state.stats.total} leads &middot; {state.stats.inProcess} en proceso
-              </p>
+            <p className="text-[11px] text-slate-400">
+              {state.stats.total} leads &middot; {state.stats.inProcess} activos &middot; {state.stats.conversionRate}% conversion
+            </p>
+            <div className="hidden lg:flex items-center gap-4 pl-4 border-l border-slate-200">
+              <MiniStat label="Ganados" value={state.stats.wonCount} color="text-emerald-600" />
+              <MiniStat label="Perdidos" value={state.stats.lostCount} color="text-red-500" />
+              <MiniStat label="Pipeline" value={`$${state.stats.totalBudget.toLocaleString("es-CL")}`} color="text-slate-700" />
             </div>
           </div>
-          <div className="flex flex-col items-stretch gap-3 sm:items-end">
-            <div className="inline-flex self-end rounded-full border border-slate-200 bg-slate-50 p-1">
-              <span className="rounded-full bg-slate-900 px-4 py-2 text-sm font-medium text-white">
-                CRM
-              </span>
-              <Link
-                href="/chat-meta"
-                className="rounded-full px-4 py-2 text-sm font-medium text-slate-600 transition hover:text-slate-900"
-              >
-                Chat Meta
-              </Link>
-            </div>
-            <div className="flex flex-wrap items-center justify-end gap-2">
-              <div className="flex overflow-hidden rounded-lg border border-slate-200">
-                <button type="button" onClick={() => actions.setViewMode("kanban")} className={`px-3 py-1.5 text-xs font-medium transition ${state.viewMode === "kanban" ? "bg-slate-800 text-white" : "bg-white text-slate-500 hover:bg-slate-50"}`}>Kanban</button>
-                <button type="button" onClick={() => actions.setViewMode("table")} className={`px-3 py-1.5 text-xs font-medium transition ${state.viewMode === "table" ? "bg-slate-800 text-white" : "bg-white text-slate-500 hover:bg-slate-50"}`}>Tabla</button>
-              </div>
-              <button type="button" onClick={() => actions.setShowColumnEditor(true)} className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-600 transition hover:bg-slate-50">Columnas</button>
-              <button type="button" onClick={actions.openCreateForm} className="rounded-lg bg-indigo-600 px-4 py-1.5 text-xs font-medium text-white transition hover:bg-indigo-700">+ Nuevo Lead</button>
-            </div>
-          </div>
-        </div>
 
-        <div className="mt-4 flex gap-6 overflow-x-auto pb-3">
-          <StatInline label="Total" value={state.stats.total} />
-          <StatInline label="En proceso" value={state.stats.inProcess} />
-          <StatInline label="Ganados" value={state.stats.wonCount} color="text-emerald-600" />
-          <StatInline label="Perdidos" value={state.stats.lostCount} color="text-red-500" />
-          <StatInline label="Conversion" value={`${state.stats.conversionRate}%`} />
-          <StatInline label="Pipeline" value={`$${state.stats.totalBudget.toLocaleString("es-CL")}`} />
+          <div className="flex items-center gap-2">
+            <div className="inline-flex rounded-lg border border-slate-200 bg-slate-50 p-0.5">
+              <button
+                type="button"
+                onClick={() => actions.setViewMode("kanban")}
+                className={`rounded-md px-3 py-1.5 text-xs font-medium transition-all duration-150 ${
+                  state.viewMode === "kanban"
+                    ? "bg-white text-slate-800 shadow-sm"
+                    : "text-slate-500 hover:text-slate-700"
+                }`}
+              >
+                Kanban
+              </button>
+              <button
+                type="button"
+                onClick={() => actions.setViewMode("table")}
+                className={`rounded-md px-3 py-1.5 text-xs font-medium transition-all duration-150 ${
+                  state.viewMode === "table"
+                    ? "bg-white text-slate-800 shadow-sm"
+                    : "text-slate-500 hover:text-slate-700"
+                }`}
+              >
+                Tabla
+              </button>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => actions.setShowColumnEditor(true)}
+              className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-500 transition hover:bg-slate-50 hover:text-slate-700"
+            >
+              Columnas
+            </button>
+
+            <button
+              type="button"
+              onClick={actions.openCreateForm}
+              className="rounded-lg bg-slate-800 px-4 py-1.5 text-xs font-medium text-white transition hover:bg-slate-700"
+            >
+              + Nuevo Lead
+            </button>
+          </div>
         </div>
       </div>
 
+      {/* Channel filter */}
+      <div className="shrink-0 px-5 pt-3 pb-1 bg-slate-50/50 border-b border-slate-100">
+        <ChannelFilter
+          selected={state.filters.channel}
+          counts={state.stats.byChannel}
+          onChange={(channel) =>
+            actions.setFilters((prev) => ({ ...prev, channel }))
+          }
+        />
+      </div>
+
+      {/* Follow-ups alert */}
       {state.followUps.length > 0 && (
-        <div className="shrink-0 border-b border-amber-200 bg-amber-50 px-6 py-2.5">
+        <div className="shrink-0 border-b border-amber-200/60 bg-amber-50/70 px-5 py-2">
           <div className="flex items-center gap-2">
-            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 text-amber-600"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-            <span className="text-xs font-medium text-amber-800">
-              {state.followUps.length} seguimiento{state.followUps.length > 1 ? "s" : ""} pendiente{state.followUps.length > 1 ? "s" : ""}:
+            <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 text-amber-500"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            <span className="text-[11px] font-medium text-amber-700">
+              {state.followUps.length} seguimiento{state.followUps.length > 1 ? "s" : ""}
             </span>
-            <div className="flex gap-2 overflow-x-auto">
-              {state.followUps.slice(0, 5).map((f) => (
+            <div className="flex gap-1.5 overflow-x-auto">
+              {state.followUps.slice(0, 4).map((f) => (
                 <button
                   key={f.id} type="button"
                   onClick={() => actions.setSelectedLeadId(f.id)}
-                  className="shrink-0 rounded-full border border-amber-300 bg-white px-2.5 py-0.5 text-[11px] font-medium text-amber-700 hover:bg-amber-100 transition"
+                  className="shrink-0 rounded-full bg-white px-2.5 py-0.5 text-[10px] font-medium text-amber-700 shadow-sm ring-1 ring-amber-200/60 hover:bg-amber-50 transition"
                 >
                   {f.name}
-                  <span className="ml-1 tabular-nums text-amber-500">{new Date(f.followUpDate).toLocaleDateString("es-CL", { day: "numeric", month: "short" })}</span>
+                  <span className="ml-1 tabular-nums text-amber-400">{new Date(f.followUpDate).toLocaleDateString("es-CL", { day: "numeric", month: "short" })}</span>
                 </button>
               ))}
-              {state.followUps.length > 5 && <span className="text-[11px] text-amber-500">+{state.followUps.length - 5} mas</span>}
+              {state.followUps.length > 4 && <span className="self-center text-[10px] text-amber-400">+{state.followUps.length - 4}</span>}
             </div>
           </div>
         </div>
       )}
 
-      <div className="shrink-0 px-6 pt-4">
+      {/* Filters */}
+      <div className="shrink-0 px-5 pt-3">
         <LeadFilters
           filters={state.filters} columns={state.columns}
           tags={state.tags} doctors={state.doctors}
@@ -98,7 +127,8 @@ export default function Leads() {
         />
       </div>
 
-      <div className="relative min-h-0 flex-1 px-4 pt-2">
+      {/* Main content */}
+      <div className="relative min-h-0 flex-1 px-4 pt-1">
         {state.viewMode === "kanban" ? (
           <KanbanBoard
             columns={state.columns} leads={state.leads} dragState={state.dragState}
@@ -155,11 +185,11 @@ export default function Leads() {
   );
 }
 
-function StatInline({ label, value, color }: { label: string; value: string | number; color?: string }) {
+function MiniStat({ label, value, color }: { label: string; value: string | number; color?: string }) {
   return (
-    <div className="flex shrink-0 items-baseline gap-1.5">
-      <span className={`text-lg font-semibold tabular-nums ${color ?? "text-slate-800"}`}>{value}</span>
-      <span className="text-xs text-slate-400">{label}</span>
+    <div className="flex items-baseline gap-1.5">
+      <span className={`text-sm font-semibold tabular-nums ${color ?? "text-slate-800"}`}>{value}</span>
+      <span className="text-[10px] text-slate-400">{label}</span>
     </div>
   );
 }
