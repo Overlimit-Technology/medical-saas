@@ -18,10 +18,14 @@ export type DailyCashItem = {
   notes?: string | null;
   patientName: string;
   treatmentName: string;
+  movementType: "PAYMENT" | "INCOME" | "EXPENSE";
+  userName?: string | null;
 };
 
 export type DailyCashSummary = {
   totalAmount: number;
+  totalIncome: number;
+  totalExpense: number;
   totalCount: number;
   paidCount: number;
   pendingCount: number;

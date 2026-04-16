@@ -1,4 +1,4 @@
-import { PaymentStatus } from "@prisma/client";
+import { PaymentStatus, CashMovementType } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 
 export type CreateCrmPaymentInput = {
@@ -91,40 +91,41 @@ export class CrmService {
   }
 
   static async getDailyCashSummary(clinicId: string, from: Date, to: Date) {
-    const rows = await prisma.paymentHistory.findMany({
-      where: {
-        recordedAt: {
-          gte: from,
-          lt: to,
+    const [paymentRows, movementRows] = await Promise.all([
+      prisma.paymentHistory.findMany({
+        where: {
+          recordedAt: { gte: from, lt: to },
+          patientTreatment: { patient: { clinicId } },
         },
-        patientTreatment: {
-          patient: {
-            clinicId,
-          },
-        },
-      },
-      include: {
-        patientTreatment: {
-          include: {
-            patient: {
-              select: {
-                firstName: true,
-                lastName: true,
-                secondLastName: true,
+        include: {
+          patientTreatment: {
+            include: {
+              patient: {
+                select: { firstName: true, lastName: true, secondLastName: true },
               },
-            },
-            treatment: {
-              select: {
-                name: true,
-              },
+              treatment: { select: { name: true } },
             },
           },
         },
-      },
-      orderBy: { recordedAt: "desc" },
-    });
+        orderBy: { recordedAt: "desc" },
+      }),
+      prisma.cashMovement.findMany({
+        where: {
+          clinicId,
+          recordedAt: { gte: from, lt: to },
+        },
+        include: {
+          createdBy: {
+            select: {
+              profile: { select: { firstName: true, lastName: true } },
+            },
+          },
+        },
+        orderBy: { recordedAt: "desc" },
+      }),
+    ]);
 
-    const items = rows.map((row) => {
+    const paymentItems = paymentRows.map((row) => {
       const patientName = [
         row.patientTreatment.patient.firstName,
         row.patientTreatment.patient.lastName,
@@ -136,31 +137,50 @@ export class CrmService {
       return {
         id: row.id,
         recordedAt: row.recordedAt,
-        status: row.status,
+        status: row.status as "PENDING" | "PAID" | "WAIVED",
         amount: toNumber(row.amount),
         notes: row.notes,
         patientName,
         treatmentName: row.patientTreatment.treatment.name,
+        movementType: "PAYMENT" as const,
+        userName: null as string | null,
       };
     });
 
-    const summary = items.reduce(
-      (acc, item) => {
-        acc.totalAmount += item.status === "PAID" ? item.amount : 0;
-        acc.totalCount += 1;
-        if (item.status === "PAID") acc.paidCount += 1;
-        if (item.status === "PENDING") acc.pendingCount += 1;
-        if (item.status === "WAIVED") acc.waivedCount += 1;
-        return acc;
-      },
-      {
-        totalAmount: 0,
-        totalCount: 0,
-        paidCount: 0,
-        pendingCount: 0,
-        waivedCount: 0,
-      }
+    const cashItems = movementRows.map((row) => ({
+      id: row.id,
+      recordedAt: row.recordedAt,
+      status: "PAID" as const,
+      amount: row.type === "EXPENSE" ? -toNumber(row.amount) : toNumber(row.amount),
+      notes: row.description,
+      patientName: "",
+      treatmentName: "",
+      movementType: row.type as "INCOME" | "EXPENSE",
+      userName: row.createdBy.profile
+        ? `${row.createdBy.profile.firstName} ${row.createdBy.profile.lastName}`.trim()
+        : null,
+    }));
+
+    const items = [...paymentItems, ...cashItems].sort(
+      (a, b) => new Date(b.recordedAt).getTime() - new Date(a.recordedAt).getTime()
     );
+
+    const totalIncome = items
+      .filter((i) => i.amount > 0)
+      .reduce((s, i) => s + i.amount, 0);
+    const totalExpense = items
+      .filter((i) => i.amount < 0)
+      .reduce((s, i) => s + Math.abs(i.amount), 0);
+
+    const summary = {
+      totalAmount: totalIncome - totalExpense,
+      totalIncome,
+      totalExpense,
+      totalCount: items.length,
+      paidCount: paymentItems.filter((i) => i.status === "PAID").length,
+      pendingCount: paymentItems.filter((i) => i.status === "PENDING").length,
+      waivedCount: paymentItems.filter((i) => i.status === "WAIVED").length,
+    };
 
     return { summary, items };
   }
@@ -231,6 +251,40 @@ export class CrmService {
         name: payment.patientTreatment.treatment.name,
         price: toNumber(payment.patientTreatment.treatment.price),
       },
+    };
+  }
+
+  static async createCashMovement(input: {
+    clinicId: string;
+    createdById: string;
+    type: "INCOME" | "EXPENSE";
+    description: string;
+    amount: number;
+  }) {
+    if (!input.description.trim()) {
+      throw new Error("La descripcion es obligatoria.");
+    }
+    if (input.amount <= 0) {
+      throw new Error("El monto debe ser mayor a 0.");
+    }
+
+    const row = await prisma.cashMovement.create({
+      data: {
+        clinicId: input.clinicId,
+        createdById: input.createdById,
+        type: input.type as CashMovementType,
+        description: input.description.trim(),
+        amount: input.amount,
+        recordedAt: new Date(),
+      },
+    });
+
+    return {
+      id: row.id,
+      type: row.type,
+      description: row.description,
+      amount: toNumber(row.amount),
+      recordedAt: row.recordedAt,
     };
   }
 }

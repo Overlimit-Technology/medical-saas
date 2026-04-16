@@ -44,3 +44,15 @@ export class SavePaymentHistoryUseCase {
     await this.repo.savePaymentHistory(input);
   }
 }
+
+export class CreateCashMovementUseCase {
+  constructor(private readonly repo: CrmRepository) {}
+
+  async execute(input: {
+    type: "INCOME" | "EXPENSE";
+    description: string;
+    amount: number;
+  }): Promise<void> {
+    await this.repo.createCashMovement(input);
+  }
+}

@@ -94,6 +94,7 @@ export default function Agenda() {
             items={state.dailyCashItems}
             loading={state.dailyCashLoading}
             onBackToAgenda={() => actions.setActiveView("agenda")}
+            onCreateMovement={actions.createCashMovement}
           />
         )}
       </div>
