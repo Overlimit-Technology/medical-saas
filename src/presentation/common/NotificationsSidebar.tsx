@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type CSSProperties } from "react";
 import { usePathname } from "next/navigation";
 import { Bell, ChevronLeft, ChevronRight, Inbox, RefreshCw, X } from "lucide-react";
 import NotificationSidebarListItem from "@/presentation/notifications/NotificationSidebarListItem";
@@ -10,11 +10,11 @@ import { useInternalAlertsFeed } from "@/presentation/notifications/useInternalA
 
 function LoadingState() {
   return (
-    <div className="space-y-2 px-3 py-3">
-      {Array.from({ length: 7 }).map((_, index) => (
+    <div className="space-y-1 px-3 py-2.5">
+      {Array.from({ length: 6 }).map((_, index) => (
         <div
           key={index}
-          className="h-24 animate-pulse rounded-[18px] border border-slate-200 bg-white/80"
+          className="h-14 animate-pulse rounded-[18px] bg-white/75"
         />
       ))}
     </div>
@@ -24,12 +24,12 @@ function LoadingState() {
 function EmptyState({ message }: { message: string }) {
   return (
     <div className="px-3 py-3">
-      <div className="rounded-[18px] border border-dashed border-slate-300 bg-white px-4 py-8 text-center">
-        <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-2xl bg-slate-100 text-slate-500">
-          <Inbox className="h-4.5 w-4.5" />
+      <div className="rounded-[22px] bg-white px-4 py-5 text-left shadow-[0_18px_40px_-36px_rgba(15,23,42,0.35)]">
+        <div className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-100 text-slate-500">
+          <Inbox className="h-4 w-4" />
         </div>
-        <h3 className="mt-3 text-sm font-semibold text-slate-900">Sin notificaciones</h3>
-        <p className="mt-1 text-sm leading-6 text-slate-500">{message}</p>
+        <h3 className="mt-3 text-[13px] font-medium text-slate-900">Todo tranquilo</h3>
+        <p className="mt-1 text-[11px] leading-5 text-slate-500">{message}</p>
       </div>
     </div>
   );
@@ -51,44 +51,45 @@ function SidebarHeader({
   onCollapse,
 }: SidebarHeaderProps) {
   return (
-    <div className="border-b border-slate-200/90 px-4 pb-3 pt-4">
+    <div className="px-4 pb-2 pt-5">
       <div className="flex items-start justify-between gap-3">
-        <div className="flex min-w-0 items-start gap-3">
-          <div className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-slate-50 text-slate-600 ring-1 ring-slate-200">
-            <Bell className="h-4.5 w-4.5" />
-          </div>
-
-          <div className="min-w-0">
-            <div className="flex items-center gap-2">
-              <h2 className="text-[18px] font-semibold tracking-tight text-slate-900">
-                Notificaciones
-              </h2>
-              <span className="inline-flex min-w-7 items-center justify-center rounded-full bg-[#17c2b2] px-2 py-0.5 text-xs font-semibold text-white">
-                {unreadCount}
-              </span>
+        <div className="min-w-0">
+          <div className="flex items-center gap-2">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[linear-gradient(135deg,#dff8f4,#effcf8)] text-[#129f97]">
+              <Bell className="h-4 w-4" />
             </div>
-            <p className="mt-0.5 text-[13px] text-slate-500">Actividad reciente del sistema</p>
+            <h2 className="text-[15px] font-semibold tracking-tight text-slate-900">
+              Notificaciones
+            </h2>
           </div>
+          <p className="mt-2 pl-10 text-[11px] leading-4 text-slate-500">
+            Resumen corto y reciente
+          </p>
         </div>
 
-        <div className="flex shrink-0 items-center gap-2">
+        <div className="flex shrink-0 items-center gap-1">
+          {unreadCount > 0 ? (
+            <span className="inline-flex min-w-6 items-center justify-center rounded-full bg-[#17c2b2]/10 px-1.5 py-0.5 text-[10px] font-semibold text-[#129f97]">
+              {unreadCount}
+            </span>
+          ) : null}
           <button
             type="button"
             onClick={onRefresh}
-            className="flex h-8 w-8 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 transition hover:border-slate-300 hover:text-slate-800"
+            className="flex h-7 w-7 items-center justify-center rounded-full bg-white text-slate-400 transition hover:bg-slate-100 hover:text-slate-700"
             aria-label="Actualizar notificaciones"
           >
-            <RefreshCw className={`h-3.5 w-3.5 ${refreshing ? "animate-spin" : ""}`} />
+            <RefreshCw className={`h-3 w-3 ${refreshing ? "animate-spin" : ""}`} />
           </button>
 
           {onCollapse ? (
             <button
               type="button"
               onClick={onCollapse}
-              className="flex h-8 w-8 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 transition hover:border-slate-300 hover:text-slate-800"
+              className="flex h-7 w-7 items-center justify-center rounded-full bg-white text-slate-400 transition hover:bg-slate-100 hover:text-slate-700"
               aria-label="Ocultar sidebar de notificaciones"
             >
-              <ChevronRight className="h-3.5 w-3.5" />
+              <ChevronRight className="h-3 w-3" />
             </button>
           ) : null}
 
@@ -96,10 +97,10 @@ function SidebarHeader({
             <button
               type="button"
               onClick={onClose}
-              className="flex h-8 w-8 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 transition hover:border-slate-300 hover:text-slate-800"
+              className="flex h-7 w-7 items-center justify-center rounded-full bg-white text-slate-400 transition hover:bg-slate-100 hover:text-slate-700"
               aria-label="Cerrar panel"
             >
-              <X className="h-3.5 w-3.5" />
+              <X className="h-3 w-3" />
             </button>
           ) : null}
         </div>
@@ -110,7 +111,6 @@ function SidebarHeader({
 
 type SidebarSectionProps = {
   title: string;
-  count: number;
   emptyMessage: string;
   items: ReturnType<typeof buildNotificationSidebarSections>["unread"];
   markingIds: string[];
@@ -119,36 +119,35 @@ type SidebarSectionProps = {
 
 function SidebarSection({
   title,
-  count,
   emptyMessage,
   items,
   markingIds,
   onMarkAsRead,
 }: SidebarSectionProps) {
   return (
-    <section className="px-3 py-2.5">
-      <div className="mb-2 flex items-center justify-between gap-3 px-1">
-        <h3 className="text-[10px] font-semibold uppercase tracking-[0.24em] text-slate-500">
-          {title}
-        </h3>
-        <span className="inline-flex min-w-7 items-center justify-center rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-semibold text-slate-600">
-          {count}
-        </span>
+    <section className="px-3 pb-1 pt-3">
+      <div className="mb-2 px-1">
+        <h3 className="text-[11px] font-medium text-slate-500">{title}</h3>
       </div>
 
       {items.length > 0 ? (
-        <div className="space-y-2">
-          {items.map((item) => (
+        <div className="space-y-0.5 rounded-[24px] bg-white/70 px-1.5 py-1.5 shadow-[0_20px_48px_-42px_rgba(15,23,42,0.32)] backdrop-blur-sm">
+          {items.map((item, index) => (
             <NotificationSidebarListItem
               key={item.id}
               item={item}
               isMarking={markingIds.includes(item.id)}
               onMarkAsRead={onMarkAsRead}
+              style={
+                {
+                  animationDelay: `${index * 45}ms`,
+                } as CSSProperties
+              }
             />
           ))}
         </div>
       ) : (
-        <div className="rounded-[14px] border border-dashed border-slate-300 bg-white px-3 py-2.5 text-[13px] text-slate-500">
+        <div className="rounded-[20px] bg-white px-3.5 py-3 text-[11px] leading-5 text-slate-500 shadow-[0_16px_32px_-30px_rgba(15,23,42,0.24)]">
           {emptyMessage}
         </div>
       )}
@@ -198,12 +197,12 @@ function SidebarContent({
         onCollapse={onCollapse}
       />
 
-      <div className="min-h-0 flex-1 overflow-y-auto bg-[linear-gradient(180deg,#f8fafc_0%,#ffffff_18%,#f8fafc_100%)]">
+      <div className="min-h-0 flex-1 overflow-y-auto bg-[linear-gradient(180deg,#f5f9fc_0%,#f8fafc_20%,#f3f7fb_100%)] pb-2">
         {loading ? (
           <LoadingState />
         ) : !hasVisibleAlerts && error ? (
           <div className="px-3 py-3">
-            <div className="rounded-[18px] border border-rose-200 bg-rose-50 px-4 py-4 text-sm text-rose-700">
+            <div className="rounded-[20px] bg-rose-50 px-3.5 py-3 text-[11px] leading-5 text-rose-700">
               {error}
             </div>
           </div>
@@ -212,8 +211,8 @@ function SidebarContent({
         ) : (
           <>
             {error ? (
-              <div className="px-3 pt-3">
-                <div className="rounded-[16px] border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+              <div className="px-3 pt-2.5">
+                <div className="rounded-[18px] bg-amber-50 px-3.5 py-2.5 text-[11px] leading-5 text-amber-800">
                   {error}
                 </div>
               </div>
@@ -221,16 +220,15 @@ function SidebarContent({
 
             {hasUnread ? (
               <SidebarSection
-                title="Sin leer"
-                count={unreadItems.length}
+                title="Nuevo"
                 emptyMessage="No hay alertas pendientes por leer."
                 items={unreadItems}
                 markingIds={markingIds}
                 onMarkAsRead={onMarkAsRead}
               />
             ) : hasRecent ? (
-              <div className="px-4 pb-1 pt-3">
-                <div className="rounded-[14px] bg-emerald-50 px-3 py-2 text-[12px] font-medium text-emerald-700">
+              <div className="px-3 pb-1 pt-2.5">
+                <div className="rounded-[18px] bg-emerald-50 px-3.5 py-2.5 text-[11px] font-medium text-emerald-700">
                   Todo al día. No tienes alertas sin leer.
                 </div>
               </div>
@@ -238,15 +236,14 @@ function SidebarContent({
 
             {hasRecent ? (
               <SidebarSection
-                title="Recientes"
-                count={recentItems.length}
+                title="Actividad"
                 emptyMessage="Aún no hay historial reciente para mostrar."
                 items={recentItems}
                 markingIds={markingIds}
                 onMarkAsRead={onMarkAsRead}
               />
             ) : hasUnread ? null : (
-              <div className="px-4 py-3 text-[13px] text-slate-500">
+              <div className="px-4 py-2.5 text-[11px] text-slate-500">
                 No hay historial reciente para mostrar.
               </div>
             )}
@@ -254,13 +251,13 @@ function SidebarContent({
         )}
       </div>
 
-      <div className="border-t border-slate-200/90 bg-white px-4 py-3">
+      <div className="bg-transparent px-4 py-2.5">
         <Link
           href="/notifications"
-          className="flex w-full items-center justify-center gap-2 rounded-[16px] border border-slate-200 px-4 py-2.5 text-sm font-medium text-slate-700 transition hover:border-slate-300 hover:text-slate-900"
+          className="inline-flex items-center gap-1 rounded-full px-1 text-[11px] font-medium text-slate-500 transition hover:text-slate-900"
         >
-          Abrir bandeja completa
-          <ChevronRight className="h-4 w-4" />
+          Ver bandeja completa
+          <ChevronRight className="h-3 w-3" />
         </Link>
       </div>
     </>
@@ -325,7 +322,7 @@ export default function NotificationsSidebar() {
       />
 
       <aside
-        className={`fixed right-0 top-0 z-50 flex h-screen w-[352px] max-w-[calc(100vw-20px)] flex-col border-l border-slate-200 bg-white shadow-[0_30px_90px_-40px_rgba(15,23,42,0.32)] transition-transform duration-300 xl:hidden ${
+        className={`fixed right-0 top-0 z-50 flex h-screen w-[292px] max-w-[calc(100vw-14px)] flex-col border-l border-slate-200/60 bg-[linear-gradient(180deg,#f7fbfd_0%,#f4f8fb_100%)] shadow-[0_30px_90px_-40px_rgba(15,23,42,0.32)] transition-transform duration-300 xl:hidden ${
           isOpen ? "translate-x-0" : "translate-x-full"
         }`}
         aria-hidden={!isOpen}
@@ -351,16 +348,18 @@ export default function NotificationsSidebar() {
         <button
           type="button"
           onClick={() => setIsDesktopCollapsed(false)}
-          className="fixed right-4 top-24 z-40 hidden h-10 w-10 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-600 shadow-[0_18px_40px_-28px_rgba(15,23,42,0.28)] transition hover:border-slate-300 hover:text-slate-900 xl:flex"
+          className="fixed right-4 top-24 z-40 hidden h-9 w-9 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-600 shadow-[0_18px_40px_-28px_rgba(15,23,42,0.28)] transition hover:border-slate-300 hover:text-slate-900 xl:flex"
           aria-label="Mostrar sidebar de notificaciones"
         >
-          <ChevronLeft className="h-4 w-4" />
+          <ChevronLeft className="h-3.5 w-3.5" />
         </button>
       ) : null}
 
       <aside
         className={`hidden h-screen shrink-0 overflow-hidden bg-white transition-[width,border-color] duration-300 xl:flex xl:flex-col ${
-          isDesktopCollapsed ? "w-0 border-l border-transparent" : "w-[352px] border-l border-slate-200"
+          isDesktopCollapsed
+            ? "w-0 border-l border-transparent"
+            : "w-[292px] border-l border-slate-200/60 bg-[linear-gradient(180deg,#f7fbfd_0%,#f4f8fb_100%)]"
         }`}
         aria-hidden={isDesktopCollapsed}
       >
@@ -386,6 +385,22 @@ export default function NotificationsSidebar() {
           />
         </div>
       </aside>
+      <style jsx global>{`
+        @keyframes notificationsSidebarItemIn {
+          from {
+            opacity: 0;
+            transform: translateY(8px) scale(0.985);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+          }
+        }
+
+        .notifications-sidebar-item {
+          animation: notificationsSidebarItemIn 280ms ease-out both;
+        }
+      `}</style>
     </>
   );
 }

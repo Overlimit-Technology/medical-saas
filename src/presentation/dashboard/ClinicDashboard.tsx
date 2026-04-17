@@ -12,6 +12,8 @@ import {
   ClipboardList,
   UserCog,
   Users,
+  CalendarDays,
+  Wallet,
   AlertCircle,
   RefreshCw,
   TrendingUp,
@@ -25,6 +27,8 @@ const MODULE_ICONS: Record<string, React.ComponentType<{ className?: string }>> 
   ClipboardList,
   UserCog,
   Users,
+  CalendarDays,
+  Wallet,
 };
 
 export default function ClinicDashboard() {
@@ -97,6 +101,20 @@ export default function ClinicDashboard() {
       href: "/usuarios",
       ...modules.users,
     },
+    {
+      key: "vacations",
+      href: "/vacaciones",
+      label: "Vacaciones",
+      total: "Panel",
+      icon: "CalendarDays",
+    },
+    {
+      key: "liquidaciones",
+      href: "/liquidaciones",
+      label: "Liquidaciones",
+      total: "Panel",
+      icon: "Wallet",
+    },
   ];
 
   return (
@@ -128,17 +146,28 @@ export default function ClinicDashboard() {
         {modulesList.map((module, i) => {
           const Icon = MODULE_ICONS[module.icon] || Users;
           const isUsers = module.key === "users";
+          const isShortcut = module.key === "vacations" || module.key === "liquidaciones";
 
           return (
             <Link
               key={module.key}
               href={module.href}
-              className="group rounded-2xl bg-white border border-slate-100 p-6 shadow-sm hover:shadow-md transition animate-fade-in hover:border-[#19b3bc]"
+              className={`group rounded-2xl border p-6 shadow-sm transition animate-fade-in hover:shadow-md ${
+                isShortcut
+                  ? "bg-gradient-to-br from-cyan-50 to-white border-cyan-100 hover:border-[#19b3bc]"
+                  : "bg-white border-slate-100 hover:border-[#19b3bc]"
+              }`}
               style={{ animationDelay: `${i * 60}ms` }}
             >
               <div className="flex flex-col gap-3">
                 <div className="flex items-center justify-between">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-slate-50 group-hover:bg-[#19b3bc] transition">
+                  <div
+                    className={`flex h-12 w-12 items-center justify-center rounded-lg transition ${
+                      isShortcut
+                        ? "bg-[#19b3bc]/10 group-hover:bg-[#19b3bc]"
+                        : "bg-slate-50 group-hover:bg-[#19b3bc]"
+                    }`}
+                  >
                     <Icon className="h-6 w-6 text-[#19b3bc] group-hover:text-white" />
                   </div>
                   <ArrowRight className="h-4 w-4 text-slate-300 group-hover:text-[#19b3bc] transition" />
@@ -150,6 +179,11 @@ export default function ClinicDashboard() {
                   <div className="space-y-1">
                     <p className="text-2xl font-bold text-slate-900">{module.total}</p>
                     <p className="text-xs text-slate-500">{modules.users.doctors} doctores · {modules.users.staff} staff</p>
+                  </div>
+                ) : isShortcut ? (
+                  <div className="space-y-1">
+                    <p className="text-xl font-bold text-slate-900">Abrir</p>
+                    <p className="text-xs text-slate-500">Configuración y gestión</p>
                   </div>
                 ) : (
                   <p className="text-2xl font-bold text-slate-900">{module.total}</p>

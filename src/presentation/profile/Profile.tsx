@@ -1,6 +1,7 @@
 "use client";
 
 import { useProfileViewModel, getInitials } from "./ProfileViewModel";
+import VacationSettings from "@/presentation/vacations/VacationSettings";
 
 export default function Profile() {
   const { state, actions } = useProfileViewModel();
@@ -129,6 +130,8 @@ export default function Profile() {
           {success}
         </div>
       )}
+
+      <VacationSettings />
     </div>
   );
 }

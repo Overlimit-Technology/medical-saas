@@ -18,7 +18,7 @@ type Props = {
 
 export default function KanbanBoard({ columns, leads, dragState, onLeadClick, onStartDrag, onEndDrag, onDropOnColumn, onArchive, onDelete }: Props) {
   return (
-    <div className="flex h-full gap-4 overflow-x-auto pb-4 pr-4">
+    <div className="flex h-full gap-3 overflow-x-auto pb-3 pr-3">
       {columns.map((col) => {
         const columnLeads = leads.filter((l) => l.columnId === col.id);
         return (

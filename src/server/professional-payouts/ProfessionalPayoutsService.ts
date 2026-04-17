@@ -1,10 +1,14 @@
 import { prisma } from "@/lib/prisma";
 import type {
+  ProfessionalPayoutEmailDispatchResult,
   ProfessionalPayoutMonthResponse,
   ProfessionalPayoutRow,
   ProfessionalPayoutTreatmentBreakdown,
 } from "@/domain/professional-payouts/entities/ProfessionalPayout";
+import { deriveProfessionalPayoutAmounts } from "@/lib/professional-payouts/calculations";
 import { ClinicSettingsService } from "@/server/clinic-settings/ClinicSettingsService";
+import { resolveSingleClinicLabel } from "@/server/clinics/clinicDisplay";
+import { sendEmail } from "@/server/notifications/email";
 
 function toNumber(value: { toString(): string } | number) {
   return Number(typeof value === "number" ? value : value.toString());
@@ -43,17 +47,46 @@ function buildDoctorName(doctor: {
   return fullName || doctor.email;
 }
 
+function formatMonthLabel(month: string) {
+  const match = /^(\d{4})-(\d{2})$/.exec(month);
+  if (!match) return month;
+  const date = new Date(Number(match[1]), Number(match[2]) - 1, 1);
+  return new Intl.DateTimeFormat("es-CL", {
+    month: "long",
+    year: "numeric",
+  }).format(date);
+}
+
+function formatCurrency(value: number) {
+  return new Intl.NumberFormat("es-CL", {
+    style: "currency",
+    currency: "CLP",
+    maximumFractionDigits: 0,
+  }).format(value);
+}
+
+function formatPercentage(value: number) {
+  return `${value.toFixed(2).replace(/\.?0+$/, "")}%`;
+}
+
 type DoctorAccumulator = {
   sessionCount: number;
   grossAmount: number;
   treatments: Map<string, ProfessionalPayoutTreatmentBreakdown>;
 };
 
+type ProfessionalPayoutDoctorRow = ProfessionalPayoutRow & {
+  email: string;
+};
+
 export class ProfessionalPayoutsService {
-  static async getMonthlyPayouts(
+  private static async getMonthlyPayoutRows(
     clinicId: string,
     month: string
-  ): Promise<ProfessionalPayoutMonthResponse> {
+  ): Promise<{
+    settings: ProfessionalPayoutMonthResponse["settings"];
+    professionals: ProfessionalPayoutDoctorRow[];
+  }> {
     const { from, to } = parseMonthBounds(month);
     const now = new Date();
 
@@ -160,7 +193,7 @@ export class ProfessionalPayoutsService {
       payoutMap.set(doctorId, current);
     }
 
-    const professionals: ProfessionalPayoutRow[] = doctors.map((doctor) => {
+    const professionals: ProfessionalPayoutDoctorRow[] = doctors.map((doctor) => {
       const summary = payoutMap.get(doctor.id);
       const treatments = Array.from(summary?.treatments.values() ?? []).map((item) => ({
         ...item,
@@ -176,6 +209,7 @@ export class ProfessionalPayoutsService {
 
       return {
         doctorId: doctor.id,
+        email: doctor.email,
         name: buildDoctorName(doctor),
         specialty: doctor.doctorProfile?.specialty?.trim() ?? "",
         sessionCount: summary?.sessionCount ?? 0,
@@ -187,6 +221,144 @@ export class ProfessionalPayoutsService {
     return {
       settings,
       professionals,
+    };
+  }
+
+  static async getMonthlyPayouts(
+    clinicId: string,
+    month: string
+  ): Promise<ProfessionalPayoutMonthResponse> {
+    const result = await this.getMonthlyPayoutRows(clinicId, month);
+
+    return {
+      settings: result.settings,
+      professionals: result.professionals.map((professional) => ({
+        doctorId: professional.doctorId,
+        name: professional.name,
+        specialty: professional.specialty,
+        sessionCount: professional.sessionCount,
+        grossAmount: professional.grossAmount,
+        treatments: professional.treatments,
+      })),
+    };
+  }
+
+  static async sendMonthlyPayoutEmails(input: {
+    clinicId: string;
+    month: string;
+    origin: string;
+  }): Promise<ProfessionalPayoutEmailDispatchResult> {
+    const [{ settings, professionals }, clinicLabel] = await Promise.all([
+      this.getMonthlyPayoutRows(input.clinicId, input.month),
+      resolveSingleClinicLabel(input.clinicId),
+    ]);
+
+    const monthLabel = formatMonthLabel(input.month);
+    let sentCount = 0;
+    let failedCount = 0;
+    let skippedCount = 0;
+    const errors: string[] = [];
+
+    for (const professional of professionals) {
+      const recipientEmail = professional.email.trim();
+      if (!recipientEmail) {
+        skippedCount += 1;
+        errors.push(`${professional.name}: sin correo configurado.`);
+        continue;
+      }
+
+      const derived = deriveProfessionalPayoutAmounts(
+        professional.grossAmount,
+        settings.clinicPercentage,
+        settings.siiPercentage
+      );
+
+      const subject = `Liquidacion ${monthLabel} - ${clinicLabel}`;
+      const text = [
+        `Hola ${professional.name},`,
+        "",
+        `Te compartimos tu resumen de liquidacion correspondiente a ${monthLabel}.`,
+        `Sede: ${clinicLabel}`,
+        "",
+        `Total recaudado: ${formatCurrency(professional.grossAmount)}`,
+        `Clinica (${formatPercentage(settings.clinicPercentage)}): ${formatCurrency(
+          derived.clinicRetentionAmount
+        )}`,
+        `SII (${formatPercentage(settings.siiPercentage)}): ${formatCurrency(
+          derived.siiRetentionAmount
+        )}`,
+        `Total estimado a pagar (${formatPercentage(derived.netPercentage)}): ${formatCurrency(
+          derived.netAmount
+        )}`,
+        "",
+        "Si necesitas revisar el detalle, por favor contacta a la clinica.",
+      ].join("\n");
+
+      const html = `
+        <div style="font-family: Arial, sans-serif; color: #0f172a; line-height: 1.5;">
+          <p>Hola ${professional.name},</p>
+          <p>Te compartimos tu resumen de liquidacion correspondiente a <strong>${monthLabel}</strong>.</p>
+          <p style="margin: 0 0 16px;">Sede: <strong>${clinicLabel}</strong></p>
+          <table style="width: 100%; border-collapse: collapse; margin: 16px 0;">
+            <tbody>
+              <tr>
+                <td style="padding: 10px 12px; border: 1px solid #e2e8f0;">Total recaudado</td>
+                <td style="padding: 10px 12px; border: 1px solid #e2e8f0; text-align: right;"><strong>${formatCurrency(
+                  professional.grossAmount
+                )}</strong></td>
+              </tr>
+              <tr>
+                <td style="padding: 10px 12px; border: 1px solid #e2e8f0;">Clinica (${formatPercentage(
+                  settings.clinicPercentage
+                )})</td>
+                <td style="padding: 10px 12px; border: 1px solid #e2e8f0; text-align: right;">${formatCurrency(
+                  derived.clinicRetentionAmount
+                )}</td>
+              </tr>
+              <tr>
+                <td style="padding: 10px 12px; border: 1px solid #e2e8f0;">SII (${formatPercentage(
+                  settings.siiPercentage
+                )})</td>
+                <td style="padding: 10px 12px; border: 1px solid #e2e8f0; text-align: right;">${formatCurrency(
+                  derived.siiRetentionAmount
+                )}</td>
+              </tr>
+              <tr>
+                <td style="padding: 10px 12px; border: 1px solid #cbd5e1; background: #f8fafc;">Total estimado a pagar (${formatPercentage(
+                  derived.netPercentage
+                )})</td>
+                <td style="padding: 10px 12px; border: 1px solid #cbd5e1; background: #f8fafc; text-align: right; color: #0f9ea8;"><strong>${formatCurrency(
+                  derived.netAmount
+                )}</strong></td>
+              </tr>
+            </tbody>
+          </table>
+          <p>Si necesitas revisar el detalle, por favor contacta a la clinica.</p>
+        </div>
+      `;
+
+      const result = await sendEmail({
+        origin: input.origin,
+        to: recipientEmail,
+        subject,
+        text,
+        html,
+      });
+
+      if (!result.ok) {
+        failedCount += 1;
+        errors.push(`${professional.name}: ${result.error}`);
+        continue;
+      }
+
+      sentCount += 1;
+    }
+
+    return {
+      sentCount,
+      failedCount,
+      skippedCount,
+      warning: errors.length > 0 ? errors.join(" | ") : null,
     };
   }
 }

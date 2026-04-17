@@ -7,6 +7,7 @@ import {
   ListInternalAlertsUseCase,
   MarkInternalAlertAsReadUseCase,
 } from "@/domain/internal-alerts/usecases/InternalAlertsUseCases";
+import { isSessionErrorMessage } from "@/lib/auth/sessionErrors";
 import { sortInternalAlerts } from "./internal-alerts.mapper";
 
 type RefreshOptions = {
@@ -42,10 +43,19 @@ export function useInternalAlertsFeed() {
         setAlerts(sortInternalAlerts(result.items));
         setError(null);
       } catch (refreshError) {
-        setError(
+        const message =
           refreshError instanceof Error
             ? refreshError.message
-            : "No se pudieron sincronizar las notificaciones."
+            : "No se pudieron sincronizar las notificaciones.";
+
+        if (isSessionErrorMessage(message)) {
+          setAlerts([]);
+          setError(null);
+          return;
+        }
+
+        setError(
+          message
         );
       } finally {
         if (options.silent) {

@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { isSessionErrorMessage } from "@/lib/auth/sessionErrors";
 
 export type ClinicDashboardData = {
   clinic: { name: string; city: string };
@@ -27,14 +28,22 @@ export function useClinicDashboardViewModel() {
     setState((prev) => ({ ...prev, loading: true, error: null }));
     try {
       const res = await fetch("/api/clinic-dashboard");
-      if (!res.ok) throw new Error("Failed to fetch");
-      const json = await res.json();
-      setState({ data: json.data, loading: false, error: null });
+      const json = await res.json().catch(() => null) as
+        | { data?: ClinicDashboardData; error?: string }
+        | null;
+
+      if (!res.ok) {
+        throw new Error(json?.error ?? "No se pudo cargar el panel de clínica.");
+      }
+
+      setState({ data: json?.data ?? null, loading: false, error: null });
     } catch (error) {
+      const message = error instanceof Error ? error.message : "Error desconocido";
+
       setState({
         data: null,
         loading: false,
-        error: error instanceof Error ? error.message : "Error desconocido",
+        error: isSessionErrorMessage(message) ? "Tu sesión ya no está disponible." : message,
       });
     }
   };

@@ -23,3 +23,10 @@ export type ProfessionalPayoutMonthResponse = {
   settings: ProfessionalPayoutSettings;
   professionals: ProfessionalPayoutRow[];
 };
+
+export type ProfessionalPayoutEmailDispatchResult = {
+  sentCount: number;
+  failedCount: number;
+  skippedCount: number;
+  warning: string | null;
+};
