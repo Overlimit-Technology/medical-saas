@@ -3,6 +3,7 @@ import { isSessionErrorMessage } from "@/lib/auth/sessionErrors";
 
 export type ClinicDashboardData = {
   clinic: { name: string; city: string };
+  canManageUsers: boolean;
   modules: {
     boxes: { total: number; icon: string; label: string };
     treatments: { total: number; icon: string; label: string };

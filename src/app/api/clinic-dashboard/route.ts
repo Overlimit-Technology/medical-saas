@@ -103,6 +103,7 @@ export async function GET() {
       ok: true,
       data: {
         clinic: clinic ?? { name: "Mi clínica", city: "" },
+        canManageUsers: session.isSuperAdmin === true,
         modules: {
           boxes: {
             total: totalBoxes,

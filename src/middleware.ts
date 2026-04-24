@@ -38,6 +38,7 @@ type SignedPayload = {
   role?: unknown;
   isSuperAdmin?: unknown;
   permissions?: unknown;
+  usesNewPlatform?: unknown;
   clinicId?: unknown;
   setAt?: unknown;
   mustChangePassword?: unknown;
@@ -105,6 +106,7 @@ const PROTECTED_PREFIXES = [
   "/notifications",
   "/patients",
   "/usuarios",
+  "/gestion-usuarios",
   "/doctors",
   "/treatments",
   "/boxes",
@@ -142,6 +144,15 @@ function roleHomePath(role: unknown) {
   }
 }
 
+function resolveLegacySoftwarePath() {
+  const legacyUrl = process.env.LEGACY_SOFTWARE_URL?.trim();
+  return legacyUrl && legacyUrl.length > 0 ? legacyUrl : "/legacy-access";
+}
+
+function shouldRedirectToLegacy(payload: SignedPayload | null) {
+  return !!payload && payload.isSuperAdmin !== true && payload.usesNewPlatform === false;
+}
+
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
@@ -165,6 +176,17 @@ export async function middleware(req: NextRequest) {
   const isSuperAdmin = sessionPayload?.isSuperAdmin === true;
   const permissions = getPermissions(sessionPayload?.permissions);
   const mustChangePassword = hasValidSession && sessionPayload?.mustChangePassword === true;
+  const shouldUseLegacy = hasValidSession && shouldRedirectToLegacy(sessionPayload);
+
+  if (shouldUseLegacy && pathname !== "/legacy-access") {
+    const legacyPath = resolveLegacySoftwarePath();
+    if (/^https?:\/\//.test(legacyPath)) {
+      return NextResponse.redirect(legacyPath);
+    }
+    const url = req.nextUrl.clone();
+    url.pathname = legacyPath;
+    return NextResponse.redirect(url);
+  }
 
   if (pathname === "/" || pathname === "/login") {
     if (hasValidSession) {
@@ -222,6 +244,12 @@ export async function middleware(req: NextRequest) {
     if (!hasValidClinic) {
       const url = req.nextUrl.clone();
       url.pathname = "/select-clinic";
+      return NextResponse.redirect(url);
+    }
+
+    if (pathname.startsWith("/gestion-usuarios") && !isSuperAdmin) {
+      const url = req.nextUrl.clone();
+      url.pathname = roleHome;
       return NextResponse.redirect(url);
     }
 

@@ -1,0 +1,2 @@
+ALTER TABLE "User"
+ADD COLUMN "usesNewPlatform" BOOLEAN NOT NULL DEFAULT true;

@@ -17,6 +17,7 @@ import {
   MessageCircle,
   Activity,
   Building2,
+  UserCog,
 } from "lucide-react";
 
 import { hasPermission, type UserPermission } from "@/lib/permissions";
@@ -83,6 +84,13 @@ const NAV_ITEMS: NavItem[] = [
     group: "paginas",
     roles: ["ADMIN", "SECRETARY", "DOCTOR"],
   },
+  {
+    href: "/gestion-usuarios",
+    label: "Gestionar usuarios",
+    icon: UserCog,
+    group: "paginas",
+    roles: ["ADMIN"],
+  },
 ];
 
 export default function Sidebar() {
@@ -92,6 +100,10 @@ export default function Sidebar() {
 
   const visibleItems = NAV_ITEMS.filter((item) => {
     if (state.role === null) return false;
+
+    if (item.href === "/gestion-usuarios") {
+      return state.role === "ADMIN" && state.isSuperAdmin;
+    }
 
     if (item.doctorOnlyWithPermission) {
       return (

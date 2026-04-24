@@ -70,7 +70,7 @@ export default function ClinicDashboard() {
 
   if (!data) return null;
 
-  const { clinic, modules, topTreatments } = data;
+  const { clinic, modules, topTreatments, canManageUsers } = data;
 
   const today = new Date().toLocaleDateString("es-CL", {
     weekday: "long",
@@ -308,11 +308,19 @@ export default function ClinicDashboard() {
       <div className="rounded-2xl bg-gradient-to-r from-[#19b3bc]/5 to-emerald-50 border border-[#19b3bc]/20 p-6 animate-card-in" style={{ animationDelay: "540ms" }}>
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <p className="text-sm font-semibold text-slate-900">¿Necesitas agregar más elementos a tu clínica?</p>
-            <p className="text-sm text-slate-600 mt-1">Accede a cualquier módulo desde el menú lateral</p>
+            <p className="text-sm font-semibold text-slate-900">
+              {canManageUsers
+                ? "Gestiona usuarios entre todas las sedes"
+                : "¿Necesitas agregar más elementos a tu clínica?"}
+            </p>
+            <p className="mt-1 text-sm text-slate-600">
+              {canManageUsers
+                ? "Como super admin puedes activar usuarios, deshabilitarlos y decidir si entran al software nuevo o a Zensya."
+                : "Accede a cualquier módulo desde el menú lateral"}
+            </p>
           </div>
           <Link
-            href="/usuarios"
+            href={canManageUsers ? "/gestion-usuarios" : "/usuarios"}
             className="inline-flex items-center gap-2 rounded-lg bg-[#19b3bc] px-4 py-2 text-sm font-medium text-white hover:bg-[#159ea7] transition whitespace-nowrap"
           >
             Gestionar usuarios
