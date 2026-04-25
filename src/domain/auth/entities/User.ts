@@ -15,6 +15,7 @@ export type User = {
   role: UserRole;
   isSuperAdmin?: boolean;
   permissions?: string[];
+  usesNewPlatform?: boolean;
   status: UserStatus;
   name?: string | null;
   mustChangePassword?: boolean;

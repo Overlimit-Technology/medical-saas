@@ -58,6 +58,7 @@ export async function POST(req: Request) {
         role: user.role,
         isSuperAdmin: user.isSuperAdmin ?? false,
         permissions: user.permissions ?? [],
+        usesNewPlatform: user.usesNewPlatform ?? true,
         exp,
         mustChangePassword: user.mustChangePassword ?? false,
       },

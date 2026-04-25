@@ -52,6 +52,7 @@ export class AuthRepositoryHttp implements AuthRepository {
         role: null,
         isSuperAdmin: false,
         permissions: [],
+        usesNewPlatform: true,
         mustChangePassword: false,
       };
     }
@@ -61,6 +62,7 @@ export class AuthRepositoryHttp implements AuthRepository {
       role: data.session?.role ?? null,
       isSuperAdmin: data.session?.isSuperAdmin === true,
       permissions: normalizePermissions(data.session?.permissions),
+      usesNewPlatform: data.session?.usesNewPlatform !== false,
       mustChangePassword: Boolean(data.session?.mustChangePassword),
     };
   }
