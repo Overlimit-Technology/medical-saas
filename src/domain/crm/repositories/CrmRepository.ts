@@ -17,4 +17,9 @@ export interface CrmRepository {
     amount?: number;
     notes: string | null;
   }): Promise<void>;
+  createCashMovement(input: {
+    type: "INCOME" | "EXPENSE";
+    description: string;
+    amount: number;
+  }): Promise<void>;
 }

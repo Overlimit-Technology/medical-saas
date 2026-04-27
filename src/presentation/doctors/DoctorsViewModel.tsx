@@ -15,6 +15,7 @@ import type { Clinic } from "@/domain/clinics/entities/Clinic";
 export type FormState = {
   email: string;
   role: UserRole;
+  isSuperAdmin: boolean;
   firstName: string;
   lastName: string;
   rut: string;
@@ -28,6 +29,7 @@ export type FormErrors = Partial<Record<keyof FormState, string>>;
 const EMPTY_FORM: FormState = {
   email: "",
   role: "DOCTOR",
+  isSuperAdmin: false,
   firstName: "",
   lastName: "",
   rut: "",
@@ -143,13 +145,27 @@ export function useDoctorsViewModel() {
   };
 
   const handleFieldChange = (key: keyof FormState, value: string) => {
-    const next = { ...form, [key]: value };
+    const next: FormState =
+      key === "role"
+        ? {
+            ...form,
+            role: value as UserRole,
+            isSuperAdmin: value === "ADMIN" ? form.isSuperAdmin : false,
+          }
+        : { ...form, [key]: value } as FormState;
     setForm(next);
     if (errors[key]) {
       const nextErrors = { ...errors };
       delete nextErrors[key];
       setErrors(nextErrors);
     }
+  };
+
+  const handleSuperAdminChange = (checked: boolean) => {
+    setForm((current) => ({
+      ...current,
+      isSuperAdmin: current.role === "ADMIN" ? checked : false,
+    }));
   };
 
   const toggleClinic = (clinicId: string) => {
@@ -188,6 +204,7 @@ export function useDoctorsViewModel() {
     const payload = {
       email: form.email.trim(),
       role: form.role,
+      isSuperAdmin: form.role === "ADMIN" ? form.isSuperAdmin : false,
       firstName: form.firstName.trim(),
       lastName: form.lastName.trim(),
       rut: form.rut.trim(),
@@ -277,6 +294,7 @@ export function useDoctorsViewModel() {
       openCreateModal,
       closeModal,
       handleFieldChange,
+      handleSuperAdminChange,
       toggleClinic,
       togglePermission,
       handleSubmit,

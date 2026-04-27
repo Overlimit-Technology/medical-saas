@@ -64,6 +64,11 @@ enum FormFieldType {
   BOOLEAN
 }
 
+enum CashMovementType {
+  INCOME
+  EXPENSE
+}
+
 enum InternalAlertType {
   APPOINTMENT_CREATED
   APPOINTMENT_RESCHEDULED
@@ -120,6 +125,9 @@ model User {
   // Permisos de navegación/acciones adicionales asignados por el administrador
   permissions String[] @default([])
 
+  // Define si el usuario accede al software nuevo o vuelve al portal clasico
+  usesNewPlatform Boolean @default(true)
+
   // Estado del usuario (por defecto ACTIVE)
   status UserStatus @default(ACTIVE)
 
@@ -148,6 +156,7 @@ model User {
   internalAlertReceipts InternalAlertRecipient[]
   clinicalRecordsAsDoctor ClinicalRecord[]       @relation("ClinicalRecordDoctor")
   assignedLeads           CrmLead[]              @relation("LeadAssignedDoctor")
+  cashMovementsCreated    CashMovement[]         @relation("CashMovementCreatedBy")
 }
 
 model UserProfile {
@@ -257,14 +266,17 @@ model Clinic {
   settings        ClinicSettings?
   leadColumns     LeadColumn[]
   crmLeads        CrmLead[]
+  cashMovements   CashMovement[]
 }
 
 model ClinicSettings {
-  id           String   @id @default(cuid())
-  clinicId     String   @unique
-  statusColors Json?
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  id                                 String   @id @default(cuid())
+  clinicId                           String   @unique
+  statusColors                       Json?
+  professionalPayoutClinicPercentage Decimal? @db.Decimal(5, 2)
+  professionalPayoutSiiPercentage    Decimal? @db.Decimal(5, 2)
+  createdAt                          DateTime @default(now())
+  updatedAt                          DateTime @updatedAt
 
   clinic Clinic @relation(fields: [clinicId], references: [id], onDelete: Cascade)
 }
@@ -689,6 +701,24 @@ model CrmLeadMessage {
   lead CrmLead @relation(fields: [leadId], references: [id], onDelete: Cascade)
 
   @@index([leadId, createdAt])
+}
+
+model CashMovement {
+  id          String           @id @default(cuid())
+  clinicId    String
+  createdById String
+  type        CashMovementType
+  description String
+  amount      Decimal          @db.Decimal(10, 2)
+  recordedAt  DateTime         @default(now())
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  clinic    Clinic @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+  createdBy User   @relation("CashMovementCreatedBy", fields: [createdById], references: [id], onDelete: Restrict)
+
+  @@index([clinicId, recordedAt])
+  @@index([clinicId, type, recordedAt])
 }
 
 model CrmLeadActivity {

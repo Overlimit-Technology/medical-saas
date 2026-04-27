@@ -23,7 +23,7 @@ import {
   ResetStatusColorsUseCase,
   SaveStatusColorsUseCase,
 } from "@/domain/clinic-settings/usecases/ClinicSettingsUseCases";
-import { GetCrmTreatmentsUseCase, GetDailyCashUseCase } from "@/domain/crm/usecases/CrmUseCases";
+import { CreateCashMovementUseCase, GetCrmTreatmentsUseCase, GetDailyCashUseCase } from "@/domain/crm/usecases/CrmUseCases";
 import { GetPatientDetailUseCase, GetPatientsUseCase } from "@/domain/patients/usecases/PatientsUseCases";
 import { GetUsersUseCase } from "@/domain/users/usecases/UserUseCases";
 import { normalizeId } from "@/lib/normalize";
@@ -107,6 +107,7 @@ export function useAgendaViewModel() {
     getBoxesUseCase,
     getCrmTreatmentsUseCase,
     getDailyCashUseCase,
+    createCashMovementUseCase,
     updateAppointmentPaymentUseCase,
     getStatusColorsUseCase,
     saveStatusColorsUseCase,
@@ -133,6 +134,7 @@ export function useAgendaViewModel() {
       getBoxesUseCase: new GetBoxesUseCase(boxesRepo),
       getCrmTreatmentsUseCase: new GetCrmTreatmentsUseCase(crmRepo),
       getDailyCashUseCase: new GetDailyCashUseCase(crmRepo),
+      createCashMovementUseCase: new CreateCashMovementUseCase(crmRepo),
       updateAppointmentPaymentUseCase: new UpdateAppointmentPaymentUseCase(appointmentsRepo),
       getStatusColorsUseCase: new GetStatusColorsUseCase(clinicSettingsRepo),
       saveStatusColorsUseCase: new SaveStatusColorsUseCase(clinicSettingsRepo),
@@ -296,6 +298,15 @@ export function useAgendaViewModel() {
       setDailyCashLoading(false);
     }
   }, [canManageDailyCash, getDailyCashUseCase]);
+
+  const createCashMovement = useCallback(async (input: {
+    type: "INCOME" | "EXPENSE";
+    description: string;
+    amount: number;
+  }) => {
+    await createCashMovementUseCase.execute(input);
+    await loadDailyCash();
+  }, [createCashMovementUseCase, loadDailyCash]);
 
   useEffect(() => {
     const loadRole = async () => {
@@ -1398,6 +1409,7 @@ export function useAgendaViewModel() {
       goToPreviousPeriod,
       goToNextPeriod,
       reloadDailyCash: loadDailyCash,
+      createCashMovement,
       openStatusColors: () => setShowColorSettings(true),
       closeStatusColors,
       saveStatusColors,

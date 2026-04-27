@@ -3,5 +3,6 @@ export type AuthSession = {
   role: string | null;
   isSuperAdmin: boolean;
   permissions: string[];
+  usesNewPlatform: boolean;
   mustChangePassword: boolean;
 };

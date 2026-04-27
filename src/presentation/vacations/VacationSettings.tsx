@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { CalendarDays, Hourglass } from "lucide-react";
-import { differenceInBusinessDays } from "date-fns";
+import { countBusinessDaysInclusive } from "@/lib/dates/businessDays";
 
 type VacationItem = {
   id: string;
@@ -95,7 +95,7 @@ export default function VacationSettings() {
   const hasRange = Boolean(form.startDate && form.endDate);
   const selectedDays =
     hasRange && form.endDate >= form.startDate
-      ? differenceInBusinessDays(new Date(form.endDate), new Date(form.startDate)) + 1
+      ? countBusinessDaysInclusive(form.startDate, form.endDate)
       : 0;
   const remainingDays = summary ? summary.availableDays - selectedDays : 0;
   const exceedsMaxConsecutive = summary ? selectedDays > summary.maxConsecutiveDays : false;

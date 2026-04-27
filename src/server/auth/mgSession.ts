@@ -6,6 +6,7 @@ export type MgSessionPayload = {
   role: string
   isSuperAdmin?: boolean
   permissions?: string[]
+  usesNewPlatform?: boolean
   exp: number // unix seconds
   mustChangePassword?: boolean
 }

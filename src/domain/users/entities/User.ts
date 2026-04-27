@@ -31,6 +31,7 @@ export type UserClinicsSelection = {
 export type CreateUserInput = {
   email: string;
   role: UserRole;
+  isSuperAdmin?: boolean;
   firstName: string;
   lastName: string;
   rut: string;

@@ -113,7 +113,9 @@ export default function VacationsTeam() {
 
       <section className="rounded-[28px] border border-slate-200 bg-white p-6 shadow-sm">
         <h2 className="text-lg font-semibold text-slate-900">Configuracion por profesional</h2>
-        <p className="mt-1 text-sm text-slate-500">Define el campo "Limite de dias permitidos" para cada profesional.</p>
+        <p className="mt-1 text-sm text-slate-500">
+          Define el campo &quot;Limite de dias permitidos&quot; para cada profesional.
+        </p>
         <div className="mt-4 grid gap-2">
           {professionals.map((professional) => (
             <div key={professional.userId} className="grid grid-cols-1 items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 md:grid-cols-[minmax(0,1fr)_100px_150px_130px]">

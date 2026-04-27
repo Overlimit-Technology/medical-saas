@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import dynamic from "next/dynamic";
+import type { LucideIcon } from "lucide-react";
+import { Activity, BarChart3, KanbanSquare, MessageSquareText, Users2 } from "lucide-react";
 
 import Leads from "./Leads";
 
@@ -12,116 +14,83 @@ const CrmInbox = dynamic(() => import("./tabs/CrmInbox"), { ssr: false });
 
 type CrmTab = "pipeline" | "inbox" | "dashboard" | "activities" | "contacts";
 
-const TABS: { key: CrmTab; label: string; icon: React.ReactNode }[] = [
-  {
-    key: "pipeline",
-    label: "Pipeline",
-    icon: (
-      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <rect width="6" height="14" x="2" y="5" rx="1" /><rect width="6" height="10" x="9" y="9" rx="1" /><rect width="6" height="16" x="16" y="3" rx="1" />
-      </svg>
-    ),
-  },
-  {
-    key: "inbox",
-    label: "Inbox",
-    icon: (
-      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-      </svg>
-    ),
-  },
-  {
-    key: "dashboard",
-    label: "Dashboard",
-    icon: (
-      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M3 3v18h18" /><path d="m19 9-5 5-4-4-3 3" />
-      </svg>
-    ),
-  },
-  {
-    key: "activities",
-    label: "Actividades",
-    icon: (
-      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
-      </svg>
-    ),
-  },
-  {
-    key: "contacts",
-    label: "Contactos",
-    icon: (
-      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M22 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" />
-      </svg>
-    ),
-  },
+type TabMeta = {
+  key: CrmTab;
+  label: string;
+  title: string;
+  description: string;
+  icon: LucideIcon;
+};
+
+const TABS: TabMeta[] = [
+  { key: "pipeline", label: "Pipeline", title: "Pipeline", description: "Oportunidades y seguimiento comercial.", icon: KanbanSquare },
+  { key: "inbox", label: "Inbox", title: "Inbox", description: "Conversaciones y respuesta por canal.", icon: MessageSquareText },
+  { key: "dashboard", label: "Dashboard", title: "Dashboard", description: "Resumen y rendimiento del CRM.", icon: BarChart3 },
+  { key: "activities", label: "Actividades", title: "Actividades", description: "Timeline y cambios recientes.", icon: Activity },
+  { key: "contacts", label: "Contactos", title: "Contactos", description: "Base comercial filtrable.", icon: Users2 },
 ];
 
 export default function CrmDesktop() {
   const [activeTab, setActiveTab] = useState<CrmTab>("pipeline");
-  const activeTabLabel = TABS.find((tab) => tab.key === activeTab)?.label ?? "CRM";
-
-  const activeContent = (() => {
-    if (activeTab === "pipeline") return <Leads />;
-    if (activeTab === "inbox") return <CrmInbox />;
-    if (activeTab === "dashboard") return <CrmDashboard />;
-    if (activeTab === "activities") return <CrmActivities />;
-    return <CrmContacts />;
-  })();
+  const activeTabMeta = TABS.find((tab) => tab.key === activeTab) ?? TABS[0];
 
   return (
-    <div className="flex h-[calc(100vh-64px)] -mx-8 -my-8 bg-slate-100">
-      <div className="min-w-0 flex-1 p-4 sm:p-5">
-        <div className="flex h-full min-h-0 flex-col rounded-3xl border border-slate-200 bg-slate-50">
-          <header className="shrink-0 border-b border-slate-200 bg-white/80 px-4 py-3 backdrop-blur sm:px-6">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <div>
-                <p className="text-xs font-medium uppercase tracking-[0.11em] text-slate-400">CRM</p>
-                <h1 className="text-xl font-semibold text-slate-900">{activeTabLabel}</h1>
-              </div>
-              <div className="flex items-center gap-2 text-xs">
-                <div className="hidden rounded-full border border-slate-200 bg-white px-3 py-1.5 text-slate-500 sm:block">
-                  Modulo CRM
+    <div className="flex h-[calc(100vh-64px)] -mx-8 -my-8 bg-slate-50">
+      <div className="min-w-0 flex-1 p-3 sm:p-4">
+        <div className="flex h-full min-h-0 flex-col gap-2.5">
+          <section className="rounded-[24px] border border-slate-200 bg-white shadow-[0_12px_32px_-28px_rgba(15,23,42,0.28)]">
+            <div className="flex flex-col gap-3 px-4 py-3 sm:px-5 lg:flex-row lg:items-center lg:justify-between">
+              <div className="min-w-0">
+                <div className="flex items-center gap-2">
+                  <span className="rounded-full bg-[#e8f8f9] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-[#0f8f98]">
+                    CRM
+                  </span>
+                  <span className="hidden text-[11px] text-slate-400 sm:inline">/</span>
+                  <p className="text-[11px] text-slate-500">{activeTabMeta.description}</p>
                 </div>
-                <button
-                  type="button"
-                  className="rounded-full bg-slate-900 px-4 py-1.5 font-medium text-white transition hover:bg-slate-700"
-                >
-                  Nuevo
-                </button>
+                <h1 className="mt-1.5 text-xl font-semibold tracking-tight text-slate-900 sm:text-2xl">
+                  {activeTabMeta.title}
+                </h1>
+              </div>
+
+              <div className="flex flex-wrap gap-2">
+                {TABS.map((tab) => {
+                  const isActive = activeTab === tab.key;
+                  const Icon = tab.icon;
+
+                  return (
+                    <button
+                      key={tab.key}
+                      type="button"
+                      onClick={() => setActiveTab(tab.key)}
+                      className={`inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-sm font-medium transition ${
+                        isActive
+                          ? "border-[#19b3bc] bg-[#19b3bc] text-white shadow-sm"
+                          : "border-slate-200 bg-slate-50 text-slate-600 hover:border-[#19b3bc]/35 hover:bg-white hover:text-[#0f8f98]"
+                      }`}
+                    >
+                      <Icon className="h-4 w-4" strokeWidth={2} />
+                      {tab.label}
+                    </button>
+                  );
+                })}
               </div>
             </div>
+          </section>
 
-            <div className="mt-3 flex overflow-x-auto pb-1">
-              {TABS.map((tab) => {
-                const isActive = activeTab === tab.key;
-                return (
-                  <button
-                    key={tab.key}
-                    type="button"
-                    onClick={() => setActiveTab(tab.key)}
-                    className={`mr-2 inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-medium transition ${
-                      isActive
-                        ? "border-slate-800 bg-slate-800 text-white"
-                        : "border-slate-200 bg-white text-slate-500 hover:text-slate-700"
-                    }`}
-                  >
-                    {tab.icon}
-                    {tab.label}
-                  </button>
-                );
-              })}
-            </div>
-          </header>
-
-          <main className="min-h-0 flex-1 overflow-hidden rounded-b-3xl">
-            {activeContent}
-          </main>
+          <section className="min-h-0 flex-1 overflow-hidden rounded-[24px] border border-slate-200 bg-white shadow-[0_18px_36px_-34px_rgba(15,23,42,0.3)]">
+            <div className="h-full min-h-0 overflow-hidden">{getActiveContent(activeTab)}</div>
+          </section>
         </div>
       </div>
     </div>
   );
+}
+
+function getActiveContent(activeTab: CrmTab) {
+  if (activeTab === "pipeline") return <Leads />;
+  if (activeTab === "inbox") return <CrmInbox />;
+  if (activeTab === "dashboard") return <CrmDashboard />;
+  if (activeTab === "activities") return <CrmActivities />;
+  return <CrmContacts />;
 }

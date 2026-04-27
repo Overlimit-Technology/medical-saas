@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { requireClinicSession } from "@/server/auth/requireSession";
 import { VacationsService } from "@/server/vacations/VacationsService";
-import { differenceInBusinessDays } from "date-fns";
+import { countBusinessDaysInclusive } from "@/lib/dates/businessDays";
 
 const createVacationSchema = z.object({
   startDate: z.string().min(1),
@@ -36,8 +36,10 @@ export async function POST(req: Request) {
     }
 
     const summary = await VacationsService.getVacationSummary(session.clinicId, session.userId);
-    const selectedBusinessDays =
-      differenceInBusinessDays(new Date(parsed.data.endDate), new Date(parsed.data.startDate)) + 1;
+    const selectedBusinessDays = countBusinessDaysInclusive(
+      parsed.data.startDate,
+      parsed.data.endDate
+    );
     if (selectedBusinessDays > summary.maxConsecutiveDays) {
       return NextResponse.json(
         { ok: false, error: `No puedes solicitar mas de ${summary.maxConsecutiveDays} dias seguidos.` },

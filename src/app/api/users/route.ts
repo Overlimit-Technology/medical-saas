@@ -14,6 +14,7 @@ import { normalizePermissions } from "@/lib/permissions";
 const userCreateSchema = z.object({
   email: z.string().email(),
   role: z.enum(["ADMIN", "DOCTOR", "SECRETARY"]),
+  isSuperAdmin: z.boolean().optional(),
   firstName: z.string().min(1),
   lastName: z.string().min(1),
   rut: z.string().min(1),
@@ -110,7 +111,6 @@ export async function GET() {
     const items = await prisma.user.findMany({
       where: {
         role: { in: ["ADMIN", "DOCTOR", "SECRETARY"] },
-        isSuperAdmin: false,
         status: "ACTIVE",
         clinicMemberships: {
           some: { clinicId: session.clinicId, status: "ACTIVE" },
@@ -138,6 +138,12 @@ export async function POST(req: Request) {
     const parsed = userCreateSchema.safeParse(body);
     if (!parsed.success) {
       return NextResponse.json({ ok: false, error: "Los datos del usuario no son válidos." }, { status: 400 });
+    }
+    if (parsed.data.isSuperAdmin && parsed.data.role !== "ADMIN") {
+      return NextResponse.json(
+        { ok: false, error: "Solo los usuarios admin pueden ser super admin." },
+        { status: 400 }
+      );
     }
 
     const selectedClinics = parsed.data.clinicIds?.length
@@ -176,7 +182,7 @@ export async function POST(req: Request) {
           passwordHash,
           mustChangePassword: true,
           role: parsed.data.role,
-          isSuperAdmin: false,
+          isSuperAdmin: parsed.data.role === "ADMIN" && parsed.data.isSuperAdmin === true,
           permissions,
           status: "ACTIVE",
           profile: {
