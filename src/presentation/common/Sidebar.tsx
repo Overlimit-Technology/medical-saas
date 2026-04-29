@@ -125,9 +125,7 @@ export default function Sidebar() {
 
   const isItemActive = (item: NavItem) => {
     const matchPrefixes = item.matchPrefixes ?? [item.href];
-    return matchPrefixes.some(
-      (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`)
-    );
+    return matchPrefixes.some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`));
   };
 
   const renderItem = (item: NavItem, nested = false) => {
@@ -145,9 +143,7 @@ export default function Sidebar() {
               ? "items-start gap-2.5 px-2.5 py-2.5 pl-10"
               : "items-start gap-2.5 px-2.5 py-2.5"
         } ${
-          active
-            ? "bg-white text-[#19b3bc]"
-            : "text-white/90 hover:bg-white/10 hover:text-white"
+          active ? "bg-white text-[#19b3bc]" : "text-white/90 hover:bg-white/10 hover:text-white"
         }`}
       >
         <Icon
@@ -185,12 +181,8 @@ export default function Sidebar() {
             )}
 
             <div className="min-w-0 flex-1">
-              <p className="truncate text-[12px] font-semibold leading-4 text-white">
-                {state.displayName}
-              </p>
-              <p className="mt-0.5 line-clamp-2 text-[10px] leading-4 text-white/80">
-                {state.clinicLabel}
-              </p>
+              <p className="truncate text-[12px] font-semibold leading-4 text-white">{state.displayName}</p>
+              <p className="mt-0.5 line-clamp-2 text-[10px] leading-4 text-white/80">{state.clinicLabel}</p>
             </div>
           </>
         )}
@@ -199,7 +191,7 @@ export default function Sidebar() {
           type="button"
           onClick={() => setCollapsed((value) => !value)}
           className="group flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-white transition hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:ring-offset-2 focus-visible:ring-offset-[#19b3bc]"
-          aria-label={collapsed ? "Expandir menú" : "Colapsar menú"}
+          aria-label={collapsed ? "Expandir menu" : "Colapsar menu"}
         >
           <span className="relative flex h-4 w-4 flex-col items-center justify-center">
             <span
@@ -219,24 +211,14 @@ export default function Sidebar() {
 
       <div className="mt-6">
         {!collapsed && (
-          <p className="px-1 text-[9px] font-medium uppercase tracking-[0.16em] text-white/65">
-            Escritorios
-          </p>
+          <p className="px-1 text-[9px] font-medium uppercase tracking-[0.16em] text-white/65">Escritorios</p>
         )}
-        <nav className="mt-2 flex flex-col gap-1">
-          {escritorioItems.map((item) => renderItem(item))}
-        </nav>
+        <nav className="mt-2 flex flex-col gap-1">{escritorioItems.map((item) => renderItem(item))}</nav>
       </div>
 
       <div className="mt-4">
-        {!collapsed && (
-          <p className="px-1 text-[9px] font-medium uppercase tracking-[0.16em] text-white/65">
-            Páginas
-          </p>
-        )}
-        <nav className="mt-2 flex flex-col gap-1">
-          {paginaItems.map((item) => renderItem(item))}
-        </nav>
+        {!collapsed && <p className="px-1 text-[9px] font-medium uppercase tracking-[0.16em] text-white/65">Paginas</p>}
+        <nav className="mt-2 flex flex-col gap-1">{paginaItems.map((item) => renderItem(item))}</nav>
       </div>
 
       <div className="mt-auto space-y-1 pt-4">
@@ -253,25 +235,27 @@ export default function Sidebar() {
           <Building2 className="mt-0.5 h-[17px] w-[17px] shrink-0" strokeWidth={2} />
           {!collapsed && (
             <span className="min-w-0 flex-1 whitespace-normal break-words text-[13px] leading-4">
-              Mi Clínica
+              Mi Clinica
             </span>
           )}
         </Link>
 
-        <button
-          type="button"
-          onClick={actions.handleChangeClinic}
-          className={`flex w-full rounded-xl text-[13px] font-medium leading-4 text-white/90 transition-colors hover:bg-white/10 hover:text-white ${
-            collapsed ? "justify-center px-0 py-2.5" : "items-start gap-2.5 px-2.5 py-2.5"
-          }`}
-        >
-          <ChevronsUpDown className="mt-0.5 h-[17px] w-[17px] text-white/90" />
-          {!collapsed && (
-            <span className="min-w-0 flex-1 whitespace-normal break-words text-left text-[13px] leading-4">
-              Cambiar sede
-            </span>
-          )}
-        </button>
+        {!state.isSuperAdmin && (
+          <button
+            type="button"
+            onClick={actions.handleChangeClinic}
+            className={`flex w-full rounded-xl text-[13px] font-medium leading-4 text-white/90 transition-colors hover:bg-white/10 hover:text-white ${
+              collapsed ? "justify-center px-0 py-2.5" : "items-start gap-2.5 px-2.5 py-2.5"
+            }`}
+          >
+            <ChevronsUpDown className="mt-0.5 h-[17px] w-[17px] text-white/90" />
+            {!collapsed && (
+              <span className="min-w-0 flex-1 whitespace-normal break-words text-left text-[13px] leading-4">
+                Cambiar sede
+              </span>
+            )}
+          </button>
+        )}
 
         <form action="/api/auth/logout" method="post">
           <button
@@ -283,7 +267,7 @@ export default function Sidebar() {
             <LogOut className="mt-0.5 h-[17px] w-[17px] text-white/90" />
             {!collapsed && (
               <span className="min-w-0 flex-1 whitespace-normal break-words text-left text-[13px] leading-4">
-                Cerrar sesión
+                Cerrar sesion
               </span>
             )}
           </button>
@@ -292,3 +276,4 @@ export default function Sidebar() {
     </aside>
   );
 }
+
