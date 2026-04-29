@@ -1,8 +1,23 @@
+"use client";
+
 import Sidebar from "@/presentation/common/Sidebar";
 import PresenceTracker from "@/presentation/common/PresenceTracker";
 import NotificationsSidebar from "@/presentation/common/NotificationsSidebar";
+import { usePathname } from "next/navigation";
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
+  const pathname = usePathname();
+  const isSuperAdminDashboard = pathname.startsWith("/dashboard/admin");
+
+  if (isSuperAdminDashboard) {
+    return (
+      <div className="h-screen overflow-hidden bg-slate-50 text-slate-900">
+        <PresenceTracker />
+        <main className="h-full min-h-0 min-w-0">{children}</main>
+      </div>
+    );
+  }
+
   return (
     <div className="flex h-screen overflow-hidden bg-slate-50 text-slate-900">
       <PresenceTracker />

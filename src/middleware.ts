@@ -97,6 +97,7 @@ function isValidClinicPayload(
 
 const PROTECTED_PREFIXES = [
   "/dashboard",
+  "/clinic-dashboard",
   "/agenda",
   "/chat",
   "/chat-meta",
@@ -133,10 +134,10 @@ function canAccess(
   );
 }
 
-function roleHomePath(role: unknown) {
+function roleHomePath(role: unknown, isSuperAdmin: boolean) {
   switch (role) {
     case "ADMIN":
-      return "/dashboard/admin";
+      return isSuperAdmin ? "/dashboard/admin" : "/clinic-dashboard";
     case "SECRETARY":
       return "/dashboard/secretary";
     default:
@@ -172,8 +173,8 @@ export async function middleware(req: NextRequest) {
     ? isValidClinicPayload(clinicPayload, sessionPayload.userId)
     : false;
 
-  const roleHome = roleHomePath(sessionPayload?.role);
   const isSuperAdmin = sessionPayload?.isSuperAdmin === true;
+  const roleHome = roleHomePath(sessionPayload?.role, isSuperAdmin);
   const permissions = getPermissions(sessionPayload?.permissions);
   const mustChangePassword = hasValidSession && sessionPayload?.mustChangePassword === true;
   const shouldUseLegacy = hasValidSession && shouldRedirectToLegacy(sessionPayload);
@@ -191,7 +192,13 @@ export async function middleware(req: NextRequest) {
   if (pathname === "/" || pathname === "/login") {
     if (hasValidSession) {
       const url = req.nextUrl.clone();
-      url.pathname = mustChangePassword ? "/change-password" : hasValidClinic ? roleHome : "/select-clinic";
+      if (mustChangePassword) {
+        url.pathname = "/change-password";
+      } else if (isSuperAdmin) {
+        url.pathname = roleHome;
+      } else {
+        url.pathname = hasValidClinic ? roleHome : "/select-clinic";
+      }
       return NextResponse.redirect(url);
     }
     return NextResponse.next();
@@ -205,7 +212,7 @@ export async function middleware(req: NextRequest) {
     }
     if (!mustChangePassword) {
       const url = req.nextUrl.clone();
-      url.pathname = hasValidClinic ? roleHome : "/select-clinic";
+      url.pathname = isSuperAdmin ? roleHome : hasValidClinic ? roleHome : "/select-clinic";
       return NextResponse.redirect(url);
     }
     return NextResponse.next();
@@ -222,6 +229,12 @@ export async function middleware(req: NextRequest) {
       url.pathname = "/change-password";
       return NextResponse.redirect(url);
     }
+    if (isSuperAdmin) {
+      const url = req.nextUrl.clone();
+      url.pathname = roleHome;
+      return NextResponse.redirect(url);
+    }
+
     if (hasValidClinic) {
       const url = req.nextUrl.clone();
       url.pathname = roleHome;
@@ -241,9 +254,13 @@ export async function middleware(req: NextRequest) {
       url.pathname = "/change-password";
       return NextResponse.redirect(url);
     }
-    if (!hasValidClinic) {
+    const canUseWithoutClinic =
+      isSuperAdmin &&
+      (pathname.startsWith("/dashboard/admin") || pathname.startsWith("/gestion-usuarios"));
+
+    if (!hasValidClinic && !canUseWithoutClinic) {
       const url = req.nextUrl.clone();
-      url.pathname = "/select-clinic";
+      url.pathname = isSuperAdmin ? roleHome : "/select-clinic";
       return NextResponse.redirect(url);
     }
 
@@ -261,7 +278,10 @@ export async function middleware(req: NextRequest) {
       }
     }
 
-    if (pathname.startsWith("/dashboard/admin") && sessionPayload?.role !== "ADMIN") {
+    if (
+      pathname.startsWith("/dashboard/admin") &&
+      !(sessionPayload?.role === "ADMIN" && isSuperAdmin)
+    ) {
       const url = req.nextUrl.clone();
       url.pathname = roleHome;
       return NextResponse.redirect(url);
@@ -410,6 +430,7 @@ export const config = {
     "/change-password",
     "/select-clinic",
     "/dashboard/:path*",
+    "/clinic-dashboard/:path*",
     "/agenda/:path*",
     "/chat/:path*",
     "/chat-meta/:path*",

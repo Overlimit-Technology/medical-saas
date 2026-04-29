@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireClinicSession } from "@/server/auth/requireSession";
+import { requireAuthSession } from "@/server/auth/requireSession";
 
 export async function GET() {
   try {
-    const session = await requireClinicSession();
+    const session = await requireAuthSession();
     if (!session.isSuperAdmin) {
       return NextResponse.json({ ok: false, error: "Acceso denegado." }, { status: 403 });
     }
