@@ -2,6 +2,7 @@ import type { ClinicInfo, ClinicInfoInput } from "@/domain/clinic-settings/entit
 import type { CrmSettings, CrmSettingsInput } from "@/domain/clinic-settings/entities/CrmSettings";
 import type { ClinicStatusColorMap } from "@/domain/clinic-settings/entities/StatusColors";
 import type { ProfessionalPayoutSettings } from "@/domain/clinic-settings/entities/ProfessionalPayoutSettings";
+import type { EmailTemplate, EmailTemplateInput } from "@/domain/clinic-settings/entities/EmailTemplate";
 import type { ClinicSettingsRepository } from "@/domain/clinic-settings/repositories/ClinicSettingsRepository";
 
 type ClinicInfoResponse = {
@@ -25,6 +26,18 @@ type StatusColorsResponse = {
 type ProfessionalPayoutSettingsResponse = {
   ok: boolean;
   item?: ProfessionalPayoutSettings;
+  error?: string;
+};
+
+type EmailTemplatesResponse = {
+  ok: boolean;
+  items?: EmailTemplate[];
+  error?: string;
+};
+
+type EmailTemplateResponse = {
+  ok: boolean;
+  item?: EmailTemplate;
   error?: string;
 };
 
@@ -155,5 +168,35 @@ export class ClinicSettingsRepositoryHttp implements ClinicSettingsRepository {
     if (!res.ok || !data?.ok) {
       throw new Error(data?.error ?? "No se pudo guardar la configuracion de liquidaciones.");
     }
+  }
+
+  async getEmailTemplates(): Promise<EmailTemplate[]> {
+    const res = await fetch("/api/clinic-settings/email-templates", {
+      credentials: "include",
+      cache: "no-store",
+    });
+    const data = (await res.json().catch(() => null)) as EmailTemplatesResponse | null;
+
+    if (!res.ok || !data?.ok) {
+      throw new Error(data?.error ?? "No se pudo cargar las plantillas de email.");
+    }
+
+    return data.items ?? [];
+  }
+
+  async saveEmailTemplate(input: EmailTemplateInput): Promise<EmailTemplate> {
+    const res = await fetch("/api/clinic-settings/email-templates", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify(input),
+    });
+    const data = (await res.json().catch(() => null)) as EmailTemplateResponse | null;
+
+    if (!res.ok || !data?.ok || !data.item) {
+      throw new Error(data?.error ?? "No se pudo guardar la plantilla de email.");
+    }
+
+    return data.item;
   }
 }

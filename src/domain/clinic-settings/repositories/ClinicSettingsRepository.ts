@@ -2,6 +2,7 @@ import type { ClinicInfo, ClinicInfoInput } from "../entities/ClinicInfo";
 import type { CrmSettings, CrmSettingsInput } from "../entities/CrmSettings";
 import type { ClinicStatusColorMap } from "../entities/StatusColors";
 import type { ProfessionalPayoutSettings } from "../entities/ProfessionalPayoutSettings";
+import type { EmailTemplate, EmailTemplateInput } from "../entities/EmailTemplate";
 
 export interface ClinicSettingsRepository {
   getClinicInfo(): Promise<ClinicInfo>;
@@ -13,4 +14,6 @@ export interface ClinicSettingsRepository {
   resetStatusColors(): Promise<void>;
   getProfessionalPayoutSettings(): Promise<ProfessionalPayoutSettings>;
   saveProfessionalPayoutSettings(settings: ProfessionalPayoutSettings): Promise<void>;
+  getEmailTemplates(): Promise<EmailTemplate[]>;
+  saveEmailTemplate(input: EmailTemplateInput): Promise<EmailTemplate>;
 }

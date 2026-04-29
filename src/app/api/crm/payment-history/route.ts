@@ -5,6 +5,7 @@ import { CrmService } from "@/server/crm/CrmService";
 import { resolveSingleClinicLabel } from "@/server/clinics/clinicDisplay";
 import { prisma } from "@/lib/prisma";
 import { sendEmail } from "@/server/notifications/email";
+import { resolveEmailTemplate } from "@/server/notifications/emailTemplates";
 import { InternalAlertsService } from "@/server/internal-alerts/InternalAlertsService";
 
 const paymentCreateSchema = z.object({
@@ -111,28 +112,26 @@ export async function POST(req: Request) {
       const patientName = [patient.firstName, patient.lastName, patient.secondLastName ?? ""]
         .join(" ")
         .trim();
-      const subject = "Actualizacion de pago en ZENSYA";
-      const text = [
-        `Hola ${patientName || patient.firstName},`,
-        "",
-        "Se registro una actualizacion de cobro/pago en ZENSYA.",
-        `Tratamiento: ${item.treatment.name}`,
-        `Monto: ${formatClp(item.amount)}`,
-        `Estado: ${statusToLabel(item.status)}`,
-        `Sede: ${clinicLabel}`,
-        "",
-        "Si tienes dudas, contacta a la clinica.",
-      ].join("\n");
 
-      const origin = new URL(req.url).origin;
-      const sent = await sendEmail({
-        origin,
-        to: patient.email,
-        subject,
-        text,
+      const tpl = await resolveEmailTemplate(session.clinicId, "PAYMENT_UPDATE", {
+        patientName: patientName || patient.firstName,
+        treatmentName: item.treatment.name,
+        amount: formatClp(item.amount),
+        status: statusToLabel(item.status),
+        clinicName: clinicLabel,
       });
-      if (!sent.ok) {
-        notificationWarning = sent.error;
+
+      if (tpl.enabled) {
+        const origin = new URL(req.url).origin;
+        const sent = await sendEmail({
+          origin,
+          to: patient.email,
+          subject: tpl.subject,
+          text: tpl.body,
+        });
+        if (!sent.ok) {
+          notificationWarning = sent.error;
+        }
       }
     }
 

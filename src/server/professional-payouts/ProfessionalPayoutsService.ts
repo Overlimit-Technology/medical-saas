@@ -9,6 +9,7 @@ import { deriveProfessionalPayoutAmounts } from "@/lib/professional-payouts/calc
 import { ClinicSettingsService } from "@/server/clinic-settings/ClinicSettingsService";
 import { resolveSingleClinicLabel } from "@/server/clinics/clinicDisplay";
 import { sendEmail } from "@/server/notifications/email";
+import { resolveEmailTemplate } from "@/server/notifications/emailTemplates";
 
 function toNumber(value: { toString(): string } | number) {
   return Number(typeof value === "number" ? value : value.toString());
@@ -273,26 +274,20 @@ export class ProfessionalPayoutsService {
         settings.siiPercentage
       );
 
-      const subject = `Liquidacion ${monthLabel} - ${clinicLabel}`;
-      const text = [
-        `Hola ${professional.name},`,
-        "",
-        `Te compartimos tu resumen de liquidacion correspondiente a ${monthLabel}.`,
-        `Sede: ${clinicLabel}`,
-        "",
-        `Total recaudado: ${formatCurrency(professional.grossAmount)}`,
-        `Clinica (${formatPercentage(settings.clinicPercentage)}): ${formatCurrency(
-          derived.clinicRetentionAmount
-        )}`,
-        `SII (${formatPercentage(settings.siiPercentage)}): ${formatCurrency(
-          derived.siiRetentionAmount
-        )}`,
-        `Total estimado a pagar (${formatPercentage(derived.netPercentage)}): ${formatCurrency(
-          derived.netAmount
-        )}`,
-        "",
-        "Si necesitas revisar el detalle, por favor contacta a la clinica.",
-      ].join("\n");
+      const tpl = await resolveEmailTemplate(input.clinicId, "PROFESSIONAL_PAYOUT", {
+        professionalName: professional.name,
+        month: monthLabel,
+        clinicName: clinicLabel,
+        grossAmount: formatCurrency(professional.grossAmount),
+        clinicRetention: formatCurrency(derived.clinicRetentionAmount),
+        siiRetention: formatCurrency(derived.siiRetentionAmount),
+        netAmount: formatCurrency(derived.netAmount),
+      });
+
+      if (!tpl.enabled) {
+        skippedCount += 1;
+        continue;
+      }
 
       const html = `
         <div style="font-family: Arial, sans-serif; color: #0f172a; line-height: 1.5;">
@@ -340,8 +335,8 @@ export class ProfessionalPayoutsService {
       const result = await sendEmail({
         origin: input.origin,
         to: recipientEmail,
-        subject,
-        text,
+        subject: tpl.subject,
+        text: tpl.body,
         html,
       });
 

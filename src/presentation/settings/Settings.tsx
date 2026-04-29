@@ -1,17 +1,19 @@
 "use client";
 
 import { useState } from "react";
-import { UserCircle, Building2, KanbanSquare } from "lucide-react";
+import { UserCircle, Building2, KanbanSquare, Mail } from "lucide-react";
 import ProfileTab from "./tabs/ProfileTab";
 import ClinicTab from "./tabs/ClinicTab";
 import CrmTab from "./tabs/CrmTab";
+import EmailTab from "./tabs/EmailTab";
 
-type SettingsTab = "perfil" | "clinica" | "crm";
+type SettingsTab = "perfil" | "clinica" | "crm" | "email";
 
 const TABS: { id: SettingsTab; label: string; icon: typeof UserCircle }[] = [
   { id: "perfil", label: "Perfil", icon: UserCircle },
   { id: "clinica", label: "Clinica", icon: Building2 },
   { id: "crm", label: "CRM", icon: KanbanSquare },
+  { id: "email", label: "Email", icon: Mail },
 ];
 
 export default function Settings() {
@@ -49,6 +51,7 @@ export default function Settings() {
       {activeTab === "perfil" && <ProfileTab />}
       {activeTab === "clinica" && <ClinicTab />}
       {activeTab === "crm" && <CrmTab />}
+      {activeTab === "email" && <EmailTab />}
     </div>
   );
 }

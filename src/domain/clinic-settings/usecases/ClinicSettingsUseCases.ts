@@ -2,6 +2,7 @@ import type { ClinicInfo, ClinicInfoInput } from "../entities/ClinicInfo";
 import type { CrmSettings, CrmSettingsInput } from "../entities/CrmSettings";
 import type { ClinicStatusColorMap } from "../entities/StatusColors";
 import type { ProfessionalPayoutSettings } from "../entities/ProfessionalPayoutSettings";
+import type { EmailTemplate, EmailTemplateInput } from "../entities/EmailTemplate";
 import type { ClinicSettingsRepository } from "../repositories/ClinicSettingsRepository";
 
 export class GetClinicInfoUseCase {
@@ -73,5 +74,21 @@ export class SaveProfessionalPayoutSettingsUseCase {
 
   async execute(settings: ProfessionalPayoutSettings): Promise<void> {
     await this.repo.saveProfessionalPayoutSettings(settings);
+  }
+}
+
+export class GetEmailTemplatesUseCase {
+  constructor(private readonly repo: ClinicSettingsRepository) {}
+
+  async execute(): Promise<EmailTemplate[]> {
+    return this.repo.getEmailTemplates();
+  }
+}
+
+export class SaveEmailTemplateUseCase {
+  constructor(private readonly repo: ClinicSettingsRepository) {}
+
+  async execute(input: EmailTemplateInput): Promise<EmailTemplate> {
+    return this.repo.saveEmailTemplate(input);
   }
 }

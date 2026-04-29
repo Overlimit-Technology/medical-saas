@@ -291,7 +291,32 @@ model ClinicSettings {
   createdAt                          DateTime @default(now())
   updatedAt                          DateTime @updatedAt
 
-  clinic Clinic @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+  clinic         Clinic          @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+  emailTemplates EmailTemplate[]
+}
+
+enum EmailTemplateType {
+  APPOINTMENT_CANCELLATION
+  PATIENT_WELCOME
+  USER_WELCOME
+  PAYMENT_UPDATE
+  PROFESSIONAL_PAYOUT
+  INTERNAL_ALERT
+}
+
+model EmailTemplate {
+  id               String            @id @default(cuid())
+  clinicSettingsId String
+  eventType        EmailTemplateType
+  subject          String
+  body             String            @db.Text
+  enabled          Boolean           @default(true)
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+
+  clinicSettings ClinicSettings @relation(fields: [clinicSettingsId], references: [id], onDelete: Cascade)
+
+  @@unique([clinicSettingsId, eventType])
 }
 
 model ClinicMembership {

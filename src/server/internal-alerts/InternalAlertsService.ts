@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { AuditService } from "@/server/audit/AuditService";
 import { resolveSingleClinicLabel } from "@/server/clinics/clinicDisplay";
 import { sendEmail } from "@/server/notifications/email";
+import { resolveEmailTemplate } from "@/server/notifications/emailTemplates";
 
 const CREATOR_ROLES = ["ADMIN", "SECRETARY"] as const;
 type CreatorRole = (typeof CREATOR_ROLES)[number];
@@ -215,26 +216,28 @@ export class InternalAlertsService {
     const actorLabel = actorRole === "ADMIN" ? "Administrador" : "Secretaria";
     const deliverableRecipients = recipientResolution.recipients.filter((recipient) => recipient.canReceive);
 
+    const tpl = await resolveEmailTemplate(input.clinicId, "INTERNAL_ALERT", {
+      eventType: formatEventTypeLabel(eventType),
+      message,
+      actorLabel,
+      clinicName: clinicLabel,
+    });
+
     const deliveryResults = await Promise.all(
       deliverableRecipients.map(async (recipient) => {
-        const subject = `[Alerta interna] ${title}`;
-        const text = [
-          `Hola ${buildRecipientName(recipient.firstName, recipient.lastName, recipient.email)},`,
-          "",
-          "Se genero una alerta interna en ZENSYA.",
-          `Sede del evento: ${clinicLabel}`,
-          `Tipo: ${formatEventTypeLabel(eventType)}`,
-          `Detalle: ${message}`,
-          `Generada por: ${actorLabel}`,
-          "",
-          "Este mensaje es solo para usuarios internos del sistema.",
-        ].join("\n");
+        const recipientName = buildRecipientName(recipient.firstName, recipient.lastName, recipient.email);
+        const finalSubject = tpl.subject.replaceAll("{{recipientName}}", recipientName);
+        const finalBody = tpl.body.replaceAll("{{recipientName}}", recipientName);
+
+        if (!tpl.enabled) {
+          return { userId: recipient.userId, ok: true };
+        }
 
         const result = await sendEmail({
           origin: input.origin,
           to: recipient.email,
-          subject,
-          text,
+          subject: finalSubject,
+          text: finalBody,
         });
 
         if (!result.ok) {

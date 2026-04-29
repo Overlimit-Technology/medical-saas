@@ -13,7 +13,6 @@ import {
   Bell,
   ChevronsUpDown,
   LogOut,
-  UserCircle,
   MessageCircle,
   Activity,
   Building2,

@@ -4,6 +4,7 @@ import { requireClinicSession, requireRole } from "@/server/auth/requireSession"
 import { resolveSingleClinicLabel } from "@/server/clinics/clinicDisplay";
 import { PatientsService } from "@/server/patients/PatientsService";
 import { sendEmail } from "@/server/notifications/email";
+import { resolveEmailTemplate } from "@/server/notifications/emailTemplates";
 
 const patientCreateSchema = z.object({
   firstName: z.string().min(1),
@@ -74,27 +75,22 @@ export async function POST(req: Request) {
     let notificationWarning: string | null = null;
     if (item.email) {
       const clinicLabel = await resolveSingleClinicLabel(session.clinicId);
-      const subject = "Bienvenido a ZENSYA";
-      const text = [
-        `Hola ${item.firstName},`,
-        "",
-        "Tu registro como paciente fue creado correctamente en ZENSYA.",
-        `Sede: ${clinicLabel}`,
-        "Si necesitas ayuda, contacta a la clinica.",
-        "",
-        "Saludos,",
-        "Equipo ZENSYA",
-      ].join("\n");
-
-      const origin = new URL(req.url).origin;
-      const sent = await sendEmail({
-        origin,
-        to: item.email,
-        subject,
-        text,
+      const tpl = await resolveEmailTemplate(session.clinicId, "PATIENT_WELCOME", {
+        firstName: item.firstName,
+        clinicName: clinicLabel,
       });
-      if (!sent.ok) {
-        notificationWarning = sent.error;
+
+      if (tpl.enabled) {
+        const origin = new URL(req.url).origin;
+        const sent = await sendEmail({
+          origin,
+          to: item.email,
+          subject: tpl.subject,
+          text: tpl.body,
+        });
+        if (!sent.ok) {
+          notificationWarning = sent.error;
+        }
       }
     }
 
