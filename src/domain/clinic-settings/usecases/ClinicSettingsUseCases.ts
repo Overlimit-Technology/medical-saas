@@ -1,6 +1,24 @@
+import type { ClinicInfo, ClinicInfoInput } from "../entities/ClinicInfo";
+import type { CrmSettings, CrmSettingsInput } from "../entities/CrmSettings";
 import type { ClinicStatusColorMap } from "../entities/StatusColors";
 import type { ProfessionalPayoutSettings } from "../entities/ProfessionalPayoutSettings";
 import type { ClinicSettingsRepository } from "../repositories/ClinicSettingsRepository";
+
+export class GetClinicInfoUseCase {
+  constructor(private readonly repo: ClinicSettingsRepository) {}
+
+  async execute(): Promise<ClinicInfo> {
+    return this.repo.getClinicInfo();
+  }
+}
+
+export class UpdateClinicInfoUseCase {
+  constructor(private readonly repo: ClinicSettingsRepository) {}
+
+  async execute(input: ClinicInfoInput): Promise<ClinicInfo> {
+    return this.repo.updateClinicInfo(input);
+  }
+}
 
 export class GetStatusColorsUseCase {
   constructor(private readonly repo: ClinicSettingsRepository) {}
@@ -23,6 +41,22 @@ export class ResetStatusColorsUseCase {
 
   async execute(): Promise<void> {
     await this.repo.resetStatusColors();
+  }
+}
+
+export class GetCrmSettingsUseCase {
+  constructor(private readonly repo: ClinicSettingsRepository) {}
+
+  async execute(): Promise<CrmSettings> {
+    return this.repo.getCrmSettings();
+  }
+}
+
+export class UpdateCrmSettingsUseCase {
+  constructor(private readonly repo: ClinicSettingsRepository) {}
+
+  async execute(input: CrmSettingsInput): Promise<CrmSettings> {
+    return this.repo.updateCrmSettings(input);
   }
 }
 
