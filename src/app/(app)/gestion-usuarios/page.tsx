@@ -1,5 +1,10 @@
+import { Suspense } from "react";
 import SuperAdminUserManagement from "@/presentation/superadmin/SuperAdminUserManagement";
 
 export default function GestionUsuariosPage() {
-  return <SuperAdminUserManagement />;
+  return (
+    <Suspense fallback={null}>
+      <SuperAdminUserManagement />
+    </Suspense>
+  );
 }
