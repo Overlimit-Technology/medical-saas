@@ -51,6 +51,7 @@ export interface AppointmentsRepository {
       notes: string | null;
     }
   ): Promise<Appointment>;
+  deleteAppointment(appointmentId: string): Promise<void>;
   updateAppointmentSchedule(
     appointmentId: string,
     input: { startAt: string; endAt: string }

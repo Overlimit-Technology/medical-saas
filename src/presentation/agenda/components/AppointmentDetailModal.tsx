@@ -16,6 +16,7 @@ type Props = {
   canChangeStatus: boolean;
   canEdit: boolean;
   canManageDailyCash: boolean;
+  isDoctor: boolean;
   selectedStatus: AppointmentStatus | "";
   statusUpdating: boolean;
   paymentForm: PaymentFormState;
@@ -30,6 +31,7 @@ type Props = {
   onPaymentFieldChange: (field: keyof PaymentFormState, value: string) => void;
   onApplyChanges: () => void;
   onEdit: () => void;
+  onDelete: () => void;
 };
 
 export default function AppointmentDetailModal({
@@ -37,6 +39,7 @@ export default function AppointmentDetailModal({
   canChangeStatus,
   canEdit,
   canManageDailyCash,
+  isDoctor,
   selectedStatus,
   statusUpdating,
   paymentForm,
@@ -51,6 +54,7 @@ export default function AppointmentDetailModal({
   onPaymentFieldChange,
   onApplyChanges,
   onEdit,
+  onDelete,
 }: Props) {
   const dropdownTriggerClassName =
     "flex w-full items-center justify-between rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-left text-sm text-slate-700 transition-all duration-200 hover:border-[#19b3bc]/40 focus:outline-none";
@@ -365,13 +369,32 @@ export default function AppointmentDetailModal({
         )}
 
         <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:justify-between">
-          <a
-            href={`/appointments/${appointment.id}`}
-            className="rounded-full border border-blue-200 px-4 py-2.5 text-center text-sm font-semibold text-blue-700 transition-colors hover:border-blue-300 hover:bg-blue-50"
-          >
-            Ficha clinica
-          </a>
+          <div className="flex flex-wrap gap-3">
+            <a
+              href={`/appointments/${appointment.id}`}
+              className="rounded-full border border-blue-200 px-4 py-2.5 text-center text-sm font-semibold text-blue-700 transition-colors hover:border-blue-300 hover:bg-blue-50"
+            >
+              Ficha clinica
+            </a>
+            {(isDoctor || canEdit) && (
+              <a
+                href={`/clinical-visits?appointmentId=${appointment.id}&patientId=${appointment.patient.id}`}
+                className="rounded-full border border-emerald-200 px-4 py-2.5 text-center text-sm font-semibold text-emerald-700 transition-colors hover:border-emerald-300 hover:bg-emerald-50"
+              >
+                Iniciar consulta
+              </a>
+            )}
+          </div>
           <div className="flex gap-3">
+            {canEdit && appointment.status === "CANCELLED" && (
+              <button
+                type="button"
+                onClick={onDelete}
+                className="rounded-full border border-rose-200 px-4 py-2.5 text-sm font-semibold text-rose-600 transition-colors hover:border-rose-300 hover:bg-rose-50"
+              >
+                Eliminar cita
+              </button>
+            )}
             {canEdit && (
               <button
                 type="button"

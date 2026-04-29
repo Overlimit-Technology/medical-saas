@@ -12,6 +12,7 @@ import { GetAppointmentsUseCase } from "@/domain/appointments/usecases/GetAppoin
 import {
   CancelAppointmentUseCase,
   CreateContinuousTreatmentPlanUseCase,
+  DeleteAppointmentUseCase,
   SaveAppointmentUseCase,
   UpdateAppointmentPaymentUseCase,
   UpdateAppointmentScheduleUseCase,
@@ -105,6 +106,7 @@ export function useAgendaViewModel() {
     saveAppointmentUseCase,
     createContinuousTreatmentPlanUseCase,
     cancelAppointmentUseCase,
+    deleteAppointmentUseCase,
     updateAppointmentStatusUseCase,
     updateAppointmentScheduleUseCase,
     getPatientsUseCase,
@@ -134,6 +136,7 @@ export function useAgendaViewModel() {
       saveAppointmentUseCase: new SaveAppointmentUseCase(appointmentsRepo),
       createContinuousTreatmentPlanUseCase: new CreateContinuousTreatmentPlanUseCase(appointmentsRepo),
       cancelAppointmentUseCase: new CancelAppointmentUseCase(appointmentsRepo),
+      deleteAppointmentUseCase: new DeleteAppointmentUseCase(appointmentsRepo),
       updateAppointmentStatusUseCase: new UpdateAppointmentStatusUseCase(appointmentsRepo),
       updateAppointmentScheduleUseCase: new UpdateAppointmentScheduleUseCase(appointmentsRepo),
       getPatientsUseCase: new GetPatientsUseCase(patientsRepo),
@@ -192,6 +195,7 @@ export function useAgendaViewModel() {
   const [paymentSaving, setPaymentSaving] = useState(false);
   const [paymentError, setPaymentError] = useState<string | null>(null);
   const [paymentSuccess, setPaymentSuccess] = useState<string | null>(null);
+  const [appointmentSuccess, setAppointmentSuccess] = useState<string | null>(null);
   const [paymentAppointment, setPaymentAppointment] = useState<AgendaAppointment | null>(null);
   const [paymentForm, setPaymentForm] = useState<PaymentFormState>({
     treatmentId: "",
@@ -394,6 +398,12 @@ export function useAgendaViewModel() {
     const timeoutId = window.setTimeout(() => setPaymentSuccess(null), 2800);
     return () => window.clearTimeout(timeoutId);
   }, [paymentSuccess]);
+
+  useEffect(() => {
+    if (!appointmentSuccess) return;
+    const timeoutId = window.setTimeout(() => setAppointmentSuccess(null), 2800);
+    return () => window.clearTimeout(timeoutId);
+  }, [appointmentSuccess]);
 
   useEffect(() => {
     if (!treatments.length) return;
@@ -1101,7 +1111,6 @@ export function useAgendaViewModel() {
       setErrorMessage("Selecciona un paciente para agendar la cita.");
       return;
     }
-
     if (!cleanPatientFirstName || !cleanPatientLastName) {
       setErrorMessage("Completa nombre y apellido del paciente.");
       return;
@@ -1158,7 +1167,7 @@ export function useAgendaViewModel() {
 
       try {
         await createContinuousTreatmentPlanUseCase.execute({
-          patientId: form.patientId,
+          patientId: effectivePatientId,
           doctorId: form.doctorId,
           boxId: form.boxId,
           patientFirstName: cleanPatientFirstName,
@@ -1205,6 +1214,7 @@ export function useAgendaViewModel() {
       await loadAgenda();
       resetModalState();
       setForm(createEmptyAppointmentForm());
+      setAppointmentSuccess(editingId ? "Cita actualizada con exito." : "Cita agendada con exito.");
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : "No se pudo guardar la cita.");
     }
@@ -1268,6 +1278,19 @@ export function useAgendaViewModel() {
     }
 
     setCancelling(false);
+  };
+
+  const handleDeleteAppointment = async () => {
+    if (!detailAppointment || !canEdit) return;
+
+    try {
+      await deleteAppointmentUseCase.execute(detailAppointment.id);
+      await loadAgenda();
+      resetModalState();
+      setAppointmentSuccess("Cita eliminada con exito.");
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : "No se pudo eliminar la cita.");
+    }
   };
 
   const openPaymentModal = (item: AgendaAppointment) => {
@@ -1542,6 +1565,7 @@ export function useAgendaViewModel() {
       paymentSaving,
       paymentError,
       paymentSuccess,
+      appointmentSuccess,
       paymentAppointment,
       paymentForm,
       initialPaymentForm,
@@ -1587,6 +1611,7 @@ export function useAgendaViewModel() {
       closeCancelConfirm,
       handleCancelReasonChange,
       handleCancelAppointment,
+      handleDeleteAppointment,
       setSelectedStatus,
       handleStatusUpdate,
       openPaymentModal,

@@ -130,6 +130,7 @@ export default function Agenda() {
           canChangeStatus={derived.canChangeStatus}
           canEdit={derived.canEdit}
           canManageDailyCash={derived.canManageDailyCash}
+          isDoctor={derived.isDoctor}
           selectedStatus={state.selectedStatus}
           statusUpdating={state.statusUpdating}
           paymentForm={state.paymentForm}
@@ -144,6 +145,7 @@ export default function Agenda() {
           onPaymentFieldChange={actions.handlePaymentFieldChange}
           onApplyChanges={() => void actions.applyDetailChanges()}
           onEdit={actions.openEditFromDetail}
+          onDelete={() => void actions.handleDeleteAppointment()}
         />
       )}
 
@@ -175,6 +177,12 @@ export default function Agenda() {
       {state.paymentSuccess && (
         <div className="fixed bottom-6 right-6 z-50 rounded-2xl bg-emerald-500 px-4 py-3 text-sm font-medium text-white shadow-lg shadow-emerald-500/30">
           {state.paymentSuccess}
+        </div>
+      )}
+
+      {state.appointmentSuccess && (
+        <div className="fixed bottom-6 right-6 z-50 rounded-2xl bg-emerald-500 px-4 py-3 text-sm font-medium text-white shadow-lg shadow-emerald-500/30">
+          {state.appointmentSuccess}
         </div>
       )}
     </div>

@@ -25,6 +25,14 @@ export class SaveAppointmentUseCase {
   }
 }
 
+export class DeleteAppointmentUseCase {
+  constructor(private readonly repo: AppointmentsRepository) {}
+
+  async execute(appointmentId: string): Promise<void> {
+    await this.repo.deleteAppointment(appointmentId);
+  }
+}
+
 export class CancelAppointmentUseCase {
   constructor(private readonly repo: AppointmentsRepository) {}
 

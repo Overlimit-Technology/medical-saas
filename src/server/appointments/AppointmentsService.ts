@@ -406,6 +406,19 @@ export class AppointmentsService {
     return serializeAppointment(item);
   }
 
+  static async hardDelete(id: string, clinicId: string, author: string) {
+    const current = await prisma.appointment.findFirst({
+      where: { id, clinicId, status: "CANCELLED" },
+      select: { id: true },
+    });
+    if (!current) {
+      throw new Error("Solo se pueden eliminar citas canceladas.");
+    }
+
+    await prisma.appointment.delete({ where: { id } });
+    await AuditService.log("appointment.delete", author, `Cita ${id} eliminada.`);
+  }
+
   private static async assertNoConflicts(input: AppointmentInput & { excludeId?: string }) {
     const conflict = await prisma.appointment.findFirst({
       where: {
