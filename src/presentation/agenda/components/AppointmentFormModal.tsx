@@ -206,11 +206,11 @@ export default function AppointmentFormModal({
               className={fieldClassName}
             />
 
-            {shouldShowPatientResults && (
+            {shouldShowPatientResults && (patientSearchLoading || patients.length > 0) && (
               <div className="animate-fade-in absolute left-0 right-0 top-[calc(100%+8px)] z-20 overflow-hidden rounded-2xl border border-[#19b3bc]/20 bg-white shadow-xl shadow-[#19b3bc]/10">
                 {patientSearchLoading ? (
                   <div className="px-4 py-3 text-sm text-slate-500">Buscando pacientes...</div>
-                ) : patients.length > 0 ? (
+                ) : (
                   <div className="max-h-64 overflow-y-auto">
                     {patients.map((patient) => (
                       <button
@@ -232,10 +232,6 @@ export default function AppointmentFormModal({
                         </div>
                       </button>
                     ))}
-                  </div>
-                ) : (
-                  <div className="px-4 py-3 text-sm text-slate-500">
-                    No se encontraron pacientes para ese Run.
                   </div>
                 )}
               </div>

@@ -208,12 +208,19 @@ export function usePatientsViewModel() {
       const savedMessage = selected
         ? "Paciente actualizado exitosamente."
         : "Paciente guardado exitosamente.";
-      closeModal();
-      setSuccessMessage(
-        data.notificationWarning
-          ? `${savedMessage} Aviso: ${data.notificationWarning}`
-          : savedMessage
-      );
+      const fullMessage = data.notificationWarning
+        ? `${savedMessage} Aviso: ${data.notificationWarning}`
+        : savedMessage;
+
+      if (selected) {
+        closeModal();
+      } else {
+        setForm(EMPTY_FORM);
+        setErrors({});
+        setApiError(null);
+      }
+
+      setSuccessMessage(fullMessage);
       await loadPatients(query);
     } catch (error) {
       setApiError(error instanceof Error ? error.message : "No se pudo guardar el paciente.");
