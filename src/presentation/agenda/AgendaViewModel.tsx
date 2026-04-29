@@ -24,7 +24,8 @@ import {
   SaveStatusColorsUseCase,
 } from "@/domain/clinic-settings/usecases/ClinicSettingsUseCases";
 import { CreateCashMovementUseCase, GetCrmTreatmentsUseCase, GetDailyCashUseCase } from "@/domain/crm/usecases/CrmUseCases";
-import { GetPatientDetailUseCase, GetPatientsUseCase } from "@/domain/patients/usecases/PatientsUseCases";
+import { GetPatientDetailUseCase, GetPatientsUseCase, SavePatientUseCase } from "@/domain/patients/usecases/PatientsUseCases";
+import { formatRun } from "@/presentation/patients/PatientsViewModel";
 import { GetUsersUseCase } from "@/domain/users/usecases/UserUseCases";
 import { normalizeId } from "@/lib/normalize";
 import {
@@ -102,6 +103,7 @@ export function useAgendaViewModel() {
     updateAppointmentStatusUseCase,
     updateAppointmentScheduleUseCase,
     getPatientsUseCase,
+    savePatientUseCase,
     getPatientDetailUseCase,
     getUsersUseCase,
     getBoxesUseCase,
@@ -129,6 +131,7 @@ export function useAgendaViewModel() {
       updateAppointmentStatusUseCase: new UpdateAppointmentStatusUseCase(appointmentsRepo),
       updateAppointmentScheduleUseCase: new UpdateAppointmentScheduleUseCase(appointmentsRepo),
       getPatientsUseCase: new GetPatientsUseCase(patientsRepo),
+      savePatientUseCase: new SavePatientUseCase(patientsRepo),
       getPatientDetailUseCase: new GetPatientDetailUseCase(patientsRepo),
       getUsersUseCase: new GetUsersUseCase(usersRepo),
       getBoxesUseCase: new GetBoxesUseCase(boxesRepo),
@@ -197,6 +200,7 @@ export function useAgendaViewModel() {
     notes: "",
   });
   const [form, setForm] = useState<AppointmentFormState>(() => createEmptyAppointmentForm());
+  const [isRegisteringNewPatient, setIsRegisteringNewPatient] = useState(false);
   const patientSearchCacheRef = useRef<Map<string, AgendaPatient[]>>(new Map());
 
   const selectedDay = useMemo(() => startOfDay(calendarDate), [calendarDate]);
@@ -205,7 +209,7 @@ export function useAgendaViewModel() {
   const slots = useMemo(() => buildSlots(), []);
   const resolvedColors = useMemo(() => resolveStatusColors(statusColorOverrides), [statusColorOverrides]);
   const isDoctor = role === "DOCTOR";
-  const canEdit = role === "ADMIN" || role === "SECRETARY";
+  const canEdit = role === "ADMIN" || role === "SECRETARY" || role === "DOCTOR";
   const canChangeStatus = role === "ADMIN" || role === "SECRETARY" || role === "DOCTOR";
   const canManageDailyCash = role === "SECRETARY" || role === "ADMIN";
 
@@ -611,6 +615,7 @@ export function useAgendaViewModel() {
   }, []);
 
   const resetModalState = useCallback(() => {
+    setIsRegisteringNewPatient(false);
     setIsModalOpen(false);
     setEditingId(null);
     setDetailAppointment(null);
@@ -922,11 +927,13 @@ export function useAgendaViewModel() {
     }
 
     setEditingId(item.id);
+    setIsRegisteringNewPatient(false);
     setForm({
       patientId: item.patientId,
       patientRun,
       patientFirstName: item.patient.firstName,
       patientLastName: item.patient.lastName,
+      patientSecondLastName: "",
       patientEmail: item.patient.email ?? "",
       patientPhone: item.patient.phone ?? "",
       doctorId: item.doctorId,
@@ -971,12 +978,14 @@ export function useAgendaViewModel() {
 
   const handlePatientRunChange = (value: string) => {
     const normalizedRun = normalizeId(value);
+    setIsRegisteringNewPatient(false);
     setForm((previous) => ({
       ...previous,
       patientRun: normalizedRun,
       patientId: "",
       patientFirstName: "",
       patientLastName: "",
+      patientSecondLastName: "",
       patientEmail: "",
       patientPhone: "",
     }));
@@ -984,6 +993,11 @@ export function useAgendaViewModel() {
     if (normalizedRun.length < 3) {
       setPatients([]);
     }
+  };
+
+  const handleStartRegisterNewPatient = () => {
+    setIsRegisteringNewPatient(true);
+    setPatients([]);
   };
 
   const createOrUpdateAppointment = async (event: React.FormEvent) => {
@@ -998,13 +1012,48 @@ export function useAgendaViewModel() {
       return;
     }
 
-    if (!form.patientId) {
+    const cleanPatientFirstName = form.patientFirstName.trim();
+    const cleanPatientLastName = form.patientLastName.trim();
+
+    let effectivePatientId = form.patientId;
+
+    if (isRegisteringNewPatient && !effectivePatientId) {
+      if (!cleanPatientFirstName || !cleanPatientLastName) {
+        setErrorMessage("Completa nombre y apellido del paciente.");
+        return;
+      }
+
+      if (!form.doctorId || !form.boxId) {
+        setErrorMessage("Selecciona un profesional y un box disponible.");
+        return;
+      }
+
+      try {
+        const result = await savePatientUseCase.execute(null, {
+          firstName: cleanPatientFirstName,
+          lastName: cleanPatientLastName,
+          secondLastName: form.patientSecondLastName.trim() || null,
+          run: formatRun(form.patientRun),
+          email: form.patientEmail.trim() || null,
+          phone: form.patientPhone.trim() || null,
+        });
+
+        if (!result.patientId) {
+          setErrorMessage("No se pudo crear el paciente.");
+          return;
+        }
+
+        effectivePatientId = result.patientId;
+      } catch (error) {
+        setErrorMessage(error instanceof Error ? error.message : "No se pudo crear el paciente.");
+        return;
+      }
+    }
+
+    if (!effectivePatientId) {
       setErrorMessage("Selecciona un paciente para agendar la cita.");
       return;
     }
-
-    const cleanPatientFirstName = form.patientFirstName.trim();
-    const cleanPatientLastName = form.patientLastName.trim();
 
     if (!cleanPatientFirstName || !cleanPatientLastName) {
       setErrorMessage("Completa nombre y apellido del paciente.");
@@ -1018,7 +1067,7 @@ export function useAgendaViewModel() {
 
     const hasOverlap = hasAppointmentOverlap(appointments, {
       appointmentId: editingId,
-      patientId: form.patientId,
+      patientId: effectivePatientId,
       doctorId: form.doctorId,
       boxId: form.boxId,
       startAt,
@@ -1035,7 +1084,7 @@ export function useAgendaViewModel() {
     const cleanPatientPhone = form.patientPhone.trim();
 
     const payload = {
-      patientId: form.patientId,
+      patientId: effectivePatientId,
       doctorId: form.doctorId,
       boxId: form.boxId,
       startAt: startAt.toISOString(),
@@ -1397,6 +1446,7 @@ export function useAgendaViewModel() {
       paymentForm,
       initialPaymentForm,
       form,
+      isRegisteringNewPatient,
       selection,
       now,
     },
@@ -1427,6 +1477,7 @@ export function useAgendaViewModel() {
       handleAppointmentFormChange,
       handlePatientRunChange,
       handlePatientSelection,
+      handleStartRegisterNewPatient,
       createOrUpdateAppointment,
       openCancelFromEditing,
       closeCancelConfirm,
