@@ -23,20 +23,20 @@ export default function Leads() {
   return (
     <div className="leads-module flex h-full flex-col">
       {/* Toolbar */}
-      <div className="shrink-0 border-b border-slate-200/60 bg-white px-5 py-3">
-        <div className="flex items-center justify-between gap-4">
-          <div className="flex items-center gap-4">
+      <div className="shrink-0 border-b border-slate-200/60 bg-white px-4 py-2.5">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex flex-wrap items-center gap-3">
             <p className="text-[11px] text-slate-400">
               {state.stats.total} leads &middot; {state.stats.inProcess} activos &middot; {state.stats.conversionRate}% conversion
             </p>
-            <div className="hidden lg:flex items-center gap-4 pl-4 border-l border-slate-200">
+            <div className="hidden items-center gap-3 border-l border-slate-200 pl-3 xl:flex">
               <MiniStat label="Ganados" value={state.stats.wonCount} color="text-emerald-600" />
               <MiniStat label="Perdidos" value={state.stats.lostCount} color="text-red-500" />
               <MiniStat label="Pipeline" value={`$${state.stats.totalBudget.toLocaleString("es-CL")}`} color="text-slate-700" />
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <div className="inline-flex rounded-lg border border-slate-200 bg-slate-50 p-0.5">
               <button
                 type="button"
@@ -82,7 +82,7 @@ export default function Leads() {
       </div>
 
       {/* Channel filter */}
-      <div className="shrink-0 px-5 pt-3 pb-1 bg-slate-50/50 border-b border-slate-100">
+      <div className="shrink-0 border-b border-slate-100 bg-slate-50/50 px-4 py-2">
         <ChannelFilter
           selected={state.filters.channel}
           counts={state.stats.byChannel}
@@ -94,7 +94,7 @@ export default function Leads() {
 
       {/* Follow-ups alert */}
       {state.followUps.length > 0 && (
-        <div className="shrink-0 border-b border-amber-200/60 bg-amber-50/70 px-5 py-2">
+        <div className="shrink-0 border-b border-amber-200/60 bg-amber-50/70 px-4 py-2">
           <div className="flex items-center gap-2">
             <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 text-amber-500"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
             <span className="text-[11px] font-medium text-amber-700">
@@ -118,7 +118,7 @@ export default function Leads() {
       )}
 
       {/* Filters */}
-      <div className="shrink-0 px-5 pt-3">
+      <div className="shrink-0 px-4 pt-2">
         <LeadFilters
           filters={state.filters} columns={state.columns}
           tags={state.tags} doctors={state.doctors}
@@ -128,7 +128,7 @@ export default function Leads() {
       </div>
 
       {/* Main content */}
-      <div className="relative min-h-0 flex-1 px-4 pt-1">
+      <div className="relative min-h-0 flex-1 px-3 pt-1">
         {state.viewMode === "kanban" ? (
           <KanbanBoard
             columns={state.columns} leads={state.leads} dragState={state.dragState}

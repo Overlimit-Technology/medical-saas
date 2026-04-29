@@ -5,6 +5,7 @@ type SessionPayload = {
   role: string;
   isSuperAdmin?: boolean;
   permissions?: string[];
+  usesNewPlatform?: boolean;
   exp: number; // epoch seconds
   mustChangePassword?: boolean;
 };

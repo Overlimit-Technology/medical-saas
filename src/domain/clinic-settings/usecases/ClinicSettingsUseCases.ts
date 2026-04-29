@@ -1,4 +1,5 @@
 import type { ClinicStatusColorMap } from "../entities/StatusColors";
+import type { ProfessionalPayoutSettings } from "../entities/ProfessionalPayoutSettings";
 import type { ClinicSettingsRepository } from "../repositories/ClinicSettingsRepository";
 
 export class GetStatusColorsUseCase {
@@ -22,5 +23,21 @@ export class ResetStatusColorsUseCase {
 
   async execute(): Promise<void> {
     await this.repo.resetStatusColors();
+  }
+}
+
+export class GetProfessionalPayoutSettingsUseCase {
+  constructor(private readonly repo: ClinicSettingsRepository) {}
+
+  async execute(): Promise<ProfessionalPayoutSettings> {
+    return this.repo.getProfessionalPayoutSettings();
+  }
+}
+
+export class SaveProfessionalPayoutSettingsUseCase {
+  constructor(private readonly repo: ClinicSettingsRepository) {}
+
+  async execute(settings: ProfessionalPayoutSettings): Promise<void> {
+    await this.repo.saveProfessionalPayoutSettings(settings);
   }
 }

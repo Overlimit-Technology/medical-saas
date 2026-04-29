@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { requireClinicSession } from "@/server/auth/requireSession";
 import { prisma } from "@/lib/prisma";
+import { mapErrorToHttpStatus } from "@/server/fhir/r4/response";
 
 export async function GET() {
   try {
@@ -102,6 +103,7 @@ export async function GET() {
       ok: true,
       data: {
         clinic: clinic ?? { name: "Mi clínica", city: "" },
+        canManageUsers: session.isSuperAdmin === true,
         modules: {
           boxes: {
             total: totalBoxes,
@@ -135,10 +137,17 @@ export async function GET() {
       },
     });
   } catch (error) {
-    console.error("Error fetching clinic dashboard:", error);
+    const message =
+      error instanceof Error ? error.message : "No se pudo cargar la información del dashboard.";
+    const status = mapErrorToHttpStatus(message);
+
+    if (status >= 500) {
+      console.error("Error fetching clinic dashboard:", error);
+    }
+
     return NextResponse.json(
-      { ok: false, error: "No se pudo cargar la información del dashboard." },
-      { status: 400 }
+      { ok: false, error: message },
+      { status }
     );
   }
 }

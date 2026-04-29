@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { requireClinicSession, requireRole } from "@/server/auth/requireSession";
 import { InternalAlertsService } from "@/server/internal-alerts/InternalAlertsService";
+import { mapErrorToHttpStatus } from "@/server/fhir/r4/response";
 
 const createInternalAlertSchema = z.object({
   title: z.string().min(1),
@@ -27,10 +28,13 @@ export async function GET() {
     const items = await InternalAlertsService.listForUser(session.userId);
     const unreadCount = items.filter((item: { isRead: boolean }) => !item.isRead).length;
     return NextResponse.json({ ok: true, items, unreadCount });
-  } catch {
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : "No se pudieron cargar las alertas internas.";
+
     return NextResponse.json(
-      { ok: false, error: "No se pudieron cargar las alertas internas." },
-      { status: 400 }
+      { ok: false, error: message },
+      { status: mapErrorToHttpStatus(message) }
     );
   }
 }
@@ -72,6 +76,6 @@ export async function POST(req: Request) {
     );
   } catch (error) {
     const message = error instanceof Error ? error.message : "No se pudo crear la alerta interna.";
-    return NextResponse.json({ ok: false, error: message }, { status: 400 });
+    return NextResponse.json({ ok: false, error: message }, { status: mapErrorToHttpStatus(message) });
   }
 }

@@ -16,6 +16,11 @@ const ROLE_COLORS: Record<string, string> = {
   SECRETARY: "bg-violet-50 text-violet-600",
 };
 
+function getRoleLabel(role: string, isSuperAdmin?: boolean) {
+  if (role === "ADMIN" && isSuperAdmin) return "Super admin";
+  return ROLE_LABELS[role] ?? role;
+}
+
 export default function Doctors() {
   const router = useRouter();
   const { state, actions } = useDoctorsViewModel();
@@ -122,7 +127,7 @@ export default function Doctors() {
                     <td className="px-4 py-3 text-slate-500">{user.email}</td>
                     <td className="px-4 py-3">
                       <span className={`inline-flex rounded-full px-2 py-0.5 text-[11px] font-medium ${ROLE_COLORS[user.role] ?? "bg-slate-100 text-slate-600"}`}>
-                        {ROLE_LABELS[user.role] ?? user.role}
+                        {getRoleLabel(user.role, user.isSuperAdmin)}
                       </span>
                     </td>
                     <td className="px-4 py-3 text-slate-500">{rut}</td>
@@ -171,6 +176,23 @@ export default function Doctors() {
                   <option value="SECRETARY">Secretaria</option>
                 </select>
               </div>
+
+              {state.form.role === "ADMIN" && (
+                <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-amber-200 bg-amber-50/70 px-3 py-3 text-sm text-amber-900">
+                  <input
+                    type="checkbox"
+                    checked={state.form.isSuperAdmin}
+                    onChange={(e) => actions.handleSuperAdminChange(e.target.checked)}
+                    className="mt-0.5 h-4 w-4 accent-amber-700"
+                  />
+                  <span>
+                    <span className="block font-medium">Convertir en super admin</span>
+                    <span className="block text-xs text-amber-800/80">
+                      Tendrá todo lo del admin y quedará listo para permisos especiales después.
+                    </span>
+                  </span>
+                </label>
+              )}
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
