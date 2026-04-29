@@ -38,6 +38,7 @@ export type AppointmentFormState = {
   patientRun: string;
   patientFirstName: string;
   patientLastName: string;
+  patientSecondLastName: string;
   patientEmail: string;
   patientPhone: string;
   doctorId: string;
