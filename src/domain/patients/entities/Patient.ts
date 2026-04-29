@@ -54,7 +54,11 @@ export type PatientsResult = {
 };
 
 export type SavePatientResult = {
+<<<<<<< HEAD
+  item?: Patient;
+=======
   patientId?: string;
+>>>>>>> 90d88f12cd6b2891f5dd56d7ed1e4cb958c1ded0
   notificationWarning?: string | null;
 };
 
