@@ -105,6 +105,7 @@ export default function Agenda() {
           form={state.form}
           patients={state.patients}
           patientSearchLoading={state.patientSearchLoading}
+          isRegisteringNewPatient={state.isRegisteringNewPatient}
           doctors={state.doctors}
           boxes={state.boxes}
           treatments={state.treatments}
@@ -118,6 +119,7 @@ export default function Agenda() {
           onContinuousPlanTreatmentToggle={actions.toggleContinuousPlanTreatment}
           onPatientRunChange={actions.handlePatientRunChange}
           onPatientSelect={actions.handlePatientSelection}
+          onStartRegisterNewPatient={actions.handleStartRegisterNewPatient}
           onOpenCancelConfirm={actions.openCancelFromEditing}
         />
       )}

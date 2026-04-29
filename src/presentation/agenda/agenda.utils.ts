@@ -197,6 +197,7 @@ export function createEmptyAppointmentForm(date = new Date()): AppointmentFormSt
     patientRun: "",
     patientFirstName: "",
     patientLastName: "",
+    patientSecondLastName: "",
     patientEmail: "",
     patientPhone: "",
     doctorId: "",
