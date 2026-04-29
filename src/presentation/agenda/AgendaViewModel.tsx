@@ -204,7 +204,7 @@ export function useAgendaViewModel() {
     notes: "",
   });
   const [form, setForm] = useState<AppointmentFormState>(() => createEmptyAppointmentForm());
-  const [isRegisteringNewPatient, setIsRegisteringNewPatient] = useState(false);
+  const [isRegisteringNewPatient, setIsRegisteringNewPatient] = useState(false); // kept internally only
   const patientSearchCacheRef = useRef<Map<string, AgendaPatient[]>>(new Map());
 
   const selectedDay = useMemo(() => startOfDay(calendarDate), [calendarDate]);
@@ -1007,7 +1007,6 @@ export function useAgendaViewModel() {
 
   const handleStartRegisterNewPatient = () => {
     setIsRegisteringNewPatient(true);
-    setPatients([]);
   };
 
   const createOrUpdateAppointment = async (event: React.FormEvent) => {
@@ -1025,9 +1024,14 @@ export function useAgendaViewModel() {
     const cleanPatientFirstName = form.patientFirstName.trim();
     const cleanPatientLastName = form.patientLastName.trim();
 
+    if (!cleanPatientFirstName || !cleanPatientLastName) {
+      setErrorMessage("Completa nombre y apellido del paciente.");
+      return;
+    }
+
     let effectivePatientId = form.patientId;
 
-    if (isRegisteringNewPatient && !effectivePatientId) {
+    if (!effectivePatientId) {
       try {
         const result = await savePatientUseCase.execute(null, {
           firstName: cleanPatientFirstName,
@@ -1048,16 +1052,6 @@ export function useAgendaViewModel() {
         setErrorMessage(error instanceof Error ? error.message : "No se pudo crear el paciente.");
         return;
       }
-    }
-
-    if (!effectivePatientId) {
-      setErrorMessage("Selecciona un paciente para agendar la cita.");
-      return;
-    }
-
-    if (!cleanPatientFirstName || !cleanPatientLastName) {
-      setErrorMessage("Completa nombre y apellido del paciente.");
-      return;
     }
 
     if (!form.doctorId || !form.boxId) {

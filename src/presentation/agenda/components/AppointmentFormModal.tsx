@@ -80,7 +80,6 @@ type Props = {
   form: AppointmentFormState;
   patients: AgendaPatient[];
   patientSearchLoading: boolean;
-  isRegisteringNewPatient: boolean;
   doctors: AgendaDoctor[];
   boxes: AgendaBox[];
   errorMessage: string | null;
@@ -89,7 +88,6 @@ type Props = {
   onFieldChange: (field: keyof AppointmentFormState, value: string) => void;
   onPatientRunChange: (value: string) => void;
   onPatientSelect: (patientId: string) => void;
-  onStartRegisterNewPatient: () => void;
   onOpenCancelConfirm: () => void;
 };
 
@@ -98,7 +96,6 @@ export default function AppointmentFormModal({
   form,
   patients,
   patientSearchLoading,
-  isRegisteringNewPatient,
   doctors,
   boxes,
   errorMessage,
@@ -107,7 +104,6 @@ export default function AppointmentFormModal({
   onFieldChange,
   onPatientRunChange,
   onPatientSelect,
-  onStartRegisterNewPatient,
   onOpenCancelConfirm,
 }: Props) {
   const shouldShowPatientResults = !form.patientId && normalizeId(form.patientRun).length >= 3;
@@ -210,11 +206,11 @@ export default function AppointmentFormModal({
               className={fieldClassName}
             />
 
-            {shouldShowPatientResults && (
+            {shouldShowPatientResults && (patientSearchLoading || patients.length > 0) && (
               <div className="animate-fade-in absolute left-0 right-0 top-[calc(100%+8px)] z-20 overflow-hidden rounded-2xl border border-[#19b3bc]/20 bg-white shadow-xl shadow-[#19b3bc]/10">
                 {patientSearchLoading ? (
                   <div className="px-4 py-3 text-sm text-slate-500">Buscando pacientes...</div>
-                ) : patients.length > 0 ? (
+                ) : (
                   <div className="max-h-64 overflow-y-auto">
                     {patients.map((patient) => (
                       <button
@@ -237,20 +233,6 @@ export default function AppointmentFormModal({
                       </button>
                     ))}
                   </div>
-                ) : (
-                  <div>
-                    <div className="px-4 py-3 text-sm text-slate-500">
-                      No se encontraron pacientes para ese Run.
-                    </div>
-                    <button
-                      type="button"
-                      onClick={onStartRegisterNewPatient}
-                      className="flex w-full items-center gap-2 border-t border-[#19b3bc]/10 px-4 py-3 text-sm font-medium text-[#19b3bc] transition-colors hover:bg-[#19b3bc]/5"
-                    >
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
-                      Registrar paciente nuevo
-                    </button>
-                  </div>
                 )}
               </div>
             )}
@@ -272,15 +254,13 @@ export default function AppointmentFormModal({
               className={fieldClassName}
             />
           </div>
-          {isRegisteringNewPatient && (
-            <input
-              type="text"
-              placeholder="Segundo apellido (opcional)"
-              value={form.patientSecondLastName}
-              onChange={(event) => onFieldChange("patientSecondLastName", event.target.value)}
-              className={fieldClassName}
-            />
-          )}
+          <input
+            type="text"
+            placeholder="Segundo apellido (opcional)"
+            value={form.patientSecondLastName}
+            onChange={(event) => onFieldChange("patientSecondLastName", event.target.value)}
+            className={fieldClassName}
+          />
           <div className="grid gap-3 md:grid-cols-2">
             <input
               type="email"
@@ -661,7 +641,7 @@ export default function AppointmentFormModal({
               type="submit"
               className="rounded-full bg-[#19b3bc] px-5 py-2.5 text-sm font-semibold text-white transition-all hover:bg-[#159ea7] hover:shadow-lg hover:shadow-[#19b3bc]/20"
             >
-              {isRegisteringNewPatient ? "Guardar paciente y cita" : "Guardar"}
+              Guardar
             </button>
           </div>
         </form>
