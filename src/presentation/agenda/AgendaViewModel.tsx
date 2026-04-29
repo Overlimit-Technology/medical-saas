@@ -107,7 +107,6 @@ export function useAgendaViewModel() {
     getPatientsUseCase,
     savePatientUseCase,
     getPatientDetailUseCase,
-    savePatientUseCase,
     getUsersUseCase,
     getBoxesUseCase,
     getCrmTreatmentsUseCase,
