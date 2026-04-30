@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
-import SuperAdminModulePlaceholder from "@/presentation/superadmin/SuperAdminModulePlaceholder";
+import SuperAdminResources from "@/presentation/superadmin/SuperAdminResources";
 import { requireAuthSession } from "@/server/auth/requireSession";
+import { getSuperAdminPlatformData } from "@/server/super-admin/platformData";
 
 export default async function SuperAdminRecursosPage() {
   const session = await requireAuthSession();
@@ -8,11 +9,6 @@ export default async function SuperAdminRecursosPage() {
     redirect("/dashboard");
   }
 
-  return (
-    <SuperAdminModulePlaceholder
-      title="Recursos"
-      description="Repositorio central para documentos, plantillas y recursos administrativos."
-    />
-  );
+  const data = await getSuperAdminPlatformData();
+  return <SuperAdminResources data={data} />;
 }
-

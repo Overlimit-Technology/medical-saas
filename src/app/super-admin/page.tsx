@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import SuperAdminOverview from "@/presentation/superadmin/SuperAdminOverview";
 import { requireAuthSession } from "@/server/auth/requireSession";
+import { getSuperAdminPlatformData } from "@/server/super-admin/platformData";
 
 export default async function SuperAdminOverviewPage() {
   const session = await requireAuthSession();
@@ -8,6 +9,6 @@ export default async function SuperAdminOverviewPage() {
     redirect("/dashboard");
   }
 
-  return <SuperAdminOverview />;
+  const data = await getSuperAdminPlatformData();
+  return <SuperAdminOverview data={data} />;
 }
-

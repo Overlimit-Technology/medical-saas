@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
-import SuperAdminModulePlaceholder from "@/presentation/superadmin/SuperAdminModulePlaceholder";
+import SuperAdminRoles from "@/presentation/superadmin/SuperAdminRoles";
 import { requireAuthSession } from "@/server/auth/requireSession";
+import { getSuperAdminPlatformData } from "@/server/super-admin/platformData";
 
 export default async function SuperAdminRolesPage() {
   const session = await requireAuthSession();
@@ -8,11 +9,6 @@ export default async function SuperAdminRolesPage() {
     redirect("/dashboard");
   }
 
-  return (
-    <SuperAdminModulePlaceholder
-      title="Roles y Permisos"
-      description="Este modulo queda listo para administrar permisos globales de la plataforma."
-    />
-  );
+  const data = await getSuperAdminPlatformData();
+  return <SuperAdminRoles data={data} />;
 }
-

@@ -69,13 +69,18 @@ export default function SuperAdminSidebar() {
   }, []);
 
   const initials = useMemo(() => getInitials(name), [name]);
+  const isItemActive = (href: string) => {
+    if (href === "/super-admin") return pathname === href;
+    return pathname === href || pathname.startsWith(`${href}/`);
+  };
+  const settingsActive = isItemActive("/super-admin/configuracion");
 
   return (
     <aside className="flex h-screen w-[232px] shrink-0 flex-col border-r border-[#122c55] bg-[#071a34] px-3 py-3 text-white">
-      <div className="flex items-center gap-2 px-1.5 pb-3">
-        <img src="/images/branding/Zensya.png" alt="Zensya" className="h-4 w-auto object-contain" />
-        <span className="rounded-full bg-[#d8f6ff] px-2 py-0.5 text-[11px] font-semibold text-[#0b3a54]">
-          Admin
+      <div className="flex items-center gap-2.5 px-1.5 pb-3">
+        <img src="/images/branding/Zensya.png" alt="Zensya" className="h-6 w-auto object-contain" />
+        <span className="rounded-full bg-[#d8f6ff] px-2.5 py-0.5 text-[11px] font-semibold text-[#0b3a54]">
+          Super Admin
         </span>
       </div>
 
@@ -83,7 +88,7 @@ export default function SuperAdminSidebar() {
         <p className="px-2 text-[11px] font-semibold uppercase tracking-[0.1em] text-[#5a759d]">Plataforma</p>
         <nav className="mt-3 space-y-1">
           {ITEMS.map((item) => {
-            const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
+            const active = isItemActive(item.href);
             const Icon = item.icon;
             return (
               <Link
@@ -104,7 +109,9 @@ export default function SuperAdminSidebar() {
       <div className="mt-auto space-y-1 border-t border-[#12315d] pt-3">
         <Link
           href="/super-admin/configuracion"
-          className="flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-sm font-medium text-[#a8bfdc] transition hover:bg-[#0f2c54] hover:text-white"
+          className={`flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-sm font-medium transition ${
+            settingsActive ? "bg-[#153d72] text-white" : "text-[#a8bfdc] hover:bg-[#0f2c54] hover:text-white"
+          }`}
         >
           <Settings className="h-4 w-4" strokeWidth={2} />
           <span>Configuracion</span>

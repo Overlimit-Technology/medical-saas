@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
-import SuperAdminModulePlaceholder from "@/presentation/superadmin/SuperAdminModulePlaceholder";
+import SuperAdminTrials from "@/presentation/superadmin/SuperAdminTrials";
 import { requireAuthSession } from "@/server/auth/requireSession";
+import { getSuperAdminPlatformData } from "@/server/super-admin/platformData";
 
 export default async function SuperAdminTrialsPage() {
   const session = await requireAuthSession();
@@ -8,11 +9,6 @@ export default async function SuperAdminTrialsPage() {
     redirect("/dashboard");
   }
 
-  return (
-    <SuperAdminModulePlaceholder
-      title="Trials"
-      description="Gestiona vencimientos y seguimiento de periodos de prueba desde este panel."
-    />
-  );
+  const data = await getSuperAdminPlatformData();
+  return <SuperAdminTrials data={data} />;
 }
-

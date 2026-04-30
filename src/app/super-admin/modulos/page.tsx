@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
-import SuperAdminModulePlaceholder from "@/presentation/superadmin/SuperAdminModulePlaceholder";
+import SuperAdminModules from "@/presentation/superadmin/SuperAdminModules";
 import { requireAuthSession } from "@/server/auth/requireSession";
+import { getSuperAdminPlatformData } from "@/server/super-admin/platformData";
 
 export default async function SuperAdminModulosPage() {
   const session = await requireAuthSession();
@@ -8,11 +9,6 @@ export default async function SuperAdminModulosPage() {
     redirect("/dashboard");
   }
 
-  return (
-    <SuperAdminModulePlaceholder
-      title="Acceso a Modulos"
-      description="Aqui puedes definir que modulos estaran habilitados por clinica o por plan."
-    />
-  );
+  const data = await getSuperAdminPlatformData();
+  return <SuperAdminModules data={data} />;
 }
-

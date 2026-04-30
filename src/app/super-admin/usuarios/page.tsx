@@ -1,7 +1,7 @@
-import { Suspense } from "react";
 import { redirect } from "next/navigation";
-import SuperAdminUserManagement from "@/presentation/superadmin/SuperAdminUserManagement";
+import SuperAdminUsers from "@/presentation/superadmin/SuperAdminUsers";
 import { requireAuthSession } from "@/server/auth/requireSession";
+import { getSuperAdminPlatformData } from "@/server/super-admin/platformData";
 
 export default async function SuperAdminUsuariosPage() {
   const session = await requireAuthSession();
@@ -9,10 +9,6 @@ export default async function SuperAdminUsuariosPage() {
     redirect("/dashboard");
   }
 
-  return (
-    <Suspense fallback={<div className="py-6 text-sm text-slate-500">Cargando usuarios...</div>}>
-      <SuperAdminUserManagement />
-    </Suspense>
-  );
+  const data = await getSuperAdminPlatformData();
+  return <SuperAdminUsers data={data} />;
 }
-

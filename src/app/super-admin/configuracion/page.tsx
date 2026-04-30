@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
-import SuperAdminModulePlaceholder from "@/presentation/superadmin/SuperAdminModulePlaceholder";
+import SuperAdminSettings from "@/presentation/superadmin/SuperAdminSettings";
 import { requireAuthSession } from "@/server/auth/requireSession";
+import { getSuperAdminPlatformData } from "@/server/super-admin/platformData";
 
 export default async function SuperAdminConfiguracionPage() {
   const session = await requireAuthSession();
@@ -8,11 +9,6 @@ export default async function SuperAdminConfiguracionPage() {
     redirect("/dashboard");
   }
 
-  return (
-    <SuperAdminModulePlaceholder
-      title="Configuracion"
-      description="Ajustes globales del entorno super admin y preferencias de plataforma."
-    />
-  );
+  const data = await getSuperAdminPlatformData();
+  return <SuperAdminSettings data={data} />;
 }
-
