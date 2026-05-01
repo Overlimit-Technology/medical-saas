@@ -178,6 +178,10 @@ model UserProfile {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  // Equipo de trabajo (configurable por clínica)
+  teamCategoryId String?
+  teamCategory   TeamCategory? @relation(fields: [teamCategoryId], references: [id], onDelete: SetNull)
+
   // Relación: este perfil pertenece a un User
   // onDelete: Cascade => si borras el User, se borra automáticamente el profile
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -273,6 +277,7 @@ model Clinic {
   leadColumns     LeadColumn[]
   crmLeads        CrmLead[]
   cashMovements   CashMovement[]
+  teamCategories  TeamCategory[]
 }
 
 model ClinicSettings {
@@ -772,4 +777,19 @@ model CrmLeadActivity {
   lead CrmLead @relation(fields: [leadId], references: [id], onDelete: Cascade)
 
   @@index([leadId, createdAt])
+}
+
+// --- Equipos de trabajo (configurables por clínica) --------------------------
+
+model TeamCategory {
+  id        String   @id @default(cuid())
+  clinicId  String
+  name      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  clinic  Clinic        @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+  members UserProfile[]
+
+  @@unique([clinicId, name])
 }

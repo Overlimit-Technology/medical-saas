@@ -1,12 +1,15 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { Plus, Trash2, Users } from "lucide-react";
 import { ClinicSettingsRepositoryHttp } from "@/data/clinic-settings/ClinicSettingsRepository";
 import {
   GetClinicInfoUseCase,
   UpdateClinicInfoUseCase,
 } from "@/domain/clinic-settings/usecases/ClinicSettingsUseCases";
 import type { ClinicInfo } from "@/domain/clinic-settings/entities/ClinicInfo";
+
+type TeamCategory = { id: string; name: string };
 
 type FormState = {
   name: string;
@@ -244,11 +247,167 @@ export default function ClinicTab() {
         </section>
       </div>
 
+      <TeamCategoryManager />
+
       {success && (
         <div className="fixed bottom-6 right-6 z-50 rounded-2xl bg-emerald-500 px-4 py-3 text-sm font-medium text-white shadow-lg shadow-emerald-500/30">
           {success}
         </div>
       )}
     </div>
+  );
+}
+
+// =============================================================================
+// Team Category Manager — CRUD for clinic-configurable team categories
+// =============================================================================
+
+function TeamCategoryManager() {
+  const [teams, setTeams] = useState<TeamCategory[]>([]);
+  const [newName, setNewName] = useState("");
+  const [loadingTeams, setLoadingTeams] = useState(true);
+  const [creating, setCreating] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [teamError, setTeamError] = useState<string | null>(null);
+
+  const loadTeams = useCallback(async () => {
+    setLoadingTeams(true);
+    try {
+      const res = await fetch("/api/team-categories", { credentials: "include" });
+      const data = await res.json();
+      if (data.ok) setTeams(data.items ?? []);
+    } catch {
+      // ignore
+    } finally {
+      setLoadingTeams(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    void loadTeams();
+  }, [loadTeams]);
+
+  const handleCreate = async () => {
+    const trimmed = newName.trim();
+    if (!trimmed) return;
+    setCreating(true);
+    setTeamError(null);
+
+    try {
+      const res = await fetch("/api/team-categories", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ name: trimmed }),
+      });
+      const data = await res.json();
+      if (!data.ok) {
+        setTeamError(data.error ?? "No se pudo crear el equipo.");
+        return;
+      }
+      setTeams((prev) => [...prev, data.item].sort((a, b) => a.name.localeCompare(b.name, "es")));
+      setNewName("");
+    } catch {
+      setTeamError("Error de red al crear equipo.");
+    } finally {
+      setCreating(false);
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    setDeletingId(id);
+    setTeamError(null);
+
+    try {
+      const res = await fetch("/api/team-categories", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ id }),
+      });
+      const data = await res.json();
+      if (!data.ok) {
+        setTeamError(data.error ?? "No se pudo eliminar el equipo.");
+        return;
+      }
+      setTeams((prev) => prev.filter((t) => t.id !== id));
+    } catch {
+      setTeamError("Error de red al eliminar equipo.");
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
+  return (
+    <section className="rounded-[28px] border border-slate-200 bg-white p-6 shadow-sm">
+      <div className="mb-4 flex items-center gap-3">
+        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-50">
+          <Users className="h-5 w-5 text-indigo-600" />
+        </div>
+        <div>
+          <h3 className="text-base font-semibold text-slate-900">Equipos de trabajo</h3>
+          <p className="text-xs text-slate-500">
+            Define los equipos disponibles (ej. Kinesiologia, Enfermeria)
+          </p>
+        </div>
+      </div>
+
+      {teamError && (
+        <div className="mb-4 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-700">
+          {teamError}
+        </div>
+      )}
+
+      <div className="flex gap-2">
+        <input
+          value={newName}
+          onChange={(e) => setNewName(e.target.value)}
+          placeholder="Nombre del equipo"
+          className="flex-1 rounded-2xl border border-slate-200 px-4 py-2.5 text-sm text-slate-900 outline-none focus:border-slate-400"
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              e.preventDefault();
+              void handleCreate();
+            }
+          }}
+        />
+        <button
+          type="button"
+          onClick={() => void handleCreate()}
+          disabled={creating || !newName.trim()}
+          className="flex items-center gap-1.5 rounded-2xl bg-[#19b3bc] px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-[#159ea7] disabled:cursor-not-allowed disabled:bg-[#19b3bc]/45"
+        >
+          <Plus className="h-4 w-4" />
+          {creating ? "Creando..." : "Agregar"}
+        </button>
+      </div>
+
+      {loadingTeams ? (
+        <div className="mt-4 flex justify-center py-4">
+          <div className="h-5 w-5 animate-spin rounded-full border-2 border-[#19b3bc]/20 border-t-[#19b3bc]" />
+        </div>
+      ) : teams.length > 0 ? (
+        <div className="mt-4 divide-y divide-slate-100 rounded-2xl border border-slate-200">
+          {teams.map((team) => (
+            <div key={team.id} className="flex items-center justify-between px-4 py-3">
+              <span className="text-sm font-medium text-slate-800">{team.name}</span>
+              <button
+                type="button"
+                onClick={() => void handleDelete(team.id)}
+                disabled={deletingId === team.id}
+                className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-rose-50 hover:text-rose-500 disabled:opacity-50"
+                title="Eliminar equipo"
+              >
+                <Trash2 className="h-4 w-4" />
+              </button>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <p className="mt-4 text-center text-xs text-slate-400">
+          No hay equipos configurados. Agrega uno para que tus profesionales puedan seleccionarlo.
+        </p>
+      )}
+    </section>
   );
 }

@@ -336,8 +336,7 @@ export class ProfessionalPayoutsService {
         origin: input.origin,
         to: recipientEmail,
         subject: tpl.subject,
-        text: tpl.body,
-        html,
+        html: html || tpl.body,
       });
 
       if (!result.ok) {

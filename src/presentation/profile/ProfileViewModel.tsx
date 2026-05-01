@@ -33,6 +33,7 @@ export function useProfileViewModel() {
     image: "",
     email: "",
     role: "",
+    teamCategoryId: "" as string,
   });
   const [clinicLabel, setClinicLabel] = useState("Sede actual");
   const [loading, setLoading] = useState(true);
@@ -55,6 +56,7 @@ export function useProfileViewModel() {
           image: profile.image ?? "",
           email: profile.email,
           role: profile.role,
+          teamCategoryId: profile.teamCategoryId ?? "",
         });
         setClinicLabel(profile.clinicLabel ?? "Sede actual");
       } catch (error) {
@@ -84,6 +86,7 @@ export function useProfileViewModel() {
         lastName: form.lastName,
         phone: form.phone,
         image: form.image,
+        teamCategoryId: form.teamCategoryId || null,
       });
 
       setForm((current) => ({

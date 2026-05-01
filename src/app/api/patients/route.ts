@@ -86,7 +86,7 @@ export async function POST(req: Request) {
           origin,
           to: item.email,
           subject: tpl.subject,
-          text: tpl.body,
+          html: tpl.body,
         });
         if (!sent.ok) {
           notificationWarning = sent.error;

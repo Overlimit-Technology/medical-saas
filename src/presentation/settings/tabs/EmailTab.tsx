@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState, useCallback } from "react";
+import { useEffect, useMemo, useState, useCallback, useRef } from "react";
 import { Mail, ChevronLeft, Eye, Pencil, ToggleLeft, ToggleRight } from "lucide-react";
 import { ClinicSettingsRepositoryHttp } from "@/data/clinic-settings/ClinicSettingsRepository";
 import {
@@ -14,24 +14,29 @@ import {
   type EmailTemplateType,
   type EmailTemplate,
 } from "@/domain/clinic-settings/entities/EmailTemplate";
+import AdvancedEmailEditor from "@/presentation/common/AdvancedEmailEditor";
 
 type TemplateMap = Partial<Record<EmailTemplateType, EmailTemplate>>;
 
-function interpolatePreview(text: string, eventType: EmailTemplateType): string {
+function interpolatePreview(html: string, eventType: EmailTemplateType): string {
   const meta = EMAIL_TEMPLATE_META[eventType];
-  let result = text;
+  let result = html;
   for (const v of meta.variables) {
     result = result.replaceAll(`{{${v.key}}}`, v.example);
   }
   return result;
 }
 
-function textToHtml(text: string): string {
+function plainTextToHtml(text: string): string {
   return text
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;")
     .replace(/\n/g, "<br/>");
+}
+
+function isHtmlContent(text: string): boolean {
+  return /<[a-z][\s\S]*>/i.test(text);
 }
 
 export default function EmailTab() {
@@ -55,6 +60,8 @@ export default function EmailTab() {
   const [body, setBody] = useState("");
   const [enabled, setEnabled] = useState(true);
   const [previewMode, setPreviewMode] = useState(false);
+
+  const editorKeyRef = useRef(0);
 
   useEffect(() => {
     const load = async () => {
@@ -87,10 +94,15 @@ export default function EmailTab() {
       const existing = templates[eventType];
       const defaults = DEFAULT_TEMPLATES[eventType];
       setSubject(existing?.subject ?? defaults.subject);
-      setBody(existing?.body ?? defaults.body);
+
+      const rawBody = existing?.body ?? defaults.body;
+      const htmlBody = isHtmlContent(rawBody) ? rawBody : plainTextToHtml(rawBody);
+      setBody(htmlBody);
+
       setEnabled(existing?.enabled ?? true);
       setEditing(eventType);
       setPreviewMode(false);
+      editorKeyRef.current += 1;
     },
     [templates],
   );
@@ -119,24 +131,14 @@ export default function EmailTab() {
     if (!editing) return;
     const defaults = DEFAULT_TEMPLATES[editing];
     setSubject(defaults.subject);
-    setBody(defaults.body);
+    const htmlBody = plainTextToHtml(defaults.body);
+    setBody(htmlBody);
+    editorKeyRef.current += 1;
   };
 
   const insertVariable = (key: string) => {
     const tag = `{{${key}}}`;
-    const textarea = document.getElementById("template-body") as HTMLTextAreaElement | null;
-    if (textarea) {
-      const start = textarea.selectionStart;
-      const end = textarea.selectionEnd;
-      const newBody = body.slice(0, start) + tag + body.slice(end);
-      setBody(newBody);
-      requestAnimationFrame(() => {
-        textarea.focus();
-        textarea.setSelectionRange(start + tag.length, start + tag.length);
-      });
-    } else {
-      setBody((prev) => prev + tag);
-    }
+    setBody((prev) => prev + tag);
   };
 
   const fieldClassName =
@@ -220,9 +222,9 @@ export default function EmailTab() {
             </div>
             <div className="px-6 py-5">
               <div
-                className="text-sm leading-relaxed text-slate-700"
+                className="prose prose-sm max-w-none text-sm leading-relaxed text-slate-700"
                 dangerouslySetInnerHTML={{
-                  __html: textToHtml(interpolatePreview(body, editing)),
+                  __html: interpolatePreview(body, editing),
                 }}
               />
             </div>
@@ -243,19 +245,15 @@ export default function EmailTab() {
               </label>
             </section>
 
-            {/* Body */}
+            {/* Body — Advanced Email Editor (GrapesJS) */}
             <section className="rounded-[28px] border border-slate-200 bg-white p-6 shadow-sm">
-              <label className="grid gap-2 text-sm text-slate-600">
-                <span className="font-medium">Cuerpo del email</span>
-                <textarea
-                  id="template-body"
-                  value={body}
-                  onChange={(e) => setBody(e.target.value)}
-                  rows={12}
-                  placeholder="Escribe el contenido del email..."
-                  className={`${fieldClassName} resize-y font-mono text-xs leading-relaxed`}
-                />
-              </label>
+              <p className="mb-2 text-sm font-medium text-slate-600">Cuerpo del email</p>
+              <AdvancedEmailEditor
+                key={editorKeyRef.current}
+                content={body}
+                onChange={setBody}
+                placeholder="Escribe el contenido del email..."
+              />
             </section>
 
             {/* Variable pills */}

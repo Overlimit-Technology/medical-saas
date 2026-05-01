@@ -363,7 +363,7 @@ export default function AppointmentDetailModal({
               href={`/appointments/${appointment.id}`}
               className="rounded-full border border-blue-200 px-4 py-2.5 text-center text-sm font-semibold text-blue-700 transition-colors hover:border-blue-300 hover:bg-blue-50"
             >
-              Ficha clinica
+              Iniciar Cita
             </a>
             {(isDoctor || canEdit) && (
               <a

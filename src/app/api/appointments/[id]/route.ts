@@ -368,7 +368,7 @@ export async function DELETE(req: Request, { params }: { params: { id: string } 
           origin,
           to: item.patient.email,
           subject: tpl.subject,
-          text: tpl.body,
+          html: tpl.body,
         });
         if (!sent.ok) {
           notificationWarning = sent.error;

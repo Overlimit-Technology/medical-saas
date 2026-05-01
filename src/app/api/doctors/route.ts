@@ -42,7 +42,7 @@ async function sendWelcomeEmail(
     origin,
     to: payload.to,
     subject: tpl.subject,
-    text: tpl.body,
+    html: tpl.body,
   });
 
   if (!sent.ok) {

@@ -237,7 +237,7 @@ export class InternalAlertsService {
           origin: input.origin,
           to: recipient.email,
           subject: finalSubject,
-          text: finalBody,
+          html: finalBody,
         });
 
         if (!result.ok) {

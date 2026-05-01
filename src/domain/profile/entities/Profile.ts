@@ -9,6 +9,8 @@ export type UserProfile = {
   lastName: string;
   phone: string;
   clinicLabel: string | null;
+  teamCategoryId: string | null;
+  teamCategoryName: string | null;
 };
 
 export type UpdateProfileInput = {
@@ -16,4 +18,5 @@ export type UpdateProfileInput = {
   lastName: string;
   phone: string;
   image: string;
+  teamCategoryId?: string | null;
 };

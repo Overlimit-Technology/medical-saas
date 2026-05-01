@@ -7,8 +7,18 @@ import {
 type ResolvedTemplate = {
   subject: string;
   body: string;
+  /** true when body is already HTML (WYSIWYG), false for plain text defaults */
+  isHtml: boolean;
   enabled: boolean;
 };
+
+function textToHtml(text: string): string {
+  return text
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/\n/g, "<br/>");
+}
 
 /**
  * Resolves an email template for a given clinic and event type.
@@ -29,6 +39,7 @@ export async function resolveEmailTemplate(
   let subject = defaults.subject;
   let body = defaults.body;
   let enabled = true;
+  let isHtml = false;
 
   if (settings) {
     const template = await prisma.emailTemplate.findUnique({
@@ -45,6 +56,7 @@ export async function resolveEmailTemplate(
       subject = template.subject;
       body = template.body;
       enabled = template.enabled;
+      isHtml = body.includes("<") && body.includes(">");
     }
   }
 
@@ -55,5 +67,11 @@ export async function resolveEmailTemplate(
     body = body.replaceAll(placeholder, value);
   }
 
-  return { subject, body, enabled };
+  // Convert plain-text default templates to HTML for consistency
+  if (!isHtml) {
+    body = textToHtml(body);
+    isHtml = true;
+  }
+
+  return { subject, body, isHtml, enabled };
 }

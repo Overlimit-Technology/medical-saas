@@ -1,12 +1,29 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { useProfileViewModel, getInitials } from "@/presentation/profile/ProfileViewModel";
-import VacationSettings from "@/presentation/vacations/VacationSettings";
+
+type TeamCategory = { id: string; name: string };
 
 export default function ProfileTab() {
   const { state, actions } = useProfileViewModel();
   const { form, clinicLabel, loading, saving, uploading, error, success, fullName } = state;
   const { setForm, submit, handleFileUpload } = actions;
+
+  const [teams, setTeams] = useState<TeamCategory[]>([]);
+
+  useEffect(() => {
+    const loadTeams = async () => {
+      try {
+        const res = await fetch("/api/team-categories", { credentials: "include" });
+        const data = await res.json();
+        if (data.ok) setTeams(data.items ?? []);
+      } catch {
+        // Teams are optional
+      }
+    };
+    void loadTeams();
+  }, []);
 
   return (
     <div className="space-y-6">
@@ -87,6 +104,24 @@ export default function ProfileTab() {
               </label>
             </div>
 
+            {teams.length > 0 && (
+              <label className="grid gap-2 text-sm text-slate-600">
+                <span>Equipo de trabajo</span>
+                <select
+                  value={form.teamCategoryId}
+                  onChange={(event) => setForm({ ...form, teamCategoryId: event.target.value })}
+                  className="rounded-2xl border border-slate-200 px-4 py-3 text-sm text-slate-900 outline-none focus:border-slate-400"
+                >
+                  <option value="">Sin equipo asignado</option>
+                  {teams.map((t) => (
+                    <option key={t.id} value={t.id}>
+                      {t.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            )}
+
             <div className="grid gap-3">
               <span className="text-sm text-slate-600">Foto de perfil</span>
               <label className="flex cursor-pointer items-center justify-between rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-4 py-3 text-sm text-slate-600 transition hover:border-slate-400 hover:bg-slate-100">
@@ -125,8 +160,6 @@ export default function ProfileTab() {
           {success}
         </div>
       )}
-
-      <VacationSettings />
     </div>
   );
 }
