@@ -83,7 +83,6 @@ const NAV_ITEMS: NavItem[] = [
     label: "Mensajeria interna",
     icon: MessageCircle,
     group: "paginas",
-    roles: ["ADMIN", "SECRETARY", "DOCTOR"],
   },
   {
     href: "/gestion-usuarios",

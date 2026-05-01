@@ -371,18 +371,6 @@ export async function middleware(req: NextRequest) {
     }
 
     if (
-      pathname.startsWith("/chat") &&
-      !pathname.startsWith("/chat-meta") &&
-      sessionPayload?.role !== "ADMIN" &&
-      sessionPayload?.role !== "DOCTOR" &&
-      sessionPayload?.role !== "SECRETARY"
-    ) {
-      const url = req.nextUrl.clone();
-      url.pathname = roleHome;
-      return NextResponse.redirect(url);
-    }
-
-    if (
       pathname.startsWith("/chat-meta") &&
       !canAccess(sessionPayload?.role, isSuperAdmin, permissions, ["ADMIN"], "CHAT_META")
     ) {

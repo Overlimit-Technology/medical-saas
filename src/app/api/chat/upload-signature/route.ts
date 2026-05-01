@@ -1,13 +1,12 @@
 import { NextResponse } from "next/server";
-import { requireClinicSession, requireRole } from "@/server/auth/requireSession";
+import { requireClinicSession } from "@/server/auth/requireSession";
 import { generateChatUploadSignature } from "@/lib/cloudinary";
 
 export const dynamic = "force-dynamic";
 
 export async function POST() {
   try {
-    const session = await requireClinicSession();
-    requireRole(session.role, ["ADMIN", "DOCTOR", "SECRETARY"]);
+    await requireClinicSession();
 
     const data = generateChatUploadSignature();
 

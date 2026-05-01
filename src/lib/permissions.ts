@@ -21,9 +21,13 @@ export function hasPermission(
   role: string | null | undefined,
   permissions: readonly string[] | null | undefined,
   permission: UserPermission,
-  isSuperAdmin = false
+  _isSuperAdmin = false
 ) {
-  return (role === "ADMIN" && isSuperAdmin) || Boolean(permissions?.includes(permission));
+  void _isSuperAdmin;
+  if (role === "ADMIN" || role === "DOCTOR" || role === "SECRETARY") {
+    return true;
+  }
+  return Boolean(permissions?.includes(permission));
 }
 
 export function normalizePermissions(values: readonly string[] | null | undefined) {

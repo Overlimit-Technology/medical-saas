@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getMongoDb } from "@/lib/mongodb";
-import { requireClinicSession, requireRole } from "@/server/auth/requireSession";
+import { requireClinicSession } from "@/server/auth/requireSession";
 
 export const dynamic = "force-dynamic";
 const ONLINE_WINDOW_MINUTES = 10;
@@ -25,7 +25,6 @@ function isUserOnline(lastLoginAt: Date | string | null, onlineThreshold: Date) 
 export async function GET() {
   try {
     const session = await requireClinicSession();
-    requireRole(session.role, ["ADMIN", "DOCTOR", "SECRETARY"]);
 
     const clinic = await prisma.clinic.findFirst({
       where: { id: session.clinicId, isActive: true },
