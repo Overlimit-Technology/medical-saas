@@ -373,7 +373,9 @@ export async function middleware(req: NextRequest) {
     if (
       pathname.startsWith("/chat") &&
       !pathname.startsWith("/chat-meta") &&
-      !canAccess(sessionPayload?.role, isSuperAdmin, permissions, ["ADMIN"], "CHAT")
+      sessionPayload?.role !== "ADMIN" &&
+      sessionPayload?.role !== "DOCTOR" &&
+      sessionPayload?.role !== "SECRETARY"
     ) {
       const url = req.nextUrl.clone();
       url.pathname = roleHome;

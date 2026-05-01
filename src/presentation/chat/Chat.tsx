@@ -4,11 +4,13 @@ import {
   useChatViewModel,
   getDisplayName,
   getContactSubtitle,
+  getContactLastMessagePreview,
   getInitials,
   formatFileSize,
   isImageType,
   formatMessageTime,
   formatMessageDayLabel,
+  formatContactActivity,
   type Contact,
 } from "./ChatViewModel";
 
@@ -99,7 +101,9 @@ export default function Chat() {
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
                 <h1 className="text-xl font-semibold tracking-tight text-slate-900">Mensajes</h1>
-                <p className="mt-1 text-xs text-slate-500">{state.clinicLabel}</p>
+                <p className="mt-1 text-xs text-slate-500">
+                  {state.clinicLabel} - recientes primero
+                </p>
               </div>
               <div className="flex items-center gap-2.5 text-[11px] text-slate-500">
                 <span>
@@ -184,7 +188,7 @@ export default function Chat() {
                             </p>
                           </div>
                           <span className="shrink-0 text-[11px] text-slate-400">
-                            {contact.isOnline ? "Activo" : "Offline"}
+                            {formatContactActivity(contact.lastMessageAt, contact.isOnline)}
                           </span>
                         </div>
                         <div className="mt-2 flex items-center gap-2">
@@ -193,7 +197,9 @@ export default function Chat() {
                               contact.isOnline ? "bg-emerald-500" : "bg-slate-300"
                             }`}
                           />
-                          <p className="truncate text-[13px] text-slate-400">{contact.email}</p>
+                          <p className="truncate text-[13px] text-slate-500">
+                            {getContactLastMessagePreview(contact)}
+                          </p>
                         </div>
                       </div>
                     </div>
@@ -232,7 +238,7 @@ export default function Chat() {
                       className="h-12 w-12 rounded-full text-sm"
                     />
                     <div className="min-w-0">
-                      <h2 className="truncate text-2xl font-semibold tracking-tight text-slate-900">
+                      <h2 className="truncate text-lg font-semibold tracking-tight text-slate-900 sm:text-xl">
                         {getDisplayName(state.selectedContact)}
                       </h2>
                       <div className="mt-1 flex flex-wrap items-center gap-2.5 text-[13px] text-slate-500">
@@ -408,13 +414,14 @@ export default function Chat() {
                       onClick={() => refs.fileInputRef.current?.click()}
                       disabled={state.sending}
                       className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-slate-200 bg-white text-slate-500 transition hover:bg-slate-50 hover:text-slate-700 disabled:cursor-not-allowed disabled:opacity-50"
-                      title="Adjuntar archivo"
+                      title="Adjuntar archivo (clic, arrastrar o pegar imagen)"
                     >
                       <PaperclipIcon />
                     </button>
                     <textarea
                       value={state.draft}
                       onChange={(e) => actions.setDraft(e.target.value)}
+                      onPaste={actions.handlePaste}
                       rows={1}
                       placeholder={`Escribe un mensaje para ${state.selectedContact.firstName || "este contacto"}...`}
                       className="min-h-[56px] flex-1 resize-none rounded-[20px] border border-slate-200 bg-slate-50 px-3.5 py-3 text-sm text-slate-700 outline-none transition focus:border-slate-300 focus:bg-white"
@@ -429,6 +436,9 @@ export default function Chat() {
                       {state.sending ? "Enviando..." : "Enviar"}
                     </button>
                   </div>
+                  <p className="mt-2 px-1 text-[11px] text-slate-400">
+                    Arrastra, haz clic en el clip o pega una imagen con Ctrl+V.
+                  </p>
                 </div>
               </div>
             </>

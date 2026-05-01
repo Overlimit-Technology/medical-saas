@@ -9,6 +9,8 @@ export type Contact = {
   lastName: string;
   specialty: string | null;
   isOnline: boolean;
+  lastMessageAt: string | null;
+  lastMessageText: string | null;
 };
 
 export type ChatMessage = {

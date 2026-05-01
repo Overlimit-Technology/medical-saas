@@ -72,16 +72,16 @@ const NAV_ITEMS: NavItem[] = [
     roles: ["ADMIN", "SECRETARY", "DOCTOR"],
   },
   {
-    href: "/chat",
-    label: "Mensajeria interna",
-    icon: MessageCircle,
-    group: "paginas",
-    permission: "CHAT",
-  },
-  {
     href: "/profile",
     label: "Mi perfil",
     icon: UserCircle,
+    group: "paginas",
+    roles: ["ADMIN", "SECRETARY", "DOCTOR"],
+  },
+  {
+    href: "/chat",
+    label: "Mensajeria interna",
+    icon: MessageCircle,
     group: "paginas",
     roles: ["ADMIN", "SECRETARY", "DOCTOR"],
   },
