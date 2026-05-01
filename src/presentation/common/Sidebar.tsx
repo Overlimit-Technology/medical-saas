@@ -13,6 +13,7 @@ import {
   Bell,
   ChevronsUpDown,
   LogOut,
+  Pencil,
   UserCircle,
   MessageCircle,
   Activity,
@@ -168,17 +169,27 @@ export default function Sidebar() {
       <div className={`flex items-center px-1 ${collapsed ? "justify-center" : "gap-2.5"}`}>
         {!collapsed && (
           <>
-            {state.image ? (
-              <img
-                src={state.image}
-                alt={state.displayName}
-                className="h-9 w-9 shrink-0 rounded-full border border-white/20 object-cover"
-              />
-            ) : (
-              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white text-sm font-semibold text-[#19b3bc]">
-                {state.initials}
-              </div>
-            )}
+            <Link
+              href="/profile"
+              className="group/profile relative h-9 w-9 shrink-0 overflow-hidden rounded-full border border-white/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/75 focus-visible:ring-offset-2 focus-visible:ring-offset-[#19b3bc]"
+              aria-label="Editar mi perfil"
+              title="Editar mi perfil"
+            >
+              {state.image ? (
+                <img
+                  src={state.image}
+                  alt={state.displayName}
+                  className="h-full w-full object-cover"
+                />
+              ) : (
+                <span className="flex h-full w-full items-center justify-center bg-white text-sm font-semibold text-[#19b3bc]">
+                  {state.initials}
+                </span>
+              )}
+              <span className="absolute inset-0 flex items-center justify-center bg-slate-950/55 text-white opacity-0 transition-opacity group-hover/profile:opacity-100 group-focus-visible/profile:opacity-100">
+                <Pencil className="h-3.5 w-3.5" strokeWidth={2.4} aria-hidden="true" />
+              </span>
+            </Link>
 
             <div className="min-w-0 flex-1">
               <p className="truncate text-[12px] font-semibold leading-4 text-white">{state.displayName}</p>
@@ -276,4 +287,3 @@ export default function Sidebar() {
     </aside>
   );
 }
-
