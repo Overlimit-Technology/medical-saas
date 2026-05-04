@@ -8,6 +8,8 @@ import type {
   AgendaDoctor,
   AgendaPatient,
   AppointmentFormState,
+  AgendaTreatment,
+  ContinuousPlanFormState,
 } from "../agenda.types";
 
 const CALENDAR_WEEK_DAYS = ["L", "M", "M", "J", "V", "S", "D"];
@@ -82,10 +84,15 @@ type Props = {
   patientSearchLoading: boolean;
   doctors: AgendaDoctor[];
   boxes: AgendaBox[];
+  treatments: AgendaTreatment[];
+  continuousPlanForm: ContinuousPlanFormState;
   errorMessage: string | null;
   onClose: () => void;
   onSubmit: (event: React.FormEvent) => void;
   onFieldChange: (field: keyof AppointmentFormState, value: string) => void;
+  onContinuousPlanFieldChange: (field: "name" | "notes" | "totalSessions" | "frequencyDays", value: string) => void;
+  onContinuousPlanEnabledChange: (enabled: boolean) => void;
+  onContinuousPlanTreatmentToggle: (treatmentId: string) => void;
   onPatientRunChange: (value: string) => void;
   onPatientSelect: (patientId: string) => void;
   onOpenCancelConfirm: () => void;
@@ -98,10 +105,15 @@ export default function AppointmentFormModal({
   patientSearchLoading,
   doctors,
   boxes,
+  treatments,
+  continuousPlanForm,
   errorMessage,
   onClose,
   onSubmit,
   onFieldChange,
+  onContinuousPlanFieldChange,
+  onContinuousPlanEnabledChange,
+  onContinuousPlanTreatmentToggle,
   onPatientRunChange,
   onPatientSelect,
   onOpenCancelConfirm,
@@ -115,13 +127,14 @@ export default function AppointmentFormModal({
     "animate-fade-in absolute left-0 right-0 top-[calc(100%+8px)] z-20 overflow-hidden rounded-2xl border border-[#19b3bc]/20 bg-white shadow-xl shadow-[#19b3bc]/10";
   const dropdownItemClassName =
     "flex w-full items-center justify-between px-4 py-3 text-left text-sm transition-colors duration-200 hover:bg-[#19b3bc]/5";
-  const [openDropdown, setOpenDropdown] = useState<"doctor" | "box" | "date" | "start" | "end" | null>(null);
+  const [openDropdown, setOpenDropdown] = useState<"doctor" | "box" | "date" | "start" | "end" | "planTreatments" | null>(null);
   const [calendarMonth, setCalendarMonth] = useState(() => toMonthStart(form.date));
   const doctorDropdownRef = useRef<HTMLDivElement | null>(null);
   const boxDropdownRef = useRef<HTMLDivElement | null>(null);
   const dateDropdownRef = useRef<HTMLDivElement | null>(null);
   const startDropdownRef = useRef<HTMLDivElement | null>(null);
   const endDropdownRef = useRef<HTMLDivElement | null>(null);
+  const planTreatmentsDropdownRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     const handlePointerDown = (event: PointerEvent) => {
@@ -131,7 +144,8 @@ export default function AppointmentFormModal({
         boxDropdownRef.current?.contains(target) ||
         dateDropdownRef.current?.contains(target) ||
         startDropdownRef.current?.contains(target) ||
-        endDropdownRef.current?.contains(target)
+        endDropdownRef.current?.contains(target) ||
+        planTreatmentsDropdownRef.current?.contains(target)
       ) {
         return;
       }
@@ -172,11 +186,25 @@ export default function AppointmentFormModal({
 
     return dateLabelFormatter.format(selectedDate);
   }, [form.date]);
+  const selectedPlanTreatments = useMemo(
+    () => treatments.filter((treatment) => continuousPlanForm.treatmentIds.includes(treatment.id)),
+    [treatments, continuousPlanForm.treatmentIds],
+  );
+  const selectedPlanTreatmentSummary = useMemo(() => {
+    if (selectedPlanTreatments.length === 0) {
+      return "Sin tratamientos seleccionados";
+    }
+
+    const visibleNames = selectedPlanTreatments.slice(0, 2).map((treatment) => treatment.name);
+    const remaining = selectedPlanTreatments.length - visibleNames.length;
+
+    return remaining > 0 ? `${visibleNames.join(", ")} +${remaining} mas` : visibleNames.join(", ");
+  }, [selectedPlanTreatments]);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-slate-900/30 backdrop-blur-sm transition-opacity" onClick={onClose} />
-      <div className="relative w-full max-w-2xl rounded-2xl bg-white p-6 shadow-2xl shadow-slate-900/10 animate-modal-in">
+      <div className="relative w-full max-w-2xl max-h-[calc(100vh-2rem)] overflow-y-auto rounded-2xl bg-white p-6 shadow-2xl shadow-slate-900/10 animate-modal-in">
         <div className="flex items-start justify-between">
           <div>
             <p className="text-[11px] uppercase tracking-[0.2em] text-slate-400">
@@ -619,6 +647,148 @@ export default function AppointmentFormModal({
               {form.notes.length}/{NOTE_MAX_LENGTH}
             </span>
           </div>
+
+          {!editingId && (
+            <div className="rounded-2xl border border-[#19b3bc]/20 bg-[#19b3bc]/[0.04] p-4">
+              <label className="flex cursor-pointer items-center justify-between gap-3">
+                <div>
+                  <p className="text-sm font-semibold text-slate-800">Crear plan continuo</p>
+                  <p className="mt-0.5 text-xs text-slate-500">
+                    Genera multiples sesiones a partir de esta primera cita.
+                  </p>
+                </div>
+                <span className="relative inline-flex h-6 w-11 shrink-0 items-center">
+                  <input
+                    type="checkbox"
+                    checked={continuousPlanForm.enabled}
+                    onChange={(event) => onContinuousPlanEnabledChange(event.target.checked)}
+                    className="peer sr-only"
+                  />
+                  <span className="absolute inset-0 rounded-full bg-slate-200 transition-colors peer-checked:bg-[#19b3bc]" />
+                  <span className="absolute left-0.5 h-5 w-5 rounded-full bg-white shadow-sm transition-transform peer-checked:translate-x-5" />
+                </span>
+              </label>
+
+              {continuousPlanForm.enabled && (
+                <div className="mt-4 grid gap-3">
+                  <input
+                    type="text"
+                    placeholder="Nombre del plan"
+                    value={continuousPlanForm.name}
+                    onChange={(event) => onContinuousPlanFieldChange("name", event.target.value)}
+                    className={fieldClassName}
+                  />
+
+                  <div className="grid gap-3 md:grid-cols-2">
+                    <input
+                      type="number"
+                      min={1}
+                      placeholder="Cantidad de sesiones"
+                      value={continuousPlanForm.totalSessions}
+                      onChange={(event) => onContinuousPlanFieldChange("totalSessions", event.target.value)}
+                      className={fieldClassName}
+                    />
+                    <input
+                      type="number"
+                      min={1}
+                      placeholder="Frecuencia (dias)"
+                      value={continuousPlanForm.frequencyDays}
+                      onChange={(event) => onContinuousPlanFieldChange("frequencyDays", event.target.value)}
+                      className={fieldClassName}
+                    />
+                  </div>
+
+                  <textarea
+                    placeholder="Notas del plan (opcional)"
+                    value={continuousPlanForm.notes}
+                    onChange={(event) => onContinuousPlanFieldChange("notes", event.target.value)}
+                    className={`${fieldClassName} min-h-[80px]`}
+                  />
+
+                  <div className="rounded-xl border border-slate-200 bg-white p-3">
+                    <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">
+                      Tratamientos del plan
+                    </p>
+                    {treatments.length === 0 ? (
+                      <p className="mt-2 text-sm text-slate-500">
+                        No hay tratamientos disponibles para asociar.
+                      </p>
+                    ) : (
+                      <div ref={planTreatmentsDropdownRef} className="relative mt-3">
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setOpenDropdown((current) => (current === "planTreatments" ? null : "planTreatments"))
+                          }
+                          className={`${dropdownTriggerClassName} ${
+                            openDropdown === "planTreatments"
+                              ? "border-[#19b3bc] ring-2 ring-[#19b3bc]/15"
+                              : ""
+                          }`}
+                        >
+                          <span className={selectedPlanTreatments.length > 0 ? "text-slate-700" : "text-slate-400"}>
+                            {selectedPlanTreatments.length > 0
+                              ? `${selectedPlanTreatments.length} tratamiento${
+                                  selectedPlanTreatments.length === 1 ? "" : "s"
+                                } seleccionado${selectedPlanTreatments.length === 1 ? "" : "s"}`
+                              : "Seleccionar tratamientos"}
+                          </span>
+                          <span
+                            className={`text-[#19b3bc] transition-transform duration-200 ${
+                              openDropdown === "planTreatments" ? "rotate-180" : ""
+                            }`}
+                          >
+                            <svg
+                              width="16"
+                              height="16"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth="2"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                            >
+                              <polyline points="6 9 12 15 18 9" />
+                            </svg>
+                          </span>
+                        </button>
+
+                        {openDropdown === "planTreatments" && (
+                          <div className={dropdownPanelClassName}>
+                            <div className="max-h-56 overflow-y-auto py-1">
+                              {treatments.map((treatment) => {
+                                const selected = continuousPlanForm.treatmentIds.includes(treatment.id);
+                                return (
+                                  <label
+                                    key={treatment.id}
+                                    className={`flex cursor-pointer items-center justify-between gap-3 px-4 py-3 text-sm transition-colors ${
+                                      selected
+                                        ? "bg-[#19b3bc]/10 text-[#0f8f98]"
+                                        : "text-slate-700 hover:bg-[#19b3bc]/5"
+                                    }`}
+                                  >
+                                    <span className="truncate">{treatment.name}</span>
+                                    <input
+                                      type="checkbox"
+                                      checked={selected}
+                                      onChange={() => onContinuousPlanTreatmentToggle(treatment.id)}
+                                      className="h-4 w-4 rounded border-slate-300 text-[#19b3bc] focus:ring-[#19b3bc]/40"
+                                    />
+                                  </label>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        )}
+
+                        <p className="mt-2 text-xs text-slate-500">{selectedPlanTreatmentSummary}</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
 
           {errorMessage && (
             <div className="animate-fade-in rounded-xl border border-rose-200 bg-rose-50 px-3.5 py-2.5 text-sm text-rose-600">

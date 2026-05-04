@@ -141,6 +141,17 @@ export default function AppointmentDetailModal({
                 {new Date(appointment.startAt).toLocaleDateString("es-CL")}
               </span>
             </div>
+            {appointment.treatmentPlan ? (
+              <div className="rounded-xl bg-slate-50/60 px-3.5 py-2.5">
+                <span className="text-slate-400">Plan de tratamiento</span>
+                <p className="mt-1 font-medium text-slate-700">
+                  {appointment.treatmentPlan.name}
+                </p>
+                <p className="mt-0.5 text-xs text-[#0f8f98]">
+                  Sesion {appointment.treatmentPlan.sessionIndex ?? "?"} de {appointment.treatmentPlan.totalSessions}
+                </p>
+              </div>
+            ) : null}
             <div className="rounded-xl bg-slate-50/60 px-3.5 py-2.5">
               <span className="text-slate-400">Descripcion</span>
               <p className="mt-1 font-medium text-slate-700">

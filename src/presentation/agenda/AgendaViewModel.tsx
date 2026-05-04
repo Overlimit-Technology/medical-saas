@@ -11,6 +11,7 @@ import { UsersRepositoryHttp } from "@/data/users/UsersRepository";
 import { GetAppointmentsUseCase } from "@/domain/appointments/usecases/GetAppointmentsUseCase";
 import {
   CancelAppointmentUseCase,
+  CreateContinuousTreatmentPlanUseCase,
   SaveAppointmentUseCase,
   UpdateAppointmentPaymentUseCase,
   UpdateAppointmentScheduleUseCase,
@@ -46,6 +47,7 @@ import type {
   AgendaTreatment,
   AgendaView,
   AppointmentFormState,
+  ContinuousPlanFormState,
   PaymentFormState,
   StatusOption,
 } from "./agenda.types";
@@ -56,6 +58,7 @@ import {
   buildWeekDays,
   buildWeekLabel,
   createEmptyAppointmentForm,
+  createEmptyContinuousPlanForm,
   formatDateValue,
   formatTimeValue,
   hasAppointmentOverlap,
@@ -71,6 +74,7 @@ import { resolveStatusColors, type AppointmentStatus, type StatusColorMap } from
 
 type AppointmentFormField = keyof AppointmentFormState;
 type PaymentFormField = keyof PaymentFormState;
+type ContinuousPlanFormField = Exclude<keyof ContinuousPlanFormState, "enabled" | "treatmentIds">;
 
 function createInitialPaymentForm(
   appointment: AgendaAppointment | null,
@@ -98,6 +102,7 @@ export function useAgendaViewModel() {
     getCurrentSessionUseCase,
     getAppointmentsUseCase,
     saveAppointmentUseCase,
+    createContinuousTreatmentPlanUseCase,
     cancelAppointmentUseCase,
     updateAppointmentStatusUseCase,
     updateAppointmentScheduleUseCase,
@@ -125,6 +130,7 @@ export function useAgendaViewModel() {
       getCurrentSessionUseCase: new GetCurrentSessionUseCase(authRepo),
       getAppointmentsUseCase: new GetAppointmentsUseCase(appointmentsRepo),
       saveAppointmentUseCase: new SaveAppointmentUseCase(appointmentsRepo),
+      createContinuousTreatmentPlanUseCase: new CreateContinuousTreatmentPlanUseCase(appointmentsRepo),
       cancelAppointmentUseCase: new CancelAppointmentUseCase(appointmentsRepo),
       updateAppointmentStatusUseCase: new UpdateAppointmentStatusUseCase(appointmentsRepo),
       updateAppointmentScheduleUseCase: new UpdateAppointmentScheduleUseCase(appointmentsRepo),
@@ -197,6 +203,9 @@ export function useAgendaViewModel() {
     notes: "",
   });
   const [form, setForm] = useState<AppointmentFormState>(() => createEmptyAppointmentForm());
+  const [continuousPlanForm, setContinuousPlanForm] = useState<ContinuousPlanFormState>(
+    () => createEmptyContinuousPlanForm()
+  );
   const patientSearchCacheRef = useRef<Map<string, AgendaPatient[]>>(new Map());
 
   const selectedDay = useMemo(() => startOfDay(calendarDate), [calendarDate]);
@@ -631,6 +640,7 @@ export function useAgendaViewModel() {
     const emptyPaymentForm = createInitialPaymentForm(null, treatments);
     setPaymentForm(emptyPaymentForm);
     setInitialPaymentForm(emptyPaymentForm);
+    setContinuousPlanForm(createEmptyContinuousPlanForm());
   }, [treatments]);
 
   const openModalForRange = useCallback(
@@ -658,6 +668,7 @@ export function useAgendaViewModel() {
       setIsModalOpen(true);
       setErrorMessage(null);
       setCancelReason("");
+      setContinuousPlanForm(createEmptyContinuousPlanForm());
     },
     [agendaMode, boxes, canEdit, selectedDoctorId, slotDate]
   );
@@ -936,6 +947,7 @@ export function useAgendaViewModel() {
       end: formatTimeValue(endAt),
       notes: (item.notes ?? "").slice(0, NOTE_MAX_LENGTH),
     });
+    setContinuousPlanForm(createEmptyContinuousPlanForm());
     setIsModalOpen(true);
     setErrorMessage(null);
     setCancelReason("");
@@ -953,6 +965,40 @@ export function useAgendaViewModel() {
       ...previous,
       [field]: field === "notes" ? value.slice(0, NOTE_MAX_LENGTH) : value,
     }));
+  };
+
+  const handleContinuousPlanFieldChange = (
+    field: ContinuousPlanFormField,
+    value: string
+  ) => {
+    setContinuousPlanForm((previous) => ({
+      ...previous,
+      [field]:
+        field === "notes"
+          ? value.slice(0, 600)
+          : field === "name"
+            ? value.slice(0, 120)
+            : value,
+    }));
+  };
+
+  const setContinuousPlanEnabled = (enabled: boolean) => {
+    setContinuousPlanForm((previous) => ({
+      ...previous,
+      enabled,
+    }));
+  };
+
+  const toggleContinuousPlanTreatment = (treatmentId: string) => {
+    setContinuousPlanForm((previous) => {
+      const exists = previous.treatmentIds.includes(treatmentId);
+      return {
+        ...previous,
+        treatmentIds: exists
+          ? previous.treatmentIds.filter((id) => id !== treatmentId)
+          : [...previous.treatmentIds, treatmentId],
+      };
+    });
   };
 
   const handlePatientSelection = (patientId: string) => {
@@ -1033,6 +1079,59 @@ export function useAgendaViewModel() {
     const cleanNotes = form.notes.slice(0, NOTE_MAX_LENGTH).trim();
     const cleanPatientEmail = form.patientEmail.trim();
     const cleanPatientPhone = form.patientPhone.trim();
+
+    if (!editingId && continuousPlanForm.enabled) {
+      const cleanPlanName = continuousPlanForm.name.trim();
+      const cleanPlanNotes = continuousPlanForm.notes.trim();
+      const totalSessions = Number.parseInt(continuousPlanForm.totalSessions, 10);
+      const frequencyDays = Number.parseInt(continuousPlanForm.frequencyDays, 10);
+
+      if (!cleanPlanName) {
+        setErrorMessage("Ingresa un nombre para el plan continuo.");
+        return;
+      }
+
+      if (!Number.isInteger(totalSessions) || totalSessions < 1) {
+        setErrorMessage("La cantidad de sesiones debe ser un numero entero mayor o igual a 1.");
+        return;
+      }
+
+      if (!Number.isInteger(frequencyDays) || frequencyDays < 1) {
+        setErrorMessage("La frecuencia en dias debe ser un numero entero mayor o igual a 1.");
+        return;
+      }
+
+      if (continuousPlanForm.treatmentIds.length === 0) {
+        setErrorMessage("Selecciona al menos un tratamiento para crear el plan continuo.");
+        return;
+      }
+
+      try {
+        await createContinuousTreatmentPlanUseCase.execute({
+          patientId: form.patientId,
+          doctorId: form.doctorId,
+          boxId: form.boxId,
+          patientFirstName: cleanPatientFirstName,
+          patientLastName: cleanPatientLastName,
+          patientEmail: cleanPatientEmail || null,
+          patientPhone: cleanPatientPhone || null,
+          name: cleanPlanName,
+          notes: cleanPlanNotes || null,
+          treatmentIds: continuousPlanForm.treatmentIds,
+          firstSessionStartAt: startAt.toISOString(),
+          firstSessionEndAt: endAt.toISOString(),
+          totalSessions,
+          frequencyDays,
+          appointmentNotes: cleanNotes || null,
+        });
+        await loadAgenda();
+        resetModalState();
+        setForm(createEmptyAppointmentForm());
+      } catch (error) {
+        setErrorMessage(error instanceof Error ? error.message : "No se pudo crear el plan continuo.");
+      }
+      return;
+    }
 
     const payload = {
       patientId: form.patientId,
@@ -1397,6 +1496,7 @@ export function useAgendaViewModel() {
       paymentForm,
       initialPaymentForm,
       form,
+      continuousPlanForm,
       selection,
       now,
     },
@@ -1425,6 +1525,9 @@ export function useAgendaViewModel() {
       openEditModal,
       openEditFromDetail,
       handleAppointmentFormChange,
+      handleContinuousPlanFieldChange,
+      setContinuousPlanEnabled,
+      toggleContinuousPlanTreatment,
       handlePatientRunChange,
       handlePatientSelection,
       createOrUpdateAppointment,

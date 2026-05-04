@@ -9,6 +9,8 @@ export interface AppointmentsRepository {
       patientId: string;
       doctorId: string;
       boxId: string;
+      treatmentPlanId?: string | null;
+      planSessionIndex?: number | null;
       startAt: string;
       endAt: string;
       notes: string | null;
@@ -18,6 +20,23 @@ export interface AppointmentsRepository {
       patientPhone?: string | null;
     }
   ): Promise<Appointment>;
+  createContinuousTreatmentPlan(input: {
+    patientId: string;
+    doctorId: string;
+    boxId: string;
+    patientFirstName?: string;
+    patientLastName?: string;
+    patientEmail?: string | null;
+    patientPhone?: string | null;
+    name: string;
+    notes: string | null;
+    treatmentIds: string[];
+    firstSessionStartAt: string;
+    firstSessionEndAt: string;
+    totalSessions: number;
+    frequencyDays: number;
+    appointmentNotes: string | null;
+  }): Promise<void>;
   cancelAppointment(
     appointmentId: string,
     input: { reason: string; cancelledBy: "STAFF" | "PATIENT" | "SYSTEM" }

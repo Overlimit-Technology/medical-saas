@@ -8,6 +8,11 @@ type AppointmentResponse = {
   error?: string;
 };
 
+type GenericApiResponse = {
+  ok: boolean;
+  error?: string;
+};
+
 export class AppointmentsRepositoryHttp implements AppointmentsRepository {
   async getAppointmentDetail(appointmentId: string): Promise<Appointment | null> {
     const res = await fetch(
@@ -42,6 +47,8 @@ export class AppointmentsRepositoryHttp implements AppointmentsRepository {
       patientId: string;
       doctorId: string;
       boxId: string;
+      treatmentPlanId?: string | null;
+      planSessionIndex?: number | null;
       startAt: string;
       endAt: string;
       notes: string | null;
@@ -63,6 +70,51 @@ export class AppointmentsRepositoryHttp implements AppointmentsRepository {
     }
 
     return data.item;
+  }
+
+  async createContinuousTreatmentPlan(input: {
+    patientId: string;
+    doctorId: string;
+    boxId: string;
+    patientFirstName?: string;
+    patientLastName?: string;
+    patientEmail?: string | null;
+    patientPhone?: string | null;
+    name: string;
+    notes: string | null;
+    treatmentIds: string[];
+    firstSessionStartAt: string;
+    firstSessionEndAt: string;
+    totalSessions: number;
+    frequencyDays: number;
+    appointmentNotes: string | null;
+  }): Promise<void> {
+    const res = await fetch("/api/treatment-plans", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        patientId: input.patientId,
+        doctorId: input.doctorId,
+        boxId: input.boxId,
+        patientFirstName: input.patientFirstName,
+        patientLastName: input.patientLastName,
+        patientEmail: input.patientEmail,
+        patientPhone: input.patientPhone,
+        name: input.name,
+        notes: input.notes,
+        treatmentIds: input.treatmentIds,
+        firstSessionStartAt: input.firstSessionStartAt,
+        firstSessionEndAt: input.firstSessionEndAt,
+        totalSessions: input.totalSessions,
+        frequencyDays: input.frequencyDays,
+        appointmentNotes: input.appointmentNotes,
+      }),
+    });
+    const data = (await res.json().catch(() => null)) as GenericApiResponse | null;
+
+    if (!res.ok || !data?.ok) {
+      throw new Error(data?.error ?? "No se pudo crear el plan de tratamiento.");
+    }
   }
 
   async cancelAppointment(
