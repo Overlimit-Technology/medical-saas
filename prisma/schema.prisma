@@ -276,6 +276,7 @@ model Clinic {
   crmLeads        CrmLead[]
   cashMovements   CashMovement[]
   treatmentPlans  TreatmentPlan[]
+  patientImaging  PatientImaging[]
 }
 
 model ClinicSettings {
@@ -332,6 +333,7 @@ model Patient {
   patientTreatments PatientTreatment[]
   clinicalRecords ClinicalRecord[]
   treatmentPlans  TreatmentPlan[]
+  patientImaging  PatientImaging[]
 
   @@index([clinicId, isActive])
   @@unique([clinicId, runNormalized])
@@ -785,4 +787,22 @@ model CrmLeadActivity {
   lead CrmLead @relation(fields: [leadId], references: [id], onDelete: Cascade)
 
   @@index([leadId, createdAt])
+}
+
+model PatientImaging {
+  id          String   @id @default(cuid())
+  clinicId    String
+  patientId   String
+  studyName   String
+  doctorName  String
+  status      String   @default("pendiente")
+  imageUrl    String?
+  observation String?
+  studiedAt   DateTime @default(now())
+  createdAt   DateTime @default(now())
+
+  clinic  Clinic  @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+  patient Patient @relation(fields: [patientId], references: [id], onDelete: Cascade)
+
+  @@index([clinicId, patientId, studiedAt])
 }

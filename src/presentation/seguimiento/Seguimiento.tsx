@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useSeguimientoViewModel, type TabKey, type FilterKey } from "./SeguimientoViewModel";
 import type { SeguimientoItem } from "@/domain/seguimiento/entities/SeguimientoItem";
 
@@ -199,6 +200,7 @@ function StatsCards({
 }
 
 export default function Seguimiento() {
+  const router = useRouter();
   const { state, actions } = useSeguimientoViewModel();
 
   if (state.roleLoading) {
@@ -224,14 +226,35 @@ export default function Seguimiento() {
 
   return (
     <div className="mx-auto max-w-7xl">
-      {/* Breadcrumb */}
-      <div className="mb-1 flex items-center gap-2 text-xs text-slate-400">
-        <span>Inicio</span>
-        <span>/</span>
-        <span>Página</span>
-        <span>/</span>
-        <span className="text-slate-600">Seguimiento</span>
-      </div>
+      {/* Breadcrumb / Banner paciente */}
+      {state.patientIdFilter ? (
+        <div className="mb-4 flex items-center gap-3 rounded-xl border border-blue-100 bg-blue-50/60 px-4 py-3">
+          <button
+            onClick={() => router.push(`/patients/${state.patientIdFilter}`)}
+            className="flex h-7 w-7 items-center justify-center rounded-full border border-blue-200 text-blue-400 transition-colors hover:bg-blue-100 hover:text-blue-600"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6" /></svg>
+          </button>
+          <div>
+            <p className="text-xs text-blue-400">Desde perfil del paciente</p>
+            <p className="text-sm font-medium text-blue-800">
+              Mostrando tratamientos del paciente seleccionado
+            </p>
+          </div>
+          <button
+            onClick={() => router.push("/seguimiento")}
+            className="ml-auto rounded-full border border-blue-200 px-3 py-1 text-xs font-medium text-blue-600 transition-colors hover:bg-blue-100"
+          >
+            Ver todos
+          </button>
+        </div>
+      ) : (
+        <div className="mb-1 flex items-center gap-2 text-xs text-slate-400">
+          <span>Inicio</span>
+          <span>/</span>
+          <span className="text-slate-600">Seguimiento</span>
+        </div>
+      )}
 
       {/* Header */}
       <h1 className="text-xl font-semibold tracking-tight text-slate-900">Seguimiento</h1>

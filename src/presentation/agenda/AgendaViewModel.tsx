@@ -905,8 +905,16 @@ export function useAgendaViewModel() {
       setDetailAppointment((previous) =>
         previous?.id === updatedAppointment.id ? updatedAppointment : previous
       );
+      setPaymentAppointment(updatedAppointment);
+      setPaymentSaving(false);
+      setPaymentForm(createInitialPaymentForm(updatedAppointment, treatments));
+      setInitialPaymentForm(createInitialPaymentForm(updatedAppointment, treatments));
+      setPaymentSuccess("Cobro actualizado correctamente.");
+      await loadDailyCash();
+      return true;
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : "No se pudo actualizar la duración de la cita.");
+      return false;
     }
   };
 
