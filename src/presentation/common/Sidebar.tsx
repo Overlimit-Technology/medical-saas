@@ -13,11 +13,11 @@ import {
   Bell,
   ChevronsUpDown,
   LogOut,
-  UserCircle,
   MessageCircle,
   Activity,
   Building2,
   UserCog,
+  Settings,
 } from "lucide-react";
 
 import { hasPermission, type UserPermission } from "@/lib/permissions";
@@ -78,9 +78,9 @@ const NAV_ITEMS: NavItem[] = [
     permission: "CHAT",
   },
   {
-    href: "/profile",
-    label: "Mi perfil",
-    icon: UserCircle,
+    href: "/configuracion",
+    label: "Configuracion",
+    icon: Settings,
     group: "paginas",
     roles: ["ADMIN", "SECRETARY", "DOCTOR"],
   },

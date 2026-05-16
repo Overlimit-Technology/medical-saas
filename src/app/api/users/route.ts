@@ -9,6 +9,7 @@ import { resolveClinicLabels } from "@/server/clinics/clinicDisplay";
 import { requireClinicSession, requireRole } from "@/server/auth/requireSession";
 import { DoctorsService } from "@/server/doctors/DoctorsService";
 import { sendEmail } from "@/server/notifications/email";
+import { resolveEmailTemplate } from "@/server/notifications/emailTemplates";
 import { normalizePermissions } from "@/lib/permissions";
 
 const userCreateSchema = z.object({
@@ -72,30 +73,28 @@ function getUserCreationErrorMessage(error: unknown) {
 
 async function sendWelcomeEmail(
   origin: string,
+  clinicId: string,
   payload: { to: string; name: string; email: string; password: string; clinicLabels: string[] }
 ) {
-  const clinicLine =
+  const clinics =
     payload.clinicLabels.length > 1
-      ? `Sedes asignadas: ${payload.clinicLabels.join(", ")}`
-      : `Sede: ${payload.clinicLabels[0] ?? "Sede no especificada"}`;
-  const subject = "Bienvenido a ZENSYA - tu cuenta fue creada";
-  const text = [
-    `Hola ${payload.name},`,
-    "",
-    "Te damos la bienvenida a ZENSYA.",
-    "Tu cuenta fue creada por el administrador.",
-    clinicLine,
-    `Usuario: ${payload.email}`,
-    `Contrasena temporal: ${payload.password}`,
-    "",
-    "Por seguridad, cambia tu contrasena al iniciar sesion.",
-  ].join("\n");
+      ? payload.clinicLabels.join(", ")
+      : payload.clinicLabels[0] ?? "Sede no especificada";
+
+  const tpl = await resolveEmailTemplate(clinicId, "USER_WELCOME", {
+    name: payload.name,
+    email: payload.email,
+    password: payload.password,
+    clinics,
+  });
+
+  if (!tpl.enabled) return;
 
   const sent = await sendEmail({
     origin,
     to: payload.to,
-    subject,
-    text,
+    subject: tpl.subject,
+    html: tpl.body,
   });
 
   if (!sent.ok) {
@@ -203,7 +202,7 @@ export async function POST(req: Request) {
 
     try {
       const origin = new URL(req.url).origin;
-      await sendWelcomeEmail(origin, {
+      await sendWelcomeEmail(origin, session.clinicId, {
         to: parsed.data.email,
         name: parsed.data.firstName,
         email: parsed.data.email,

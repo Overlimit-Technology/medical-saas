@@ -1,6 +1,21 @@
+import type { ClinicInfo, ClinicInfoInput } from "@/domain/clinic-settings/entities/ClinicInfo";
+import type { CrmSettings, CrmSettingsInput } from "@/domain/clinic-settings/entities/CrmSettings";
 import type { ClinicStatusColorMap } from "@/domain/clinic-settings/entities/StatusColors";
 import type { ProfessionalPayoutSettings } from "@/domain/clinic-settings/entities/ProfessionalPayoutSettings";
+import type { EmailTemplate, EmailTemplateInput } from "@/domain/clinic-settings/entities/EmailTemplate";
 import type { ClinicSettingsRepository } from "@/domain/clinic-settings/repositories/ClinicSettingsRepository";
+
+type ClinicInfoResponse = {
+  ok: boolean;
+  item?: ClinicInfo;
+  error?: string;
+};
+
+type CrmSettingsResponse = {
+  ok: boolean;
+  item?: CrmSettings;
+  error?: string;
+};
 
 type StatusColorsResponse = {
   ok: boolean;
@@ -14,7 +29,79 @@ type ProfessionalPayoutSettingsResponse = {
   error?: string;
 };
 
+type EmailTemplatesResponse = {
+  ok: boolean;
+  items?: EmailTemplate[];
+  error?: string;
+};
+
+type EmailTemplateResponse = {
+  ok: boolean;
+  item?: EmailTemplate;
+  error?: string;
+};
+
 export class ClinicSettingsRepositoryHttp implements ClinicSettingsRepository {
+  async getClinicInfo(): Promise<ClinicInfo> {
+    const res = await fetch("/api/clinic-settings/clinic-info", {
+      credentials: "include",
+      cache: "no-store",
+    });
+    const data = (await res.json().catch(() => null)) as ClinicInfoResponse | null;
+
+    if (!res.ok || !data?.ok || !data.item) {
+      throw new Error(data?.error ?? "No se pudo cargar los datos de la clinica.");
+    }
+
+    return data.item;
+  }
+
+  async updateClinicInfo(input: ClinicInfoInput): Promise<ClinicInfo> {
+    const res = await fetch("/api/clinic-settings/clinic-info", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify(input),
+    });
+    const data = (await res.json().catch(() => null)) as ClinicInfoResponse | null;
+
+    if (!res.ok || !data?.ok || !data.item) {
+      throw new Error(data?.error ?? "No se pudo actualizar los datos de la clinica.");
+    }
+
+    return data.item;
+  }
+
+  async getCrmSettings(): Promise<CrmSettings> {
+    const res = await fetch("/api/clinic-settings/crm", {
+      credentials: "include",
+      cache: "no-store",
+    });
+    const data = (await res.json().catch(() => null)) as CrmSettingsResponse | null;
+
+    if (!res.ok || !data?.ok || !data.item) {
+      throw new Error(data?.error ?? "No se pudo cargar la configuracion CRM.");
+    }
+
+    return data.item;
+  }
+
+  async updateCrmSettings(input: CrmSettingsInput): Promise<CrmSettings> {
+    const res = await fetch("/api/clinic-settings/crm", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify(input),
+    });
+    const data = (await res.json().catch(() => null)) as CrmSettingsResponse | null;
+
+    if (!res.ok || !data?.ok || !data.item) {
+      throw new Error(data?.error ?? "No se pudo actualizar la configuracion CRM.");
+    }
+
+    return data.item;
+  }
+
   async getStatusColors(): Promise<ClinicStatusColorMap | null> {
     const res = await fetch("/api/clinic-settings/status-colors", {
       credentials: "include",
@@ -81,5 +168,35 @@ export class ClinicSettingsRepositoryHttp implements ClinicSettingsRepository {
     if (!res.ok || !data?.ok) {
       throw new Error(data?.error ?? "No se pudo guardar la configuracion de liquidaciones.");
     }
+  }
+
+  async getEmailTemplates(): Promise<EmailTemplate[]> {
+    const res = await fetch("/api/clinic-settings/email-templates", {
+      credentials: "include",
+      cache: "no-store",
+    });
+    const data = (await res.json().catch(() => null)) as EmailTemplatesResponse | null;
+
+    if (!res.ok || !data?.ok) {
+      throw new Error(data?.error ?? "No se pudo cargar las plantillas de email.");
+    }
+
+    return data.items ?? [];
+  }
+
+  async saveEmailTemplate(input: EmailTemplateInput): Promise<EmailTemplate> {
+    const res = await fetch("/api/clinic-settings/email-templates", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify(input),
+    });
+    const data = (await res.json().catch(() => null)) as EmailTemplateResponse | null;
+
+    if (!res.ok || !data?.ok || !data.item) {
+      throw new Error(data?.error ?? "No se pudo guardar la plantilla de email.");
+    }
+
+    return data.item;
   }
 }

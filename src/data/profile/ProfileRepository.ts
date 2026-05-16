@@ -13,6 +13,8 @@ type ProfilePayload = {
     firstName: string;
     lastName: string;
     phone: string;
+    teamCategoryId: string | null;
+    teamCategoryName: string | null;
   };
   clinicLabel?: string;
   error?: string;
@@ -40,6 +42,8 @@ function mapProfile(data: ProfilePayload): UserProfile {
     lastName: data.item.lastName,
     phone: data.item.phone ?? "",
     clinicLabel: data.clinicLabel ?? null,
+    teamCategoryId: data.item.teamCategoryId ?? null,
+    teamCategoryName: data.item.teamCategoryName ?? null,
   };
 }
 

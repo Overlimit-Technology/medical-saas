@@ -1,0 +1,7 @@
+-- AlterTable
+ALTER TABLE "Clinic" ADD COLUMN "address" TEXT;
+ALTER TABLE "Clinic" ADD COLUMN "phone" TEXT;
+ALTER TABLE "Clinic" ADD COLUMN "email" TEXT;
+ALTER TABLE "Clinic" ADD COLUMN "logo" TEXT;
+ALTER TABLE "Clinic" ADD COLUMN "openingTime" TEXT DEFAULT '08:00';
+ALTER TABLE "Clinic" ADD COLUMN "closingTime" TEXT DEFAULT '20:00';
