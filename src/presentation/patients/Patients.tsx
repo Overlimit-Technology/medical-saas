@@ -715,7 +715,7 @@ function ImagingSection({
 
 export default function Patients() {
   const router = useRouter();
-  const { state, actions } = usePatientsViewModel();
+  const { state, actions, extra } = usePatientsViewModel();
   const [activeTab, setActiveTab] = useState<PatientsTab>("patients");
   const [selectedImagingPatientId, setSelectedImagingPatientId] = useState<string | null>(null);
 
@@ -913,6 +913,20 @@ export default function Patients() {
                 </tbody>
               </table>
             </div>
+
+            {/* Cargar más */}
+            {extra.hasMore && (
+              <div className="flex justify-center border-t border-slate-100 pt-4">
+                <button
+                  type="button"
+                  onClick={actions.loadMore}
+                  disabled={extra.loadingMore}
+                  className="rounded-full border border-slate-200 px-5 py-2 text-sm font-medium text-slate-600 transition hover:border-slate-300 hover:bg-slate-50 disabled:opacity-50"
+                >
+                  {extra.loadingMore ? "Cargando..." : `Ver más pacientes`}
+                </button>
+              </div>
+            )}
           </div>
 
           {state.isModalOpen && (

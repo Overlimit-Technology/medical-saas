@@ -4,6 +4,9 @@ import { requireClinicSession, requireRole } from "@/server/auth/requireSession"
 import { AppointmentsService } from "@/server/appointments/AppointmentsService";
 import { InternalAlertsService } from "@/server/internal-alerts/InternalAlertsService";
 import { PatientsService } from "@/server/patients/PatientsService";
+import { sendEmail } from "@/server/notifications/email";
+import { resolveEmailTemplate } from "@/server/notifications/emailTemplates";
+import { resolveSingleClinicLabel } from "@/server/clinics/clinicDisplay";
 
 const appointmentCreateSchema = z.object({
   patientId: z.string().min(1),
@@ -174,6 +177,27 @@ export async function POST(req: Request) {
       internalAlertWarning = alert.warning;
     } catch (error) {
       internalAlertWarning = error instanceof Error ? error.message : "No se pudo generar la alerta interna.";
+    }
+
+    // Email de confirmacion al paciente — fire-and-forget, nunca bloquea la respuesta
+    if (item.patient.email) {
+      void (async () => {
+        try {
+          const origin = new URL(req.url).origin;
+          const clinicLabel = await resolveSingleClinicLabel(session.clinicId);
+          const tpl = await resolveEmailTemplate(session.clinicId, "APPOINTMENT_CONFIRMATION", {
+            patientName: patientName || item.patient.firstName,
+            doctorName,
+            dateTime: formatDateTime(item.startAt),
+            clinicName: clinicLabel,
+          });
+          if (tpl.enabled) {
+            await sendEmail({ origin, to: item.patient.email!, subject: tpl.subject, html: tpl.body });
+          }
+        } catch {
+          // No interrumpir el flujo si falla el email
+        }
+      })();
     }
 
     return NextResponse.json({ ok: true, item, notificationWarning, internalAlertWarning }, { status: 201 });
