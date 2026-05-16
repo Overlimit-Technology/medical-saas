@@ -16,6 +16,22 @@ import {
 } from "@/domain/patients/usecases/PatientsUseCases";
 import { formatRun } from "../PatientsViewModel";
 
+export type PatientTreatmentItem = {
+  id: string;
+  treatmentId: string;
+  treatmentName: string;
+  performedAt: string;
+  status: "in_progress" | "completed";
+  totalPayments: number;
+  paidPayments: number;
+  payments: {
+    id: string;
+    status: string;
+    amount: number;
+    recordedAt: string;
+  }[];
+};
+
 export type EditableFields = {
   firstName: string;
   lastName: string;
@@ -69,6 +85,8 @@ export function usePatientDetailViewModel() {
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [historyYear, setHistoryYear] = useState<number>(new Date().getFullYear());
+  const [treatments, setTreatments] = useState<PatientTreatmentItem[]>([]);
+  const [loadingTreatments, setLoadingTreatments] = useState(true);
 
   const [form, setForm] = useState<EditableFields>({
     firstName: "",
@@ -132,6 +150,28 @@ export function usePatientDetailViewModel() {
   useEffect(() => {
     loadPatient();
   }, [loadPatient]);
+
+  useEffect(() => {
+    if (!id) return;
+    const loadTreatments = async () => {
+      setLoadingTreatments(true);
+      try {
+        const res = await fetch(`/api/patients/${id}/treatments`);
+        const data = (await res.json().catch(() => null)) as {
+          ok: boolean;
+          items?: PatientTreatmentItem[];
+        } | null;
+        if (res.ok && data?.ok) {
+          setTreatments(data.items ?? []);
+        }
+      } catch {
+        // silently fail
+      } finally {
+        setLoadingTreatments(false);
+      }
+    };
+    void loadTreatments();
+  }, [id]);
 
   useEffect(() => {
     if (!successMessage) return;
@@ -254,6 +294,8 @@ export function usePatientDetailViewModel() {
       deleteConfirmChecked,
       deleting,
       deleteError,
+      treatments,
+      loadingTreatments,
     },
     actions: {
       handleFieldChange,

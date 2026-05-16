@@ -302,6 +302,25 @@ function ImagingSection({
       return;
     }
 
+    if (uploadPatient?.id) {
+      try {
+        await fetch(`/api/patients/${uploadPatient.id}/imaging`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify({
+            studyName: form.studyName.trim(),
+            doctorName: uploadedBy,
+            status: form.status,
+            imageUrl,
+            observation: form.observation.trim() || null,
+          }),
+        });
+      } catch {
+        // no bloquear el flujo si falla el guardado en BD
+      }
+    }
+
     setStudies((current) => [
       {
         title: form.studyName.trim(),
@@ -719,11 +738,6 @@ export default function Patients() {
   const [activeTab, setActiveTab] = useState<PatientsTab>("patients");
   const [selectedImagingPatientId, setSelectedImagingPatientId] = useState<string | null>(null);
 
-  const openPatientImaging = (patientId: string) => {
-    setSelectedImagingPatientId(patientId);
-    setActiveTab("imaging");
-  };
-
   return (
     <div className="mx-auto max-w-6xl space-y-6">
       <div className="rounded-2xl border border-slate-100 bg-white p-6 shadow-sm">
@@ -871,9 +885,9 @@ export default function Patients() {
                           <div className="flex items-center justify-end gap-1 opacity-0 transition-opacity group-hover:opacity-100" onClick={(e) => e.stopPropagation()}>
                             <button
                               className="rounded-full border border-blue-200 px-3 py-1 text-xs font-medium text-blue-700 transition-colors hover:border-blue-300 hover:bg-blue-50"
-                              onClick={() => openPatientImaging(patient.id)}
+                              onClick={() => router.push(`/patients/${patient.id}`)}
                             >
-                              Ver imagenologia
+                              Ver Perfil Completo
                             </button>
                             <button
                               className="rounded-full border border-slate-200 px-3 py-1 text-xs font-medium text-slate-600 transition-colors hover:border-slate-300 hover:text-slate-800"

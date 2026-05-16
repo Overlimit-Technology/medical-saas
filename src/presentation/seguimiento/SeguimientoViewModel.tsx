@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { AuthRepositoryHttp } from "@/data/auth/AuthRepository";
 import { SeguimientoRepositoryHttp } from "@/data/seguimiento/SeguimientoRepository";
 import { GetCurrentSessionUseCase } from "@/domain/auth/usecases/GetCurrentSessionUseCase";
@@ -11,6 +12,9 @@ export type TabKey = "tratamientos" | "medicacion" | "servicios" | "metricas" | 
 export type FilterKey = "todos" | "in_progress" | "completed";
 
 export function useSeguimientoViewModel() {
+  const searchParams = useSearchParams();
+  const patientIdFilter = searchParams.get("patientId") ?? null;
+
   const [items, setItems] = useState<SeguimientoItem[]>([]);
   const [stats, setStats] = useState<SeguimientoStats>({
     total: 0,
@@ -35,9 +39,11 @@ export function useSeguimientoViewModel() {
   }, []);
 
   const filteredItems = useMemo(() => {
-    if (filter === "todos") return items;
-    return items.filter((item) => item.status === filter);
-  }, [items, filter]);
+    let result = items;
+    if (patientIdFilter) result = result.filter((item) => item.patientId === patientIdFilter);
+    if (filter !== "todos") result = result.filter((item) => item.status === filter);
+    return result;
+  }, [items, filter, patientIdFilter]);
 
   const loadRole = useCallback(async () => {
     try {
@@ -90,6 +96,7 @@ export function useSeguimientoViewModel() {
       loading,
       error,
       hasAccess,
+      patientIdFilter,
     },
     actions: {
       setActiveTab,

@@ -26,10 +26,7 @@ import {
 } from "@/domain/clinic-settings/usecases/ClinicSettingsUseCases";
 import { CreateCashMovementUseCase, GetCrmTreatmentsUseCase, GetDailyCashUseCase } from "@/domain/crm/usecases/CrmUseCases";
 import { GetPatientDetailUseCase, GetPatientsUseCase, SavePatientUseCase } from "@/domain/patients/usecases/PatientsUseCases";
-<<<<<<< HEAD
-=======
 import { formatRun } from "@/presentation/patients/PatientsViewModel";
->>>>>>> 90d88f12cd6b2891f5dd56d7ed1e4cb958c1ded0
 import { GetUsersUseCase } from "@/domain/users/usecases/UserUseCases";
 import { normalizeId } from "@/lib/normalize";
 import {
@@ -110,7 +107,6 @@ export function useAgendaViewModel() {
     getPatientsUseCase,
     savePatientUseCase,
     getPatientDetailUseCase,
-    savePatientUseCase,
     getUsersUseCase,
     getBoxesUseCase,
     getCrmTreatmentsUseCase,
@@ -140,7 +136,6 @@ export function useAgendaViewModel() {
       getPatientsUseCase: new GetPatientsUseCase(patientsRepo),
       savePatientUseCase: new SavePatientUseCase(patientsRepo),
       getPatientDetailUseCase: new GetPatientDetailUseCase(patientsRepo),
-      savePatientUseCase: new SavePatientUseCase(patientsRepo),
       getUsersUseCase: new GetUsersUseCase(usersRepo),
       getBoxesUseCase: new GetBoxesUseCase(boxesRepo),
       getCrmTreatmentsUseCase: new GetCrmTreatmentsUseCase(crmRepo),
@@ -899,8 +894,16 @@ export function useAgendaViewModel() {
       setDetailAppointment((previous) =>
         previous?.id === updatedAppointment.id ? updatedAppointment : previous
       );
+      setPaymentAppointment(updatedAppointment);
+      setPaymentSaving(false);
+      setPaymentForm(createInitialPaymentForm(updatedAppointment, treatments));
+      setInitialPaymentForm(createInitialPaymentForm(updatedAppointment, treatments));
+      setPaymentSuccess("Cobro actualizado correctamente.");
+      await loadDailyCash();
+      return true;
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : "No se pudo actualizar la duración de la cita.");
+      return false;
     }
   };
 
@@ -1030,8 +1033,6 @@ export function useAgendaViewModel() {
     const cleanPatientFirstName = form.patientFirstName.trim();
     const cleanPatientLastName = form.patientLastName.trim();
 
-<<<<<<< HEAD
-=======
     let effectivePatientId = form.patientId;
 
     if (isRegisteringNewPatient && !effectivePatientId) {
@@ -1072,7 +1073,6 @@ export function useAgendaViewModel() {
       return;
     }
 
->>>>>>> 90d88f12cd6b2891f5dd56d7ed1e4cb958c1ded0
     if (!cleanPatientFirstName || !cleanPatientLastName) {
       setErrorMessage("Completa nombre y apellido del paciente.");
       return;
@@ -1101,11 +1101,11 @@ export function useAgendaViewModel() {
           email: form.patientEmail.trim() || null,
           phone: form.patientPhone.trim() || null,
         });
-        if (!result.item?.id) {
+        if (!result.patientId) {
           setErrorMessage("No se pudo crear el paciente.");
           return;
         }
-        resolvedPatientId = result.item.id;
+        resolvedPatientId = result.patientId;
       } catch (error) {
         setErrorMessage(error instanceof Error ? error.message : "No se pudo crear el paciente.");
         return;
@@ -1114,11 +1114,7 @@ export function useAgendaViewModel() {
 
     const hasOverlap = hasAppointmentOverlap(appointments, {
       appointmentId: editingId,
-<<<<<<< HEAD
       patientId: resolvedPatientId,
-=======
-      patientId: effectivePatientId,
->>>>>>> 90d88f12cd6b2891f5dd56d7ed1e4cb958c1ded0
       doctorId: form.doctorId,
       boxId: form.boxId,
       startAt,
@@ -1135,11 +1131,7 @@ export function useAgendaViewModel() {
     const cleanPatientPhone = form.patientPhone.trim();
 
     const payload = {
-<<<<<<< HEAD
       patientId: resolvedPatientId,
-=======
-      patientId: effectivePatientId,
->>>>>>> 90d88f12cd6b2891f5dd56d7ed1e4cb958c1ded0
       doctorId: form.doctorId,
       boxId: form.boxId,
       startAt: startAt.toISOString(),
