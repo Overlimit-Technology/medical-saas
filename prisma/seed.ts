@@ -24,6 +24,7 @@ async function upsertUser(params: {
   email: string;
   password: string;
   role: UserRole;
+  isSuperAdmin?: boolean;
   status?: UserStatus;
   firstName: string;
   lastName: string;
@@ -32,12 +33,13 @@ async function upsertUser(params: {
   name?: string;
 }) {
   const passwordHash = await hashPassword(params.password);
+  const isSuperAdmin = params.isSuperAdmin === true;
 
   const user = await prisma.user.upsert({
     where: { email: params.email },
     update: {
       role: params.role,
-      isSuperAdmin: params.role === "ADMIN",
+      isSuperAdmin,
       permissions: DEFAULT_ROLE_PERMISSIONS[params.role],
       status: params.status ?? "ACTIVE",
       mustChangePassword: false,
@@ -64,7 +66,7 @@ async function upsertUser(params: {
       email: params.email,
       passwordHash,
       role: params.role,
-      isSuperAdmin: params.role === "ADMIN",
+      isSuperAdmin,
       permissions: DEFAULT_ROLE_PERMISSIONS[params.role],
       status: params.status ?? "ACTIVE",
       mustChangePassword: false,
@@ -78,7 +80,7 @@ async function upsertUser(params: {
         },
       },
     },
-    select: { id: true, email: true, role: true, status: true },
+    select: { id: true, email: true, role: true, isSuperAdmin: true, status: true },
   });
 
   return user;
@@ -121,14 +123,16 @@ async function main() {
     email: "admin@medigest.cl",
     password: "Admin123!",
     role: "ADMIN",
+    isSuperAdmin: false,
     firstName: "Admin",
     lastName: "MediGest",
     phone: "+56911111111",
   });
-  const adminJean = await upsertUser({
+  const superAdminJean = await upsertUser({
     email: "jeancarlosgarnicaflores@gmail.com",
     password: "Jean1234x",
     role: "ADMIN",
+    isSuperAdmin: true,
     firstName: "Jean Carlos",
     lastName: "Garnica Flores",
     phone: "+56900000000",
@@ -177,13 +181,13 @@ async function main() {
   const treatmentB = await upsertTreatment("Desparunizamiento Sesion 2", 25000);
 
   console.log("✅ Seed listo. Usuarios creados/actualizados:");
-  console.table([admin, adminJean, doctor, secretary, doctorMultiA, doctorMultiB]);
+  console.table([admin, superAdminJean, doctor, secretary, doctorMultiA, doctorMultiB]);
   console.log("Tratamientos base:");
   console.table([treatmentA, treatmentB]);
 
   console.log("\nCredenciales:");
   console.log("ADMIN      admin@medigest.cl           / Admin123!");
-  console.log("ADMIN      jeancarlosgarnicaflores@gmail.com / Jean1234x");
+  console.log("SUPERADMIN jeancarlosgarnicaflores@gmail.com / Jean1234x");
   console.log("DOCTOR     doctor@medigest.cl          / Doctor123!");
   console.log("SECRETARY  secretaria@medigest.cl      / Secre123!");
   console.log("DOCTOR A   doctor.A.multi.a@medigest.cl  / Doctor123!");

@@ -306,7 +306,7 @@ export default function SuperAdminUserManagement() {
                         </td>
                         <td className="px-4 py-4">
                           <span className="inline-flex rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-700">
-                            {user.isSuperAdmin ? "Super admin" : ROLE_LABELS[user.role]}
+                            {user.isSuperAdmin ? "Super Admin" : ROLE_LABELS[user.role]}
                           </span>
                         </td>
                         <td className="px-4 py-4">

@@ -5,7 +5,7 @@ export const STATUS_LABELS: Record<string, string> = {
   CONFIRMED: "Confirmada",
   COMPLETED: "Completada",
   CANCELLED: "Cancelada",
-  NO_SHOW: "No asistió",
+  NO_SHOW: "No asistio",
 };
 
 export const STATUS_COLORS: Record<string, string> = {
@@ -110,7 +110,7 @@ export function StatCard({
       <p className={`mt-3 text-2xl font-bold ${highlighted ? "text-white" : "text-slate-900"}`}>
         {value}
       </p>
-      {delta && (
+      {delta ? (
         <div className="mt-1">
           <DeltaBadge
             value={delta}
@@ -121,7 +121,7 @@ export function StatCard({
             vs mes anterior
           </span>
         </div>
-      )}
+      ) : null}
     </div>
   );
 }

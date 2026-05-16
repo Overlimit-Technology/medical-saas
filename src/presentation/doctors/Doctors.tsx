@@ -17,7 +17,7 @@ const ROLE_COLORS: Record<string, string> = {
 };
 
 function getRoleLabel(role: string, isSuperAdmin?: boolean) {
-  if (role === "ADMIN" && isSuperAdmin) return "Super admin";
+  if (role === "ADMIN" && isSuperAdmin) return "Super Admin";
   return ROLE_LABELS[role] ?? role;
 }
 

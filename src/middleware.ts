@@ -98,6 +98,7 @@ function isValidClinicPayload(
 const PROTECTED_PREFIXES = [
   "/super-admin",
   "/dashboard",
+  "/clinic-dashboard",
   "/agenda",
   "/chat",
   "/chat-meta",
@@ -193,12 +194,13 @@ export async function middleware(req: NextRequest) {
   if (pathname === "/" || pathname === "/login") {
     if (hasValidSession) {
       const url = req.nextUrl.clone();
-      url.pathname =
-        mustChangePassword
-          ? "/change-password"
-          : hasValidClinic || isSuperAdmin
-            ? roleHome
-            : "/select-clinic";
+      if (mustChangePassword) {
+        url.pathname = "/change-password";
+      } else if (isSuperAdmin) {
+        url.pathname = roleHome;
+      } else {
+        url.pathname = hasValidClinic ? roleHome : "/select-clinic";
+      }
       return NextResponse.redirect(url);
     }
     return NextResponse.next();
@@ -234,6 +236,7 @@ export async function middleware(req: NextRequest) {
       url.pathname = roleHome;
       return NextResponse.redirect(url);
     }
+
     if (hasValidClinic) {
       const url = req.nextUrl.clone();
       url.pathname = roleHome;
@@ -255,7 +258,7 @@ export async function middleware(req: NextRequest) {
     }
     if (!hasValidClinic && !isSuperAdmin) {
       const url = req.nextUrl.clone();
-      url.pathname = "/select-clinic";
+      url.pathname = isSuperAdmin ? roleHome : "/select-clinic";
       return NextResponse.redirect(url);
     }
 
@@ -431,6 +434,7 @@ export const config = {
     "/select-clinic",
     "/super-admin/:path*",
     "/dashboard/:path*",
+    "/clinic-dashboard/:path*",
     "/agenda/:path*",
     "/chat/:path*",
     "/chat-meta/:path*",
