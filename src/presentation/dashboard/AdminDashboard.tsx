@@ -291,7 +291,15 @@ export default function AdminDashboard() {
           </span>
         </div>
         {recentAppointments.length === 0 ? (
-          <p className="text-xs text-slate-400 py-10 text-center">No hay citas programadas para hoy</p>
+          <div className="flex flex-col items-center gap-3 py-12 text-center">
+            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-100">
+              <CalendarDays size={22} className="text-slate-400" />
+            </div>
+            <div>
+              <p className="text-sm font-medium text-slate-600">Sin citas para hoy</p>
+              <p className="mt-0.5 text-xs text-slate-400">Las citas agendadas apareceran aqui</p>
+            </div>
+          </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm">

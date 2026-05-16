@@ -1,4 +1,6 @@
 export const EMAIL_TEMPLATE_TYPES = [
+  "APPOINTMENT_CONFIRMATION",
+  "APPOINTMENT_REMINDER",
   "APPOINTMENT_CANCELLATION",
   "PATIENT_WELCOME",
   "USER_WELCOME",
@@ -34,6 +36,26 @@ export const EMAIL_TEMPLATE_META: Record<
   EmailTemplateType,
   { label: string; description: string; variables: EmailTemplateVariable[] }
 > = {
+  APPOINTMENT_CONFIRMATION: {
+    label: "Confirmacion de cita",
+    description: "Se envia al paciente cuando se agenda una nueva cita.",
+    variables: [
+      { key: "patientName", label: "Nombre paciente", example: "Juan Perez" },
+      { key: "doctorName", label: "Nombre profesional", example: "Dr. Maria Lopez" },
+      { key: "dateTime", label: "Fecha y hora", example: "15 de enero 2026, 10:30" },
+      { key: "clinicName", label: "Nombre clinica", example: "Clinica Dental Central" },
+    ],
+  },
+  APPOINTMENT_REMINDER: {
+    label: "Recordatorio de cita",
+    description: "Se envia automaticamente 24 horas antes de la cita.",
+    variables: [
+      { key: "patientName", label: "Nombre paciente", example: "Juan Perez" },
+      { key: "doctorName", label: "Nombre profesional", example: "Dr. Maria Lopez" },
+      { key: "dateTime", label: "Fecha y hora", example: "15 de enero 2026, 10:30" },
+      { key: "clinicName", label: "Nombre clinica", example: "Clinica Dental Central" },
+    ],
+  },
   APPOINTMENT_CANCELLATION: {
     label: "Cancelacion de cita",
     description: "Se envia al paciente cuando su cita es cancelada por la clinica.",
@@ -102,6 +124,36 @@ export const EMAIL_TEMPLATE_META: Record<
 
 /** Default templates used when a clinic hasn't customized a template yet. */
 export const DEFAULT_TEMPLATES: Record<EmailTemplateType, { subject: string; body: string }> = {
+  APPOINTMENT_CONFIRMATION: {
+    subject: "Tu cita en {{clinicName}} fue confirmada",
+    body: `Hola {{patientName}},
+
+Tu cita ha sido agendada exitosamente.
+
+Profesional: {{doctorName}}
+Fecha y hora: {{dateTime}}
+Sede: {{clinicName}}
+
+Si necesitas cancelar o reagendar, por favor contactanos.
+
+Saludos,
+Equipo {{clinicName}}`,
+  },
+  APPOINTMENT_REMINDER: {
+    subject: "Recuerda tu cita manana en {{clinicName}}",
+    body: `Hola {{patientName}},
+
+Te recordamos que tienes una cita programada para manana.
+
+Profesional: {{doctorName}}
+Fecha y hora: {{dateTime}}
+Sede: {{clinicName}}
+
+Si no puedes asistir, por favor avisanos con anticipacion.
+
+Saludos,
+Equipo {{clinicName}}`,
+  },
   APPOINTMENT_CANCELLATION: {
     subject: "Tu cita fue cancelada en {{clinicName}}",
     body: `Hola {{patientName}},

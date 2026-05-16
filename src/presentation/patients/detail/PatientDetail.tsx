@@ -94,6 +94,24 @@ export default function PatientDetail() {
 
   const Field = editing ? EditableField : ReadOnlyField;
 
+  // Stats del paciente derivadas de su historial
+  const allAppointments = patient.appointments ?? [];
+  const totalAppts = allAppointments.length;
+  const completedCount = allAppointments.filter((a) => a.status === "COMPLETED").length;
+  const noShowCount = allAppointments.filter((a) => a.status === "NO_SHOW").length;
+  const now = new Date();
+  const nextAppt = allAppointments
+    .filter(
+      (a) =>
+        new Date(a.startAt) > now &&
+        a.status !== "CANCELLED" &&
+        a.status !== "NO_SHOW",
+    )
+    .sort((a, b) => new Date(a.startAt).getTime() - new Date(b.startAt).getTime())[0] ?? null;
+  const lastCompleted = allAppointments
+    .filter((a) => a.status === "COMPLETED")
+    .sort((a, b) => new Date(b.startAt).getTime() - new Date(a.startAt).getTime())[0] ?? null;
+
   return (
     <div className="mx-auto max-w-4xl space-y-6">
       {/* Navegación */}
@@ -109,6 +127,60 @@ export default function PatientDetail() {
         <span className="text-sm font-medium text-slate-700">
           {patient.firstName} {patient.lastName}
         </span>
+      </div>
+
+      {/* ── Panel de contexto rápido ── */}
+      <div className="rounded-2xl border border-slate-100 bg-white px-6 py-5 shadow-sm">
+        <div className="flex items-center gap-4">
+          {/* Avatar */}
+          <div className="flex h-14 w-14 flex-shrink-0 items-center justify-center rounded-2xl bg-[#19b3bc]/10 text-lg font-bold text-[#19b3bc]">
+            {patient.firstName.charAt(0).toUpperCase()}
+            {patient.lastName.charAt(0).toUpperCase()}
+          </div>
+          <div className="min-w-0 flex-1">
+            <h2 className="truncate text-lg font-semibold text-slate-900">
+              {patient.firstName} {patient.lastName}
+              {patient.secondLastName && (
+                <span className="text-slate-400"> {patient.secondLastName}</span>
+              )}
+            </h2>
+            <p className="text-sm text-slate-400">
+              {age !== null ? `${age} años` : "Edad no registrada"}
+              {" · "}
+              N° {fileNumber}
+            </p>
+          </div>
+        </div>
+
+        {/* Stats strip */}
+        <div className="mt-4 grid grid-cols-2 gap-3 border-t border-slate-100 pt-4 sm:grid-cols-4">
+          <div className="rounded-xl bg-slate-50 px-3 py-2.5">
+            <p className="text-[11px] text-slate-400">Total citas</p>
+            <p className="mt-0.5 text-xl font-bold text-slate-900">{totalAppts}</p>
+          </div>
+          <div className="rounded-xl bg-emerald-50 px-3 py-2.5">
+            <p className="text-[11px] text-emerald-600">Completadas</p>
+            <p className="mt-0.5 text-xl font-bold text-emerald-700">{completedCount}</p>
+          </div>
+          <div className="rounded-xl bg-slate-50 px-3 py-2.5">
+            <p className="text-[11px] text-slate-400">Próxima cita</p>
+            <p className="mt-0.5 text-sm font-semibold text-slate-700">
+              {nextAppt
+                ? formatRelativeDate(nextAppt.startAt)
+                : "Sin agendar"}
+            </p>
+          </div>
+          <div className={`rounded-xl px-3 py-2.5 ${noShowCount > 2 ? "bg-amber-50" : "bg-slate-50"}`}>
+            <p className={`text-[11px] ${noShowCount > 2 ? "text-amber-600" : "text-slate-400"}`}>
+              Última visita
+            </p>
+            <p className={`mt-0.5 text-sm font-semibold ${noShowCount > 2 ? "text-amber-700" : "text-slate-700"}`}>
+              {lastCompleted
+                ? formatRelativeDate(lastCompleted.startAt)
+                : "Sin visitas"}
+            </p>
+          </div>
+        </div>
       </div>
 
       {/* ── Detalles del paciente ── */}

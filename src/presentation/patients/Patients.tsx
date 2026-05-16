@@ -826,15 +826,35 @@ export default function Patients() {
                   )}
                   {!state.loading && state.items.length === 0 && !state.query.trim() && (
                     <tr>
-                      <td className="px-4 py-8 text-center text-slate-400" colSpan={5}>
-                        No hay pacientes registrados.
+                      <td colSpan={5} className="px-4 py-10">
+                        <div className="flex flex-col items-center gap-3 text-center">
+                          <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-slate-100">
+                            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-slate-400"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                          </div>
+                          <div>
+                            <p className="text-sm font-medium text-slate-700">No hay pacientes registrados</p>
+                            <p className="mt-0.5 text-xs text-slate-400">Agrega el primer paciente de esta sede</p>
+                          </div>
+                          <button
+                            onClick={actions.openCreateModal}
+                            className="mt-1 rounded-full bg-slate-900 px-4 py-2 text-xs font-semibold text-white transition hover:bg-slate-800"
+                          >
+                            + Agregar primer paciente
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   )}
                   {!state.loading && state.items.length === 0 && state.query.trim() && (
                     <tr>
-                      <td className="px-4 py-8 text-center text-slate-400" colSpan={5}>
-                        No se encontraron pacientes con ese criterio.
+                      <td colSpan={5} className="px-4 py-10">
+                        <div className="flex flex-col items-center gap-2 text-center">
+                          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-100">
+                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-slate-400"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                          </div>
+                          <p className="text-sm font-medium text-slate-700">Sin resultados para "{state.query}"</p>
+                          <p className="text-xs text-slate-400">Intenta con nombre, RUN o telefono</p>
+                        </div>
                       </td>
                     </tr>
                   )}

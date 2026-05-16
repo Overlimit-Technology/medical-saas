@@ -35,7 +35,8 @@
       "Bash(pkill -f \"next dev\")",
       "Bash(npx tsx:*)",
       "WebFetch(domain:onlinehtmleditor.dev)",
-      "Bash(curl -s http://localhost:3002/configuracion)"
+      "Bash(curl -s http://localhost:3002/configuracion)",
+      "Bash(grep -E \"\\\\.\\(ts|tsx\\)$\")"
     ]
   }
 }
