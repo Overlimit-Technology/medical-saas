@@ -124,6 +124,17 @@ export class AppointmentsRepositoryHttp implements AppointmentsRepository {
     return data.item;
   }
 
+  async deleteAppointment(appointmentId: string): Promise<void> {
+    const res = await fetch(`/api/appointments/${appointmentId}/hard-delete`, {
+      method: "DELETE",
+    });
+    const data = (await res.json().catch(() => null)) as AppointmentResponse | null;
+
+    if (!res.ok || !data?.ok) {
+      throw new Error(data?.error ?? "No se pudo eliminar la cita.");
+    }
+  }
+
   async updateAppointmentSchedule(
     appointmentId: string,
     input: { startAt: string; endAt: string }

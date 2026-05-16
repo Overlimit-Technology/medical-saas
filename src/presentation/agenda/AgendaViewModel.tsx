@@ -11,6 +11,7 @@ import { UsersRepositoryHttp } from "@/data/users/UsersRepository";
 import { GetAppointmentsUseCase } from "@/domain/appointments/usecases/GetAppointmentsUseCase";
 import {
   CancelAppointmentUseCase,
+  DeleteAppointmentUseCase,
   SaveAppointmentUseCase,
   UpdateAppointmentPaymentUseCase,
   UpdateAppointmentScheduleUseCase,
@@ -25,7 +26,10 @@ import {
 } from "@/domain/clinic-settings/usecases/ClinicSettingsUseCases";
 import { CreateCashMovementUseCase, GetCrmTreatmentsUseCase, GetDailyCashUseCase } from "@/domain/crm/usecases/CrmUseCases";
 import { GetPatientDetailUseCase, GetPatientsUseCase, SavePatientUseCase } from "@/domain/patients/usecases/PatientsUseCases";
+<<<<<<< HEAD
+=======
 import { formatRun } from "@/presentation/patients/PatientsViewModel";
+>>>>>>> 90d88f12cd6b2891f5dd56d7ed1e4cb958c1ded0
 import { GetUsersUseCase } from "@/domain/users/usecases/UserUseCases";
 import { normalizeId } from "@/lib/normalize";
 import {
@@ -100,11 +104,13 @@ export function useAgendaViewModel() {
     getAppointmentsUseCase,
     saveAppointmentUseCase,
     cancelAppointmentUseCase,
+    deleteAppointmentUseCase,
     updateAppointmentStatusUseCase,
     updateAppointmentScheduleUseCase,
     getPatientsUseCase,
     savePatientUseCase,
     getPatientDetailUseCase,
+    savePatientUseCase,
     getUsersUseCase,
     getBoxesUseCase,
     getCrmTreatmentsUseCase,
@@ -128,11 +134,13 @@ export function useAgendaViewModel() {
       getAppointmentsUseCase: new GetAppointmentsUseCase(appointmentsRepo),
       saveAppointmentUseCase: new SaveAppointmentUseCase(appointmentsRepo),
       cancelAppointmentUseCase: new CancelAppointmentUseCase(appointmentsRepo),
+      deleteAppointmentUseCase: new DeleteAppointmentUseCase(appointmentsRepo),
       updateAppointmentStatusUseCase: new UpdateAppointmentStatusUseCase(appointmentsRepo),
       updateAppointmentScheduleUseCase: new UpdateAppointmentScheduleUseCase(appointmentsRepo),
       getPatientsUseCase: new GetPatientsUseCase(patientsRepo),
       savePatientUseCase: new SavePatientUseCase(patientsRepo),
       getPatientDetailUseCase: new GetPatientDetailUseCase(patientsRepo),
+      savePatientUseCase: new SavePatientUseCase(patientsRepo),
       getUsersUseCase: new GetUsersUseCase(usersRepo),
       getBoxesUseCase: new GetBoxesUseCase(boxesRepo),
       getCrmTreatmentsUseCase: new GetCrmTreatmentsUseCase(crmRepo),
@@ -186,6 +194,7 @@ export function useAgendaViewModel() {
   const [paymentSaving, setPaymentSaving] = useState(false);
   const [paymentError, setPaymentError] = useState<string | null>(null);
   const [paymentSuccess, setPaymentSuccess] = useState<string | null>(null);
+  const [appointmentSuccess, setAppointmentSuccess] = useState<string | null>(null);
   const [paymentAppointment, setPaymentAppointment] = useState<AgendaAppointment | null>(null);
   const [paymentForm, setPaymentForm] = useState<PaymentFormState>({
     treatmentId: "",
@@ -385,6 +394,12 @@ export function useAgendaViewModel() {
     const timeoutId = window.setTimeout(() => setPaymentSuccess(null), 2800);
     return () => window.clearTimeout(timeoutId);
   }, [paymentSuccess]);
+
+  useEffect(() => {
+    if (!appointmentSuccess) return;
+    const timeoutId = window.setTimeout(() => setAppointmentSuccess(null), 2800);
+    return () => window.clearTimeout(timeoutId);
+  }, [appointmentSuccess]);
 
   useEffect(() => {
     if (!treatments.length) return;
@@ -1015,6 +1030,8 @@ export function useAgendaViewModel() {
     const cleanPatientFirstName = form.patientFirstName.trim();
     const cleanPatientLastName = form.patientLastName.trim();
 
+<<<<<<< HEAD
+=======
     let effectivePatientId = form.patientId;
 
     if (isRegisteringNewPatient && !effectivePatientId) {
@@ -1055,6 +1072,7 @@ export function useAgendaViewModel() {
       return;
     }
 
+>>>>>>> 90d88f12cd6b2891f5dd56d7ed1e4cb958c1ded0
     if (!cleanPatientFirstName || !cleanPatientLastName) {
       setErrorMessage("Completa nombre y apellido del paciente.");
       return;
@@ -1065,9 +1083,42 @@ export function useAgendaViewModel() {
       return;
     }
 
+    let resolvedPatientId = form.patientId;
+
+    if (!resolvedPatientId) {
+      const cleanRun = form.patientRun.trim();
+      if (!cleanRun) {
+        setErrorMessage("Ingresa el RUN del paciente.");
+        return;
+      }
+
+      try {
+        const result = await savePatientUseCase.execute(null, {
+          firstName: cleanPatientFirstName,
+          lastName: cleanPatientLastName,
+          secondLastName: null,
+          run: cleanRun,
+          email: form.patientEmail.trim() || null,
+          phone: form.patientPhone.trim() || null,
+        });
+        if (!result.item?.id) {
+          setErrorMessage("No se pudo crear el paciente.");
+          return;
+        }
+        resolvedPatientId = result.item.id;
+      } catch (error) {
+        setErrorMessage(error instanceof Error ? error.message : "No se pudo crear el paciente.");
+        return;
+      }
+    }
+
     const hasOverlap = hasAppointmentOverlap(appointments, {
       appointmentId: editingId,
+<<<<<<< HEAD
+      patientId: resolvedPatientId,
+=======
       patientId: effectivePatientId,
+>>>>>>> 90d88f12cd6b2891f5dd56d7ed1e4cb958c1ded0
       doctorId: form.doctorId,
       boxId: form.boxId,
       startAt,
@@ -1084,7 +1135,11 @@ export function useAgendaViewModel() {
     const cleanPatientPhone = form.patientPhone.trim();
 
     const payload = {
+<<<<<<< HEAD
+      patientId: resolvedPatientId,
+=======
       patientId: effectivePatientId,
+>>>>>>> 90d88f12cd6b2891f5dd56d7ed1e4cb958c1ded0
       doctorId: form.doctorId,
       boxId: form.boxId,
       startAt: startAt.toISOString(),
@@ -1105,6 +1160,7 @@ export function useAgendaViewModel() {
       await loadAgenda();
       resetModalState();
       setForm(createEmptyAppointmentForm());
+      setAppointmentSuccess(editingId ? "Cita actualizada con exito." : "Cita agendada con exito.");
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : "No se pudo guardar la cita.");
     }
@@ -1168,6 +1224,19 @@ export function useAgendaViewModel() {
     }
 
     setCancelling(false);
+  };
+
+  const handleDeleteAppointment = async () => {
+    if (!detailAppointment || !canEdit) return;
+
+    try {
+      await deleteAppointmentUseCase.execute(detailAppointment.id);
+      await loadAgenda();
+      resetModalState();
+      setAppointmentSuccess("Cita eliminada con exito.");
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : "No se pudo eliminar la cita.");
+    }
   };
 
   const openPaymentModal = (item: AgendaAppointment) => {
@@ -1442,6 +1511,7 @@ export function useAgendaViewModel() {
       paymentSaving,
       paymentError,
       paymentSuccess,
+      appointmentSuccess,
       paymentAppointment,
       paymentForm,
       initialPaymentForm,
@@ -1483,6 +1553,7 @@ export function useAgendaViewModel() {
       closeCancelConfirm,
       handleCancelReasonChange,
       handleCancelAppointment,
+      handleDeleteAppointment,
       setSelectedStatus,
       handleStatusUpdate,
       openPaymentModal,
