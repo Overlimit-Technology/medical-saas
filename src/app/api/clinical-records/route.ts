@@ -4,7 +4,7 @@ import { requireClinicSession, requireRole } from "@/server/auth/requireSession"
 import { ClinicalRecordsService } from "@/server/clinical-records/ClinicalRecordsService";
 
 const createSchema = z.object({
-  appointmentId: z.string().min(1),
+  appointmentId: z.string().min(1).nullable().optional(),
   templateId: z.string().min(1),
   patientId: z.string().min(1),
   values: z.array(
@@ -22,12 +22,19 @@ export async function GET(req: Request) {
 
     const { searchParams } = new URL(req.url);
     const appointmentId = searchParams.get("appointmentId");
-    if (!appointmentId) {
-      return NextResponse.json({ ok: false, error: "appointmentId requerido." }, { status: 400 });
+    const patientId = searchParams.get("patientId");
+
+    if (appointmentId) {
+      const items = await ClinicalRecordsService.listByAppointment(session.clinicId, appointmentId);
+      return NextResponse.json({ ok: true, items });
     }
 
-    const items = await ClinicalRecordsService.listByAppointment(session.clinicId, appointmentId);
-    return NextResponse.json({ ok: true, items });
+    if (patientId) {
+      const items = await ClinicalRecordsService.listByPatient(session.clinicId, patientId);
+      return NextResponse.json({ ok: true, items });
+    }
+
+    return NextResponse.json({ ok: false, error: "appointmentId o patientId requerido." }, { status: 400 });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Error al cargar fichas.";
     return NextResponse.json({ ok: false, error: message }, { status: 400 });

@@ -258,20 +258,22 @@ export default function Sidebar() {
           )}
         </Link>
 
-        <button
-          type="button"
-          onClick={actions.handleChangeClinic}
-          className={`flex w-full rounded-xl text-[13px] font-medium leading-4 text-white/90 transition-colors hover:bg-white/10 hover:text-white ${
-            collapsed ? "justify-center px-0 py-2.5" : "items-start gap-2.5 px-2.5 py-2.5"
-          }`}
-        >
-          <ChevronsUpDown className="mt-0.5 h-[17px] w-[17px] text-white/90" />
-          {!collapsed && (
-            <span className="min-w-0 flex-1 whitespace-normal break-words text-left text-[13px] leading-4">
-              Cambiar sede
-            </span>
-          )}
-        </button>
+        {state.canChangeClinic && (
+          <button
+            type="button"
+            onClick={actions.handleChangeClinic}
+            className={`flex w-full rounded-xl text-[13px] font-medium leading-4 text-white/90 transition-colors hover:bg-white/10 hover:text-white ${
+              collapsed ? "justify-center px-0 py-2.5" : "items-start gap-2.5 px-2.5 py-2.5"
+            }`}
+          >
+            <ChevronsUpDown className="mt-0.5 h-[17px] w-[17px] text-white/90" />
+            {!collapsed && (
+              <span className="min-w-0 flex-1 whitespace-normal break-words text-left text-[13px] leading-4">
+                Cambiar sede
+              </span>
+            )}
+          </button>
+        )}
 
         <form action="/api/auth/logout" method="post">
           <button

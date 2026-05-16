@@ -6,10 +6,12 @@ import { FormTemplatesRepositoryHttp } from "@/data/form-templates/FormTemplates
 import type { ClinicalRecord } from "@/domain/clinical-records/entities/ClinicalRecord";
 import {
   GetClinicalRecordsUseCase,
+  GetClinicalRecordsByPatientUseCase,
   SaveClinicalRecordUseCase,
 } from "@/domain/clinical-records/usecases/ClinicalRecordsUseCases";
 import type { FormTemplate } from "@/domain/form-templates/entities/FormTemplate";
 import { GetFormTemplatesUseCase } from "@/domain/form-templates/usecases/FormTemplatesUseCases";
+import { useClinicBranding } from "@/presentation/common/useClinicBranding";
 
 export type { ClinicalRecord };
 export type TemplateOption = FormTemplate;
@@ -20,7 +22,8 @@ function getTemplateFieldKey(field: FormTemplate["fields"][number]) {
   return field.id ?? `${field.label}-${field.position}`;
 }
 
-export function useClinicalRecordsViewModel(appointmentId: string, patientId: string) {
+export function useClinicalRecordsViewModel(patientId: string, appointmentId?: string | null) {
+  const { logoBase64: clinicLogo } = useClinicBranding();
   const [records, setRecords] = useState<ClinicalRecord[]>([]);
   const [templates, setTemplates] = useState<TemplateOption[]>([]);
   const [loading, setLoading] = useState(true);
@@ -32,11 +35,17 @@ export function useClinicalRecordsViewModel(appointmentId: string, patientId: st
   const [editingRecord, setEditingRecord] = useState<ClinicalRecord | null>(null);
   const [values, setValues] = useState<ValueMap>({});
 
-  const { getClinicalRecordsUseCase, saveClinicalRecordUseCase, getFormTemplatesUseCase } = useMemo(() => {
+  const {
+    getClinicalRecordsUseCase,
+    getClinicalRecordsByPatientUseCase,
+    saveClinicalRecordUseCase,
+    getFormTemplatesUseCase,
+  } = useMemo(() => {
     const clinicalRecordsRepo = new ClinicalRecordsRepositoryHttp();
     const formTemplatesRepo = new FormTemplatesRepositoryHttp();
     return {
       getClinicalRecordsUseCase: new GetClinicalRecordsUseCase(clinicalRecordsRepo),
+      getClinicalRecordsByPatientUseCase: new GetClinicalRecordsByPatientUseCase(clinicalRecordsRepo),
       saveClinicalRecordUseCase: new SaveClinicalRecordUseCase(clinicalRecordsRepo),
       getFormTemplatesUseCase: new GetFormTemplatesUseCase(formTemplatesRepo),
     };
@@ -46,15 +55,18 @@ export function useClinicalRecordsViewModel(appointmentId: string, patientId: st
 
   const loadRecords = useCallback(async () => {
     try {
-      setRecords(await getClinicalRecordsUseCase.execute(appointmentId));
+      const data = appointmentId
+        ? await getClinicalRecordsUseCase.execute(appointmentId)
+        : await getClinicalRecordsByPatientUseCase.execute(patientId);
+      setRecords(data);
     } catch {
       setRecords([]);
     }
-  }, [appointmentId, getClinicalRecordsUseCase]);
+  }, [appointmentId, patientId, getClinicalRecordsUseCase, getClinicalRecordsByPatientUseCase]);
 
   const loadTemplates = useCallback(async () => {
     try {
-      setTemplates(await getFormTemplatesUseCase.execute());
+      setTemplates(await getFormTemplatesUseCase.execute("REPORT"));
     } catch {
       setTemplates([]);
     }
@@ -129,9 +141,11 @@ export function useClinicalRecordsViewModel(appointmentId: string, patientId: st
 
     for (const field of selectedTemplate.fields) {
       const fieldKey = getTemplateFieldKey(field);
-      if (field.isRequired && !(values[fieldKey] ?? "").trim()) {
-        setApiError(`El campo "${field.label}" es obligatorio.`);
-        return;
+      if (field.isRequired && field.fieldType !== "VARIABLE" && field.fieldType !== "SIGNATURE") {
+        if (!(values[fieldKey] ?? "").trim()) {
+          setApiError(`El campo "${field.label}" es obligatorio.`);
+          return;
+        }
       }
     }
 
@@ -141,7 +155,7 @@ export function useClinicalRecordsViewModel(appointmentId: string, patientId: st
     try {
       await saveClinicalRecordUseCase.execute({
         recordId: editingRecord?.id,
-        appointmentId: editingRecord ? undefined : appointmentId,
+        appointmentId: editingRecord ? undefined : (appointmentId ?? undefined),
         templateId: editingRecord ? undefined : selectedTemplateId,
         patientId: editingRecord ? undefined : patientId,
         values: Object.entries(values).map(([fieldId, value]) => ({ fieldId, value })),
@@ -169,6 +183,7 @@ export function useClinicalRecordsViewModel(appointmentId: string, patientId: st
       selectedTemplate,
       editingRecord,
       values,
+      clinicLogo,
     },
     actions: {
       openCreateForm,

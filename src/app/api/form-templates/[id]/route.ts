@@ -5,7 +5,7 @@ import { FormTemplatesService } from "@/server/form-templates/FormTemplatesServi
 
 const fieldSchema = z.object({
   label: z.string().trim().min(1),
-  fieldType: z.enum(["TEXT", "NUMBER", "DATE", "SELECT", "TEXTAREA", "BOOLEAN"]),
+  fieldType: z.enum(["TEXT", "NUMBER", "DATE", "SELECT", "TEXTAREA", "BOOLEAN", "SIGNATURE", "VARIABLE"]),
   position: z.number().int().min(0),
   isRequired: z.boolean().default(false),
   options: z.string().nullable().optional(),
@@ -44,11 +44,11 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
       return NextResponse.json({ ok: false, error: "Datos inválidos." }, { status: 400 });
     }
 
-    const item = await FormTemplatesService.update(params.id, session.clinicId, parsed.data);
+    const item = await FormTemplatesService.update(params.id, session.clinicId, { userId: session.userId, role: session.role }, parsed.data);
     return NextResponse.json({ ok: true, item });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Error al actualizar plantilla.";
-    const status = message.includes("no encontrada") ? 404 : message.includes("existe") ? 409 : 400;
+    const status = message.includes("no encontrada") ? 404 : message.includes("existe") ? 409 : message.includes("No puedes") ? 403 : 400;
     return NextResponse.json({ ok: false, error: message }, { status });
   }
 }
@@ -58,11 +58,11 @@ export async function DELETE(_req: Request, { params }: { params: { id: string }
     const session = await requireClinicSession();
     requireRole(session.role, ["ADMIN", "DOCTOR"]);
 
-    await FormTemplatesService.remove(params.id, session.clinicId);
+    await FormTemplatesService.remove(params.id, session.clinicId, { userId: session.userId, role: session.role });
     return NextResponse.json({ ok: true });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Error al eliminar plantilla.";
-    const status = message.includes("no encontrada") ? 404 : 400;
+    const status = message.includes("no encontrada") ? 404 : message.includes("No puedes") ? 403 : 400;
     return NextResponse.json({ ok: false, error: message }, { status });
   }
 }

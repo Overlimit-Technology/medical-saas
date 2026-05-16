@@ -4,14 +4,16 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { AuthRepositoryHttp } from "@/data/auth/AuthRepository";
 import { FormTemplatesRepositoryHttp } from "@/data/form-templates/FormTemplatesRepository";
 import { GetCurrentSessionUseCase } from "@/domain/auth/usecases/GetCurrentSessionUseCase";
-import type { FieldType, FormTemplate, TemplateField } from "@/domain/form-templates/entities/FormTemplate";
+import type { FieldType, FormTemplate, TemplateField, TemplateType } from "@/domain/form-templates/entities/FormTemplate";
+import { TEMPLATE_VARIABLES } from "@/domain/form-templates/entities/FormTemplate";
 import {
   DeleteFormTemplateUseCase,
   GetFormTemplatesUseCase,
   SaveFormTemplateUseCase,
 } from "@/domain/form-templates/usecases/FormTemplatesUseCases";
 
-export type { FieldType, FormTemplate, TemplateField };
+export type { FieldType, FormTemplate, TemplateField, TemplateType };
+export { TEMPLATE_VARIABLES };
 
 export type FormState = {
   name: string;
@@ -43,6 +45,12 @@ function validateForm(form: FormState): FormErrors {
     errors.fields = "Debe incluir al menos un campo.";
   } else if (form.fields.some((field) => !field.label.trim())) {
     errors.fields = "Todos los campos deben tener nombre.";
+  } else if (
+    form.fields.some(
+      (field) => field.fieldType === "VARIABLE" && !field.options?.trim(),
+    )
+  ) {
+    errors.fields = "Todas las variables automáticas deben tener una variable seleccionada.";
   }
   return errors;
 }
@@ -54,10 +62,21 @@ export const FIELD_TYPE_LABELS: Record<FieldType, string> = {
   SELECT: "Selección",
   TEXTAREA: "Texto largo",
   BOOLEAN: "Sí/No",
+  SIGNATURE: "Firma",
+  VARIABLE: "Variable automática",
+};
+
+export const TAB_LABELS: Record<TemplateType, string> = {
+  REPORT: "Informes",
+  CONSENT: "Consentimiento Informado",
+  ATTENDANCE_CERTIFICATE: "Certificado de Asistencia",
 };
 
 export function useFormTemplatesViewModel() {
-  const [items, setItems] = useState<FormTemplate[]>([]);
+  const [reportItems, setReportItems] = useState<FormTemplate[]>([]);
+  const [consentTemplate, setConsentTemplate] = useState<FormTemplate | null>(null);
+  const [certificateTemplate, setCertificateTemplate] = useState<FormTemplate | null>(null);
+  const [activeTab, setActiveTab] = useState<TemplateType>("REPORT");
   const [query, setQuery] = useState("");
   const [selected, setSelected] = useState<FormTemplate | null>(null);
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
@@ -90,12 +109,12 @@ export function useFormTemplatesViewModel() {
   }, []);
 
   const filteredItems = useMemo(() => {
-    if (!query.trim()) return items;
+    if (!query.trim()) return reportItems;
     const term = query.toLowerCase();
-    return items.filter((item) => item.name.toLowerCase().includes(term));
-  }, [items, query]);
+    return reportItems.filter((item) => item.name.toLowerCase().includes(term));
+  }, [reportItems, query]);
 
-  const totalLabel = `${items.length} plantilla${items.length === 1 ? "" : "s"}`;
+  const totalLabel = `${reportItems.length} plantilla${reportItems.length === 1 ? "" : "s"}`;
 
   const headerHint = useMemo(() => {
     if (!query.trim()) return null;
@@ -104,6 +123,9 @@ export function useFormTemplatesViewModel() {
 
   const isSubmitDisabled = saving || Object.keys(validateForm(form)).length > 0;
   const hasRecords = (selected?._count.clinicalRecords ?? 0) > 0;
+
+  const isAdminOnly = activeTab === "CONSENT" || activeTab === "ATTENDANCE_CERTIFICATE";
+  const canEdit = role === "ADMIN" || (!isAdminOnly && role === "DOCTOR");
 
   const loadRole = useCallback(async () => {
     try {
@@ -120,7 +142,14 @@ export function useFormTemplatesViewModel() {
     setLoading(true);
     setApiError(null);
     try {
-      setItems(await getFormTemplatesUseCase.execute());
+      const [reports, consents, certificates] = await Promise.all([
+        getFormTemplatesUseCase.execute("REPORT"),
+        getFormTemplatesUseCase.execute("CONSENT"),
+        getFormTemplatesUseCase.execute("ATTENDANCE_CERTIFICATE"),
+      ]);
+      setReportItems(reports);
+      setConsentTemplate(consents[0] ?? null);
+      setCertificateTemplate(certificates[0] ?? null);
     } catch (error) {
       setApiError(error instanceof Error ? error.message : "No se pudieron cargar las plantillas.");
     } finally {
@@ -147,14 +176,6 @@ export function useFormTemplatesViewModel() {
     void loadTemplates();
   }, [loadTemplates, role, roleLoading]);
 
-  const openCreateModal = () => {
-    setSelected(null);
-    setForm(EMPTY_FORM);
-    setErrors({});
-    setApiError(null);
-    setIsModalOpen(true);
-  };
-
   const openEditModal = (template: FormTemplate) => {
     setSelected(template);
     setForm({
@@ -174,6 +195,18 @@ export function useFormTemplatesViewModel() {
     setErrors({});
     setApiError(null);
     setShowPreview(false);
+    setPendingTemplateType(null);
+  };
+
+  const [pendingTemplateType, setPendingTemplateType] = useState<TemplateType | null>(null);
+
+  const openCreateModalForTab = (templateType: TemplateType) => {
+    setSelected(null);
+    setForm(EMPTY_FORM);
+    setErrors({});
+    setApiError(null);
+    setPendingTemplateType(templateType);
+    setIsModalOpen(true);
   };
 
   const handleFieldChange = (key: keyof Pick<FormState, "name" | "description">, value: string) => {
@@ -202,7 +235,17 @@ export function useFormTemplatesViewModel() {
   const updateField = (index: number, updates: Partial<TemplateField>) => {
     setForm((current) => ({
       ...current,
-      fields: current.fields.map((field, i) => (i === index ? { ...field, ...updates } : field)),
+      fields: current.fields.map((field, i) => {
+        if (i !== index) return field;
+        const updated = { ...field, ...updates };
+        if (updates.fieldType && updates.fieldType !== "SELECT" && updates.fieldType !== "VARIABLE" && updates.fieldType !== "SIGNATURE") {
+          updated.options = null;
+        }
+        if (updates.fieldType === "SIGNATURE" && !updated.options) {
+          updated.options = "patient";
+        }
+        return updated;
+      }),
     }));
     if (errors.fields) {
       const next = { ...errors };
@@ -230,11 +273,14 @@ export function useFormTemplatesViewModel() {
     setSaving(true);
     setApiError(null);
 
+    const effectiveTemplateType: TemplateType = selected?.templateType ?? pendingTemplateType ?? activeTab;
+
     try {
       await saveFormTemplateUseCase.execute({
         id: selected?.id,
         name: form.name.trim(),
         description: form.description.trim() || null,
+        templateType: selected ? undefined : effectiveTemplateType,
         fields:
           selected && hasRecords
             ? undefined
@@ -243,7 +289,7 @@ export function useFormTemplatesViewModel() {
                 fieldType: field.fieldType,
                 position: field.position,
                 isRequired: field.isRequired,
-                options: field.fieldType === "SELECT" ? field.options : null,
+                options: ["SELECT", "VARIABLE", "SIGNATURE"].includes(field.fieldType) ? field.options : null,
                 defaultValue: field.defaultValue || null,
               })),
       });
@@ -281,7 +327,10 @@ export function useFormTemplatesViewModel() {
 
   return {
     state: {
-      items,
+      reportItems,
+      consentTemplate,
+      certificateTemplate,
+      activeTab,
       query,
       selected,
       filteredItems,
@@ -301,10 +350,15 @@ export function useFormTemplatesViewModel() {
       isSubmitDisabled,
       hasRecords,
       showPreview,
+      canEdit,
+      isAdminOnly,
+      pendingTemplateType,
+      role,
     },
     actions: {
       setQuery,
-      openCreateModal,
+      setActiveTab,
+      openCreateModalForTab,
       openEditModal,
       closeModal,
       handleFieldChange,

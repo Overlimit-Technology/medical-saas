@@ -9,6 +9,14 @@ export class GetClinicalRecordsUseCase {
   }
 }
 
+export class GetClinicalRecordsByPatientUseCase {
+  constructor(private readonly repo: ClinicalRecordsRepository) {}
+
+  async execute(patientId: string): Promise<ClinicalRecord[]> {
+    return this.repo.getClinicalRecordsByPatient(patientId);
+  }
+}
+
 export class SaveClinicalRecordUseCase {
   constructor(private readonly repo: ClinicalRecordsRepository) {}
 

@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import type { FormFieldType } from "@prisma/client";
+import type { FormFieldType, TemplateType, Prisma } from "@prisma/client";
 
 type FieldInput = {
   label: string;
@@ -13,6 +13,7 @@ type FieldInput = {
 type CreateTemplateInput = {
   name: string;
   description?: string | null;
+  templateType?: TemplateType;
   fields: FieldInput[];
 };
 
@@ -23,10 +24,48 @@ type UpdateTemplateInput = {
   fields?: FieldInput[];
 };
 
+type Actor = {
+  userId: string;
+  role: string;
+};
+
+const ADMIN_ONLY_TYPES: TemplateType[] = ["CONSENT", "ATTENDANCE_CERTIFICATE"];
+
+function visibilityFilter(clinicId: string, actor: Actor, templateType?: TemplateType): Prisma.FormTemplateWhereInput {
+  const typeFilter = templateType ? { templateType } : {};
+  if (actor.role === "DOCTOR" && !templateType) {
+    return {
+      clinicId,
+      ...typeFilter,
+      OR: [
+        { ownerDoctorId: actor.userId, templateType: "REPORT" },
+        { ownerDoctorId: null, templateType: "REPORT" },
+      ],
+    };
+  }
+  if (actor.role === "DOCTOR" && templateType === "REPORT") {
+    return {
+      clinicId,
+      templateType: "REPORT",
+      OR: [{ ownerDoctorId: actor.userId }, { ownerDoctorId: null }],
+    };
+  }
+  return { clinicId, ...typeFilter };
+}
+
+function canModify(template: { ownerDoctorId: string | null; templateType: TemplateType }, actor: Actor): boolean {
+  if (actor.role === "ADMIN") return true;
+  if (ADMIN_ONLY_TYPES.includes(template.templateType)) return false;
+  if (actor.role === "DOCTOR") {
+    return template.ownerDoctorId === actor.userId;
+  }
+  return false;
+}
+
 export class FormTemplatesService {
-  static async list(clinicId: string) {
+  static async list(clinicId: string, actor: Actor, templateType?: TemplateType) {
     return prisma.formTemplate.findMany({
-      where: { clinicId, isActive: true },
+      where: { ...visibilityFilter(clinicId, actor, templateType), isActive: true },
       include: {
         fields: { orderBy: { position: "asc" } },
         _count: { select: { clinicalRecords: true } },
@@ -47,15 +86,34 @@ export class FormTemplatesService {
     return template;
   }
 
-  static async create(clinicId: string, input: CreateTemplateInput) {
+  static async create(clinicId: string, actor: Actor, input: CreateTemplateInput) {
     if (!input.name.trim()) throw new Error("El nombre es obligatorio.");
     if (!input.fields.length) throw new Error("Debe incluir al menos un campo.");
+
+    const templateType: TemplateType = input.templateType ?? "REPORT";
+
+    if (ADMIN_ONLY_TYPES.includes(templateType) && actor.role !== "ADMIN") {
+      throw new Error("Solo los administradores pueden crear este tipo de plantilla.");
+    }
+
+    if (ADMIN_ONLY_TYPES.includes(templateType)) {
+      const existing = await prisma.formTemplate.findFirst({
+        where: { clinicId, templateType, isActive: true },
+      });
+      if (existing) {
+        throw new Error("Ya existe una plantilla de este tipo para la clínica.");
+      }
+    }
+
+    const ownerDoctorId = actor.role === "DOCTOR" && templateType === "REPORT" ? actor.userId : null;
 
     return prisma.formTemplate.create({
       data: {
         clinicId,
+        ownerDoctorId,
         name: input.name.trim(),
         description: input.description?.trim() || null,
+        templateType,
         fields: {
           create: input.fields.map((f, idx) => ({
             label: f.label.trim(),
@@ -73,12 +131,13 @@ export class FormTemplatesService {
     });
   }
 
-  static async update(id: string, clinicId: string, input: UpdateTemplateInput) {
+  static async update(id: string, clinicId: string, actor: Actor, input: UpdateTemplateInput) {
     const template = await prisma.formTemplate.findFirst({
       where: { id, clinicId },
       include: { _count: { select: { clinicalRecords: true } } },
     });
     if (!template) throw new Error("Plantilla no encontrada.");
+    if (!canModify(template, actor)) throw new Error("No puedes modificar esta plantilla.");
 
     const hasRecords = template._count.clinicalRecords > 0;
 
@@ -131,12 +190,13 @@ export class FormTemplatesService {
     });
   }
 
-  static async remove(id: string, clinicId: string) {
+  static async remove(id: string, clinicId: string, actor: Actor) {
     const template = await prisma.formTemplate.findFirst({
       where: { id, clinicId },
       include: { _count: { select: { clinicalRecords: true } } },
     });
     if (!template) throw new Error("Plantilla no encontrada.");
+    if (!canModify(template, actor)) throw new Error("No puedes eliminar esta plantilla.");
 
     if (template._count.clinicalRecords > 0) {
       await prisma.formTemplate.update({

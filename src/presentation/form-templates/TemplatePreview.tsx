@@ -1,10 +1,12 @@
 "use client";
 
 import type { TemplateField } from "./FormTemplatesViewModel";
+import { TEMPLATE_VARIABLES } from "./FormTemplatesViewModel";
 
 type Props = {
   templateName: string;
   fields: TemplateField[];
+  clinicLogo?: string | null;
 };
 
 function getSampleValue(fieldType: string, options?: string | null): string {
@@ -26,13 +28,30 @@ function getSampleValue(fieldType: string, options?: string | null): string {
       return "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam.";
     case "BOOLEAN":
       return "Sí";
+    case "VARIABLE":
+      return options ? (TEMPLATE_VARIABLES[options] ?? options) : "Variable automática";
     default:
       return "Lorem ipsum";
   }
 }
 
-export default function TemplatePreview({ templateName, fields }: Props) {
+function SignaturePlaceholder({ label, name }: { label: string; name?: string }) {
+  return (
+    <div className="flex flex-col items-center gap-1 pt-2">
+      <div className="flex h-12 w-40 items-center justify-center rounded-lg border-2 border-dashed border-slate-300 bg-slate-50">
+        <span className="text-[10px] text-slate-400">{label}</span>
+      </div>
+      {name && <p className="text-[10px] text-slate-500">{name}</p>}
+      <p className="text-[9px] text-slate-400">Nombre: ___________________________</p>
+      <p className="text-[9px] text-slate-400">Fecha: ____________________________</p>
+    </div>
+  );
+}
+
+export default function TemplatePreview({ templateName, fields, clinicLogo }: Props) {
   const sortedFields = [...fields].sort((a, b) => a.position - b.position);
+  const regularFields = sortedFields.filter((f) => f.fieldType !== "SIGNATURE");
+  const signatureFields = sortedFields.filter((f) => f.fieldType === "SIGNATURE");
 
   return (
     <div className="sticky top-0">
@@ -47,30 +66,28 @@ export default function TemplatePreview({ templateName, fields }: Props) {
           <div className="flex flex-col justify-between" style={{ minHeight: "460px" }}>
             {/* Content */}
             <div className="space-y-4">
-              {/* Clinic logo placeholder */}
               <div className="flex justify-center">
-                <div className="flex h-14 w-36 items-center justify-center rounded-lg border-2 border-dashed border-slate-300 bg-slate-50">
-                  <span className="text-[10px] text-slate-400">Logo Clínica</span>
-                </div>
+                {clinicLogo ? (
+                  <img src={clinicLogo} alt="Logo" className="h-14 max-w-[144px] object-contain" />
+                ) : (
+                  <div className="flex h-14 w-36 items-center justify-center rounded-lg border-2 border-dashed border-slate-300 bg-slate-50">
+                    <span className="text-[10px] text-slate-400">Logo Clínica</span>
+                  </div>
+                )}
               </div>
 
-              {/* Template name */}
               <h3 className="text-center text-base font-bold text-slate-900">
                 {templateName}
               </h3>
 
-              {/* Separator */}
               <hr className="border-slate-200" />
 
-              {/* Patient / Doctor info */}
               <div className="space-y-0.5 text-[11px] text-slate-500">
                 <p>
-                  <span className="font-semibold text-slate-600">Paciente:</span> Juan
-                  Pérez González
+                  <span className="font-semibold text-slate-600">Paciente:</span> Juan Pérez González
                 </p>
                 <p>
-                  <span className="font-semibold text-slate-600">Doctor:</span> Dra.
-                  María López Fuentes
+                  <span className="font-semibold text-slate-600">Doctor:</span> Dra. María López Fuentes
                 </p>
                 <p>
                   <span className="font-semibold text-slate-600">Fecha:</span>{" "}
@@ -78,12 +95,10 @@ export default function TemplatePreview({ templateName, fields }: Props) {
                 </p>
               </div>
 
-              {/* Separator */}
               <hr className="border-slate-200" />
 
-              {/* Fields */}
               <div className="space-y-3">
-                {sortedFields.map((field, idx) => (
+                {regularFields.map((field, idx) => (
                   <div key={idx}>
                     <p className="text-[9px] font-bold uppercase tracking-wider text-slate-400">
                       {field.label || "Campo sin nombre"}
@@ -93,7 +108,7 @@ export default function TemplatePreview({ templateName, fields }: Props) {
                     </p>
                   </div>
                 ))}
-                {sortedFields.length === 0 && (
+                {regularFields.length === 0 && signatureFields.length === 0 && (
                   <p className="text-[11px] italic text-slate-400">
                     Agrega campos para ver la previsualización
                   </p>
@@ -105,17 +120,24 @@ export default function TemplatePreview({ templateName, fields }: Props) {
             <div className="mt-6 space-y-4">
               <hr className="border-slate-200" />
 
-              {/* Doctor signature placeholder */}
-              <div className="flex flex-col items-center gap-1 pt-2">
-                <div className="flex h-12 w-40 items-center justify-center rounded-lg border-2 border-dashed border-slate-300 bg-slate-50">
-                  <span className="text-[10px] text-slate-400">Firma del Doctor</span>
+              {signatureFields.length > 0 ? (
+                <div className={`flex ${signatureFields.length > 1 ? "justify-around" : "justify-center"} gap-4 pt-2`}>
+                  {signatureFields.map((field, idx) => (
+                    <SignaturePlaceholder
+                      key={idx}
+                      label={field.label || (field.options === "doctor" ? "Firma del Profesional" : "Firma del Paciente")}
+                    />
+                  ))}
                 </div>
-                <p className="text-[10px] text-slate-500">
-                  Dra. María López Fuentes
-                </p>
-              </div>
+              ) : (
+                <div className="flex flex-col items-center gap-1 pt-2">
+                  <div className="flex h-12 w-40 items-center justify-center rounded-lg border-2 border-dashed border-slate-300 bg-slate-50">
+                    <span className="text-[10px] text-slate-400">Firma del Doctor</span>
+                  </div>
+                  <p className="text-[10px] text-slate-500">Dra. María López Fuentes</p>
+                </div>
+              )}
 
-              {/* Generated footer */}
               <p className="text-center text-[8px] text-slate-300">
                 Generado el {new Date().toLocaleString("es-CL")} — Página 1 de 1
               </p>

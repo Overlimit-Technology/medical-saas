@@ -5,6 +5,7 @@ import { ProfileRepositoryHttp } from "@/data/profile/ProfileRepository";
 import { ClinicsRepositoryHttp } from "@/data/clinics/ClinicsRepository";
 import { GetMyProfileUseCase } from "@/domain/profile/usecases/ProfileUseCases";
 import { ClearSelectedClinicUseCase } from "@/domain/clinics/usecases/ClearSelectedClinicUseCase";
+import { GetMyClinicsUseCase } from "@/domain/clinics/usecases/GetMyClinicsUseCase";
 import { normalizePermissions } from "@/lib/permissions";
 
 type Role = "ADMIN" | "SECRETARY" | "DOCTOR";
@@ -19,13 +20,14 @@ export function getInitials(firstName: string, lastName: string, email: string) 
 }
 
 export function useSidebarViewModel() {
-  const { getMyProfileUseCase, clearSelectedClinicUseCase } = useMemo(() => {
+  const { getMyProfileUseCase, clearSelectedClinicUseCase, getMyClinicsUseCase } = useMemo(() => {
     const profileRepo = new ProfileRepositoryHttp();
     const clinicsRepo = new ClinicsRepositoryHttp();
 
     return {
       getMyProfileUseCase: new GetMyProfileUseCase(profileRepo),
       clearSelectedClinicUseCase: new ClearSelectedClinicUseCase(clinicsRepo),
+      getMyClinicsUseCase: new GetMyClinicsUseCase(clinicsRepo),
     };
   }, []);
 
@@ -37,6 +39,7 @@ export function useSidebarViewModel() {
   const [email, setEmail] = useState("");
   const [image, setImage] = useState<string | null>(null);
   const [initials, setInitials] = useState("MG");
+  const [clinicCount, setClinicCount] = useState(0);
 
   useEffect(() => {
     const loadSidebarData = async () => {
@@ -55,6 +58,13 @@ export function useSidebarViewModel() {
         setIsSuperAdmin(false);
         setPermissions([]);
       }
+
+      try {
+        const clinics = await getMyClinicsUseCase.execute();
+        setClinicCount(clinics.length);
+      } catch {
+        setClinicCount(0);
+      }
     };
 
     const handleProfileUpdated = () => {
@@ -69,7 +79,7 @@ export function useSidebarViewModel() {
       window.removeEventListener("profile-updated", handleProfileUpdated);
       window.removeEventListener("focus", handleProfileUpdated);
     };
-  }, [getMyProfileUseCase]);
+  }, [getMyProfileUseCase, getMyClinicsUseCase]);
 
   const handleChangeClinic = async () => {
     await clearSelectedClinicUseCase.execute();
@@ -86,6 +96,7 @@ export function useSidebarViewModel() {
       email,
       image,
       initials,
+      canChangeClinic: clinicCount > 1,
     },
     actions: {
       handleChangeClinic,

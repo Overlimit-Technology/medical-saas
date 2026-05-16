@@ -19,6 +19,17 @@ export class ClinicalRecordsRepositoryHttp implements ClinicalRecordsRepository 
     return data.items ?? [];
   }
 
+  async getClinicalRecordsByPatient(patientId: string): Promise<ClinicalRecord[]> {
+    const res = await fetch(`/api/clinical-records?patientId=${patientId}`);
+    const data = (await res.json().catch(() => null)) as ClinicalRecordsResponse | null;
+
+    if (!res.ok || !data?.ok) {
+      throw new Error(data?.error ?? "No se pudieron cargar las fichas.");
+    }
+
+    return data.items ?? [];
+  }
+
   async saveClinicalRecord(input: {
     recordId?: string;
     appointmentId?: string;
@@ -30,7 +41,7 @@ export class ClinicalRecordsRepositoryHttp implements ClinicalRecordsRepository 
     const payload: Record<string, unknown> = { values: input.values };
 
     if (!editing) {
-      payload.appointmentId = input.appointmentId;
+      payload.appointmentId = input.appointmentId ?? null;
       payload.templateId = input.templateId;
       payload.patientId = input.patientId;
     }

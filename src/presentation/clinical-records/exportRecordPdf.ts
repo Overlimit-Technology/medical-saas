@@ -11,6 +11,7 @@ type ExportData = {
   patientName: string;
   doctorName: string;
   date: string;
+  clinicLogo?: string | null;
   fields: FieldValue[];
 };
 
@@ -26,6 +27,15 @@ export function exportRecordPdf(data: ExportData) {
   const marginRight = 20;
   const contentWidth = pageWidth - marginLeft - marginRight;
   let y = 20;
+
+  // Logo
+  if (data.clinicLogo) {
+    const format = data.clinicLogo.includes("image/png") ? "PNG" : "JPEG";
+    const logoW = 36;
+    const logoH = 14;
+    doc.addImage(data.clinicLogo, format, pageWidth / 2 - logoW / 2, y, logoW, logoH);
+    y += logoH + 6;
+  }
 
   // Header
   doc.setFontSize(18);

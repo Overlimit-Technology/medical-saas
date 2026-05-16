@@ -1,4 +1,4 @@
-import type { FormTemplate, TemplateField } from "@/domain/form-templates/entities/FormTemplate";
+import type { FormTemplate, TemplateField, TemplateType } from "@/domain/form-templates/entities/FormTemplate";
 import type { FormTemplatesRepository } from "@/domain/form-templates/repositories/FormTemplatesRepository";
 
 type FormTemplatesResponse = {
@@ -8,8 +8,9 @@ type FormTemplatesResponse = {
 };
 
 export class FormTemplatesRepositoryHttp implements FormTemplatesRepository {
-  async getTemplates(): Promise<FormTemplate[]> {
-    const res = await fetch("/api/form-templates");
+  async getTemplates(templateType?: TemplateType): Promise<FormTemplate[]> {
+    const url = templateType ? `/api/form-templates?type=${templateType}` : "/api/form-templates";
+    const res = await fetch(url);
     const data = (await res.json().catch(() => null)) as FormTemplatesResponse | null;
 
     if (!res.ok || !data?.ok) {
@@ -23,6 +24,7 @@ export class FormTemplatesRepositoryHttp implements FormTemplatesRepository {
     id?: string;
     name: string;
     description: string | null;
+    templateType?: TemplateType;
     fields?: TemplateField[];
   }): Promise<void> {
     const editing = Boolean(input.id);
@@ -30,6 +32,10 @@ export class FormTemplatesRepositoryHttp implements FormTemplatesRepository {
       name: input.name,
       description: input.description,
     };
+
+    if (!editing && input.templateType) {
+      payload.templateType = input.templateType;
+    }
 
     if (input.fields) {
       payload.fields = input.fields;

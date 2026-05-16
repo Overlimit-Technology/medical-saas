@@ -6,13 +6,14 @@ import { exportRecordPdf } from "./exportRecordPdf";
 type Props = {
   records: ClinicalRecord[];
   patientName: string;
+  clinicLogo?: string | null;
   onEdit: (record: ClinicalRecord) => void;
 };
 
-export default function ClinicalRecordsList({ records, patientName, onEdit }: Props) {
+export default function ClinicalRecordsList({ records, patientName, clinicLogo, onEdit }: Props) {
   if (records.length === 0) {
     return (
-      <p className="text-sm text-slate-400">No hay fichas clínicas registradas para esta cita.</p>
+      <p className="text-sm text-slate-400">No hay fichas clínicas registradas.</p>
     );
   }
 
@@ -28,6 +29,7 @@ export default function ClinicalRecordsList({ records, patientName, onEdit }: Pr
       patientName,
       doctorName,
       date: new Date(record.createdAt).toLocaleString("es-CL"),
+      clinicLogo: clinicLogo ?? null,
       fields: sortedValues.map((v) => ({
         label: v.field.label,
         value: v.value,
