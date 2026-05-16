@@ -11,6 +11,33 @@ const appointmentInclude = {
   patient: true,
   doctor: { include: { profile: true } },
   box: true,
+  treatmentPlan: {
+    select: {
+      id: true,
+      name: true,
+      status: true,
+      startsAt: true,
+      endsAt: true,
+      _count: {
+        select: {
+          appointments: true,
+        },
+      },
+      treatments: {
+        select: {
+          position: true,
+          treatment: {
+            select: {
+              id: true,
+              name: true,
+              price: true,
+            },
+          },
+        },
+        orderBy: { position: "asc" },
+      },
+    },
+  },
   paymentHistory: {
     include: {
       patientTreatment: {
@@ -49,10 +76,27 @@ function toNumber(value: { toString(): string } | number) {
 }
 
 function serializeAppointment(item: AppointmentWithRelations) {
-  const { paymentHistory, ...appointment } = item;
+  const { paymentHistory, treatmentPlan, ...appointment } = item;
 
   return {
     ...appointment,
+    treatmentPlan: treatmentPlan
+      ? {
+          id: treatmentPlan.id,
+          name: treatmentPlan.name,
+          status: treatmentPlan.status,
+          startsAt: treatmentPlan.startsAt,
+          endsAt: treatmentPlan.endsAt,
+          sessionIndex: appointment.planSessionIndex ?? null,
+          totalSessions: treatmentPlan._count.appointments,
+          treatments: treatmentPlan.treatments.map((entry) => ({
+            id: entry.treatment.id,
+            name: entry.treatment.name,
+            price: toNumber(entry.treatment.price),
+            position: entry.position,
+          })),
+        }
+      : null,
     paymentEntry: paymentHistory
       ? {
           id: paymentHistory.id,
@@ -75,6 +119,8 @@ export type AppointmentInput = {
   patientId: string;
   doctorId: string;
   boxId: string;
+  treatmentPlanId?: string | null;
+  planSessionIndex?: number | null;
   startAt: Date;
   endAt: Date;
   status?: string;
@@ -100,6 +146,7 @@ export class AppointmentsService {
     to?: Date | null;
     doctorId?: string | null;
     patientId?: string | null;
+    treatmentPlanId?: string | null;
     status?: string | null;
     q?: string | null;
   }) {
@@ -113,6 +160,7 @@ export class AppointmentsService {
 
     if (params.doctorId) where.doctorId = params.doctorId;
     if (params.patientId) where.patientId = params.patientId;
+    if (params.treatmentPlanId) where.treatmentPlanId = params.treatmentPlanId;
     const status = toAppointmentStatus(params.status);
     if (status) where.status = status;
 
@@ -149,6 +197,13 @@ export class AppointmentsService {
 
   static async create(input: AppointmentInput) {
     await this.ensureRelated(input.clinicId, input.patientId, input.doctorId, input.boxId);
+    if (input.treatmentPlanId) {
+      await this.ensureTreatmentPlan({
+        clinicId: input.clinicId,
+        patientId: input.patientId,
+        treatmentPlanId: input.treatmentPlanId,
+      });
+    }
     await this.assertNoConflicts(input);
 
     const item = await prisma.appointment.create({
@@ -157,6 +212,11 @@ export class AppointmentsService {
         patientId: input.patientId,
         doctorId: input.doctorId,
         boxId: input.boxId,
+        treatmentPlanId: input.treatmentPlanId ?? null,
+        planSessionIndex:
+          input.planSessionIndex !== null && input.planSessionIndex !== undefined
+            ? Math.max(1, Math.trunc(input.planSessionIndex))
+            : null,
         startAt: input.startAt,
         endAt: input.endAt,
         status: toAppointmentStatus(input.status) ?? "SCHEDULED",
@@ -166,6 +226,10 @@ export class AppointmentsService {
       },
       include: appointmentInclude,
     });
+
+    if (item.treatmentPlanId) {
+      await this.syncTreatmentPlanStatus(item.treatmentPlanId);
+    }
 
     return serializeAppointment(item);
   }
@@ -211,6 +275,10 @@ export class AppointmentsService {
       },
       include: appointmentInclude,
     });
+
+    if (item.treatmentPlanId) {
+      await this.syncTreatmentPlanStatus(item.treatmentPlanId);
+    }
 
     return serializeAppointment(item);
   }
@@ -311,6 +379,10 @@ export class AppointmentsService {
       });
     });
 
+    if (item.treatmentPlanId) {
+      await this.syncTreatmentPlanStatus(item.treatmentPlanId);
+    }
+
     return serializeAppointment(item);
   }
 
@@ -325,6 +397,10 @@ export class AppointmentsService {
       data: { status: "CANCELLED" },
       include: appointmentInclude,
     });
+
+    if (item.treatmentPlanId) {
+      await this.syncTreatmentPlanStatus(item.treatmentPlanId);
+    }
 
     await AuditService.log("appointment.cancel", author, detail);
     return serializeAppointment(item);
@@ -365,6 +441,33 @@ export class AppointmentsService {
     }
   }
 
+  private static async syncTreatmentPlanStatus(treatmentPlanId: string) {
+    const sessions = await prisma.appointment.findMany({
+      where: { treatmentPlanId },
+      select: {
+        status: true,
+        endAt: true,
+      },
+      orderBy: { endAt: "asc" },
+    });
+
+    if (sessions.length === 0) return;
+
+    const hasPendingSessions = sessions.some(
+      (session) => session.status === "SCHEDULED" || session.status === "CONFIRMED"
+    );
+
+    const lastEndAt = sessions[sessions.length - 1]?.endAt ?? null;
+
+    await prisma.treatmentPlan.update({
+      where: { id: treatmentPlanId },
+      data: {
+        status: hasPendingSessions ? "ACTIVE" : "COMPLETED",
+        endsAt: lastEndAt,
+      },
+    });
+  }
+
   private static async ensureRelated(clinicId: string, patientId: string, doctorId: string, boxId: string) {
     const [patient, doctor, box] = await Promise.all([
       prisma.patient.findFirst({ where: { id: patientId, clinicId } }),
@@ -378,8 +481,38 @@ export class AppointmentsService {
       prisma.box.findFirst({ where: { id: boxId, clinicId, isActive: true } }),
     ]);
 
-    if (!patient) throw new Error("Paciente no encontrado en la clínica.");
-    if (!doctor) throw new Error("Doctor no encontrado en la clínica.");
-    if (!box) throw new Error("Box no encontrado en la clínica.");
+    if (!patient) throw new Error("Paciente no encontrado en la clinica.");
+    if (!doctor) throw new Error("Doctor no encontrado en la clinica.");
+    if (!box) throw new Error("Box no encontrado en la clinica.");
+  }
+
+  private static async ensureTreatmentPlan(input: {
+    clinicId: string;
+    patientId: string;
+    treatmentPlanId: string;
+  }) {
+    const plan = await prisma.treatmentPlan.findFirst({
+      where: {
+        id: input.treatmentPlanId,
+        clinicId: input.clinicId,
+      },
+      select: {
+        patientId: true,
+        status: true,
+      },
+    });
+
+    if (!plan) {
+      throw new Error("Plan de tratamiento no encontrado.");
+    }
+
+    if (plan.patientId !== input.patientId) {
+      throw new Error("El plan de tratamiento no corresponde al paciente seleccionado.");
+    }
+
+    if (plan.status === "CANCELLED") {
+      throw new Error("No se pueden agregar sesiones a un plan cancelado.");
+    }
   }
 }
+

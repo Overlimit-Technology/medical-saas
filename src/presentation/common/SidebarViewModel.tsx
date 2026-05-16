@@ -35,7 +35,7 @@ export function useSidebarViewModel() {
   const [isSuperAdmin, setIsSuperAdmin] = useState(false);
   const [permissions, setPermissions] = useState<string[]>([]);
   const [displayName, setDisplayName] = useState("Medigest");
-  const [clinicLabel, setClinicLabel] = useState("Panel clínico");
+  const [clinicLabel, setClinicLabel] = useState("Panel clinico");
   const [email, setEmail] = useState("");
   const [image, setImage] = useState<string | null>(null);
   const [initials, setInitials] = useState("MG");
@@ -103,3 +103,4 @@ export function useSidebarViewModel() {
     },
   };
 }
+

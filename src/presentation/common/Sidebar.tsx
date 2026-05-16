@@ -13,6 +13,8 @@ import {
   Bell,
   ChevronsUpDown,
   LogOut,
+  Pencil,
+  UserCircle,
   MessageCircle,
   Activity,
   Building2,
@@ -85,6 +87,13 @@ const NAV_ITEMS: NavItem[] = [
     roles: ["ADMIN", "SECRETARY", "DOCTOR"],
   },
   {
+    href: "/profile",
+    label: "Mi perfil",
+    icon: UserCircle,
+    group: "paginas",
+    roles: ["ADMIN", "SECRETARY", "DOCTOR"],
+  },
+  {
     href: "/gestion-usuarios",
     label: "Gestionar usuarios",
     icon: UserCog,
@@ -125,9 +134,7 @@ export default function Sidebar() {
 
   const isItemActive = (item: NavItem) => {
     const matchPrefixes = item.matchPrefixes ?? [item.href];
-    return matchPrefixes.some(
-      (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`)
-    );
+    return matchPrefixes.some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`));
   };
 
   const renderItem = (item: NavItem, nested = false) => {
@@ -145,9 +152,7 @@ export default function Sidebar() {
               ? "items-start gap-2.5 px-2.5 py-2.5 pl-10"
               : "items-start gap-2.5 px-2.5 py-2.5"
         } ${
-          active
-            ? "bg-white text-[#19b3bc]"
-            : "text-white/90 hover:bg-white/10 hover:text-white"
+          active ? "bg-white text-[#19b3bc]" : "text-white/90 hover:bg-white/10 hover:text-white"
         }`}
       >
         <Icon
@@ -172,25 +177,31 @@ export default function Sidebar() {
       <div className={`flex items-center px-1 ${collapsed ? "justify-center" : "gap-2.5"}`}>
         {!collapsed && (
           <>
-            {state.image ? (
-              <img
-                src={state.image}
-                alt={state.displayName}
-                className="h-9 w-9 shrink-0 rounded-full border border-white/20 object-cover"
-              />
-            ) : (
-              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white text-sm font-semibold text-[#19b3bc]">
-                {state.initials}
-              </div>
-            )}
+            <Link
+              href="/profile"
+              className="group/profile relative h-9 w-9 shrink-0 overflow-hidden rounded-full border border-white/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/75 focus-visible:ring-offset-2 focus-visible:ring-offset-[#19b3bc]"
+              aria-label="Editar mi perfil"
+              title="Editar mi perfil"
+            >
+              {state.image ? (
+                <img
+                  src={state.image}
+                  alt={state.displayName}
+                  className="h-full w-full object-cover"
+                />
+              ) : (
+                <span className="flex h-full w-full items-center justify-center bg-white text-sm font-semibold text-[#19b3bc]">
+                  {state.initials}
+                </span>
+              )}
+              <span className="absolute inset-0 flex items-center justify-center bg-slate-950/55 text-white opacity-0 transition-opacity group-hover/profile:opacity-100 group-focus-visible/profile:opacity-100">
+                <Pencil className="h-3.5 w-3.5" strokeWidth={2.4} aria-hidden="true" />
+              </span>
+            </Link>
 
             <div className="min-w-0 flex-1">
-              <p className="truncate text-[12px] font-semibold leading-4 text-white">
-                {state.displayName}
-              </p>
-              <p className="mt-0.5 line-clamp-2 text-[10px] leading-4 text-white/80">
-                {state.clinicLabel}
-              </p>
+              <p className="truncate text-[12px] font-semibold leading-4 text-white">{state.displayName}</p>
+              <p className="mt-0.5 line-clamp-2 text-[10px] leading-4 text-white/80">{state.clinicLabel}</p>
             </div>
           </>
         )}
@@ -199,7 +210,7 @@ export default function Sidebar() {
           type="button"
           onClick={() => setCollapsed((value) => !value)}
           className="group flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-white transition hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:ring-offset-2 focus-visible:ring-offset-[#19b3bc]"
-          aria-label={collapsed ? "Expandir menú" : "Colapsar menú"}
+          aria-label={collapsed ? "Expandir menu" : "Colapsar menu"}
         >
           <span className="relative flex h-4 w-4 flex-col items-center justify-center">
             <span
@@ -219,24 +230,14 @@ export default function Sidebar() {
 
       <div className="mt-6">
         {!collapsed && (
-          <p className="px-1 text-[9px] font-medium uppercase tracking-[0.16em] text-white/65">
-            Escritorios
-          </p>
+          <p className="px-1 text-[9px] font-medium uppercase tracking-[0.16em] text-white/65">Escritorios</p>
         )}
-        <nav className="mt-2 flex flex-col gap-1">
-          {escritorioItems.map((item) => renderItem(item))}
-        </nav>
+        <nav className="mt-2 flex flex-col gap-1">{escritorioItems.map((item) => renderItem(item))}</nav>
       </div>
 
       <div className="mt-4">
-        {!collapsed && (
-          <p className="px-1 text-[9px] font-medium uppercase tracking-[0.16em] text-white/65">
-            Páginas
-          </p>
-        )}
-        <nav className="mt-2 flex flex-col gap-1">
-          {paginaItems.map((item) => renderItem(item))}
-        </nav>
+        {!collapsed && <p className="px-1 text-[9px] font-medium uppercase tracking-[0.16em] text-white/65">Paginas</p>}
+        <nav className="mt-2 flex flex-col gap-1">{paginaItems.map((item) => renderItem(item))}</nav>
       </div>
 
       <div className="mt-auto space-y-1 pt-4">
@@ -253,12 +254,12 @@ export default function Sidebar() {
           <Building2 className="mt-0.5 h-[17px] w-[17px] shrink-0" strokeWidth={2} />
           {!collapsed && (
             <span className="min-w-0 flex-1 whitespace-normal break-words text-[13px] leading-4">
-              Mi Clínica
+              Mi Clinica
             </span>
           )}
         </Link>
 
-        {state.canChangeClinic && (
+        {state.canChangeClinic && !state.isSuperAdmin && (
           <button
             type="button"
             onClick={actions.handleChangeClinic}
@@ -285,7 +286,7 @@ export default function Sidebar() {
             <LogOut className="mt-0.5 h-[17px] w-[17px] text-white/90" />
             {!collapsed && (
               <span className="min-w-0 flex-1 whitespace-normal break-words text-left text-[13px] leading-4">
-                Cerrar sesión
+                Cerrar sesion
               </span>
             )}
           </button>

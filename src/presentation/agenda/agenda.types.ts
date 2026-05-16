@@ -49,6 +49,15 @@ export type AppointmentFormState = {
   notes: string;
 };
 
+export type ContinuousPlanFormState = {
+  enabled: boolean;
+  name: string;
+  notes: string;
+  totalSessions: string;
+  frequencyDays: string;
+  treatmentIds: string[];
+};
+
 export type PaymentFormState = {
   treatmentId: string;
   status: PaymentStatus;

@@ -9,6 +9,8 @@ const appointmentCreateSchema = z.object({
   patientId: z.string().min(1),
   doctorId: z.string().min(1),
   boxId: z.string().min(1),
+  treatmentPlanId: z.string().min(1).optional().nullable(),
+  planSessionIndex: z.coerce.number().int().positive().optional().nullable(),
   startAt: z.string().min(1),
   endAt: z.string().min(1),
   patientFirstName: z.string().min(1).optional(),
@@ -44,6 +46,7 @@ export async function GET(req: Request) {
     const to = parseDate(searchParams.get("to"));
     const doctorId = searchParams.get("doctorId");
     const patientId = searchParams.get("patientId");
+    const treatmentPlanId = searchParams.get("treatmentPlanId");
     const status = searchParams.get("status");
     const q = searchParams.get("q");
 
@@ -53,6 +56,7 @@ export async function GET(req: Request) {
       to,
       doctorId: session.role === "DOCTOR" ? session.userId : doctorId,
       patientId,
+      treatmentPlanId,
       status,
       q,
     });
@@ -117,6 +121,8 @@ export async function POST(req: Request) {
         patientId: parsed.data.patientId,
         doctorId: parsed.data.doctorId,
         boxId: parsed.data.boxId,
+        treatmentPlanId: parsed.data.treatmentPlanId ?? null,
+        planSessionIndex: parsed.data.planSessionIndex ?? null,
         startAt,
         endAt,
         status: parsed.data.status,

@@ -96,6 +96,7 @@ function isValidClinicPayload(
 }
 
 const PROTECTED_PREFIXES = [
+  "/super-admin",
   "/dashboard",
   "/agenda",
   "/chat",
@@ -103,6 +104,7 @@ const PROTECTED_PREFIXES = [
   "/formulario-chat",
   "/crm",
   "/leads",
+  "/profile",
   "/notifications",
   "/patients",
   "/usuarios",
@@ -133,10 +135,10 @@ function canAccess(
   );
 }
 
-function roleHomePath(role: unknown) {
+function roleHomePath(role: unknown, isSuperAdmin: boolean) {
   switch (role) {
     case "ADMIN":
-      return "/dashboard/admin";
+      return isSuperAdmin ? "/super-admin" : "/dashboard/admin";
     case "SECRETARY":
       return "/dashboard/secretary";
     default:
@@ -172,8 +174,8 @@ export async function middleware(req: NextRequest) {
     ? isValidClinicPayload(clinicPayload, sessionPayload.userId)
     : false;
 
-  const roleHome = roleHomePath(sessionPayload?.role);
   const isSuperAdmin = sessionPayload?.isSuperAdmin === true;
+  const roleHome = roleHomePath(sessionPayload?.role, isSuperAdmin);
   const permissions = getPermissions(sessionPayload?.permissions);
   const mustChangePassword = hasValidSession && sessionPayload?.mustChangePassword === true;
   const shouldUseLegacy = hasValidSession && shouldRedirectToLegacy(sessionPayload);
@@ -191,7 +193,12 @@ export async function middleware(req: NextRequest) {
   if (pathname === "/" || pathname === "/login") {
     if (hasValidSession) {
       const url = req.nextUrl.clone();
-      url.pathname = mustChangePassword ? "/change-password" : hasValidClinic ? roleHome : "/select-clinic";
+      url.pathname =
+        mustChangePassword
+          ? "/change-password"
+          : hasValidClinic || isSuperAdmin
+            ? roleHome
+            : "/select-clinic";
       return NextResponse.redirect(url);
     }
     return NextResponse.next();
@@ -205,7 +212,7 @@ export async function middleware(req: NextRequest) {
     }
     if (!mustChangePassword) {
       const url = req.nextUrl.clone();
-      url.pathname = hasValidClinic ? roleHome : "/select-clinic";
+      url.pathname = hasValidClinic || isSuperAdmin ? roleHome : "/select-clinic";
       return NextResponse.redirect(url);
     }
     return NextResponse.next();
@@ -220,6 +227,11 @@ export async function middleware(req: NextRequest) {
     if (mustChangePassword) {
       const url = req.nextUrl.clone();
       url.pathname = "/change-password";
+      return NextResponse.redirect(url);
+    }
+    if (isSuperAdmin) {
+      const url = req.nextUrl.clone();
+      url.pathname = roleHome;
       return NextResponse.redirect(url);
     }
     if (hasValidClinic) {
@@ -241,9 +253,15 @@ export async function middleware(req: NextRequest) {
       url.pathname = "/change-password";
       return NextResponse.redirect(url);
     }
-    if (!hasValidClinic) {
+    if (!hasValidClinic && !isSuperAdmin) {
       const url = req.nextUrl.clone();
       url.pathname = "/select-clinic";
+      return NextResponse.redirect(url);
+    }
+
+    if (pathname.startsWith("/super-admin") && !isSuperAdmin) {
+      const url = req.nextUrl.clone();
+      url.pathname = roleHome;
       return NextResponse.redirect(url);
     }
 
@@ -253,12 +271,24 @@ export async function middleware(req: NextRequest) {
       return NextResponse.redirect(url);
     }
 
+    if (isSuperAdmin && pathname.startsWith("/gestion-usuarios")) {
+      const url = req.nextUrl.clone();
+      url.pathname = "/super-admin/usuarios";
+      return NextResponse.redirect(url);
+    }
+
     if (pathname === "/dashboard" || pathname === "/dashboard/") {
       if (roleHome !== "/dashboard") {
         const url = req.nextUrl.clone();
         url.pathname = roleHome;
         return NextResponse.redirect(url);
       }
+    }
+
+    if (isSuperAdmin && pathname.startsWith("/dashboard/admin")) {
+      const url = req.nextUrl.clone();
+      url.pathname = roleHome;
+      return NextResponse.redirect(url);
     }
 
     if (pathname.startsWith("/dashboard/admin") && sessionPayload?.role !== "ADMIN") {
@@ -341,16 +371,6 @@ export async function middleware(req: NextRequest) {
     }
 
     if (
-      pathname.startsWith("/chat") &&
-      !pathname.startsWith("/chat-meta") &&
-      !canAccess(sessionPayload?.role, isSuperAdmin, permissions, ["ADMIN"], "CHAT")
-    ) {
-      const url = req.nextUrl.clone();
-      url.pathname = roleHome;
-      return NextResponse.redirect(url);
-    }
-
-    if (
       pathname.startsWith("/chat-meta") &&
       !canAccess(sessionPayload?.role, isSuperAdmin, permissions, ["ADMIN"], "CHAT_META")
     ) {
@@ -409,6 +429,7 @@ export const config = {
     "/login",
     "/change-password",
     "/select-clinic",
+    "/super-admin/:path*",
     "/dashboard/:path*",
     "/agenda/:path*",
     "/chat/:path*",
@@ -416,6 +437,7 @@ export const config = {
     "/formulario-chat/:path*",
     "/crm/:path*",
     "/leads/:path*",
+    "/profile/:path*",
     "/notifications/:path*",
     "/patients/:path*",
     "/usuarios/:path*",

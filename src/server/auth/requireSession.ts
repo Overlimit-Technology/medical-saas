@@ -1,6 +1,7 @@
 import { cookies } from "next/headers";
 import type { UserPermission } from "@/lib/permissions";
 import { hasPermission } from "@/lib/permissions";
+import { prisma } from "@/lib/prisma";
 import { readMgSession } from "@/server/auth/mgSession";
 import { readMgClinic } from "@/server/clinics/mgClinic";
 
@@ -29,17 +30,39 @@ export async function requireClinicSession(): Promise<SessionContext> {
 
   const clinicCookie = cookies().get("mg_clinic")?.value;
   const clinic = await readMgClinic(clinicCookie);
-  if (!clinic || clinic.userId !== session.userId) {
-    throw new Error("Clinica no seleccionada.");
+  if (clinic && clinic.userId === session.userId) {
+    return {
+      userId: session.userId,
+      role: session.role,
+      isSuperAdmin: session.isSuperAdmin === true,
+      permissions: session.permissions ?? [],
+      clinicId: clinic.clinicId,
+    };
   }
 
-  return {
-    userId: session.userId,
-    role: session.role,
-    isSuperAdmin: session.isSuperAdmin === true,
-    permissions: session.permissions ?? [],
-    clinicId: clinic.clinicId,
-  };
+  if (session.isSuperAdmin === true) {
+    const fallbackMembership = await prisma.clinicMembership.findFirst({
+      where: {
+        userId: session.userId,
+        status: "ACTIVE",
+        clinic: { isActive: true },
+      },
+      orderBy: [{ clinic: { name: "asc" } }, { createdAt: "asc" }],
+      select: { clinicId: true },
+    });
+
+    if (fallbackMembership?.clinicId) {
+      return {
+        userId: session.userId,
+        role: session.role,
+        isSuperAdmin: true,
+        permissions: session.permissions ?? [],
+        clinicId: fallbackMembership.clinicId,
+      };
+    }
+  }
+
+  throw new Error("Clinica no seleccionada.");
 }
 
 export function requireRole(

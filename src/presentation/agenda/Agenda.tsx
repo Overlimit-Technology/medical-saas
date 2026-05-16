@@ -107,10 +107,15 @@ export default function Agenda() {
           patientSearchLoading={state.patientSearchLoading}
           doctors={state.doctors}
           boxes={state.boxes}
+          treatments={state.treatments}
+          continuousPlanForm={state.continuousPlanForm}
           errorMessage={state.errorMessage}
           onClose={actions.closeOverlay}
           onSubmit={(event) => void actions.createOrUpdateAppointment(event)}
           onFieldChange={actions.handleAppointmentFormChange}
+          onContinuousPlanFieldChange={actions.handleContinuousPlanFieldChange}
+          onContinuousPlanEnabledChange={actions.setContinuousPlanEnabled}
+          onContinuousPlanTreatmentToggle={actions.toggleContinuousPlanTreatment}
           onPatientRunChange={actions.handlePatientRunChange}
           onPatientSelect={actions.handlePatientSelection}
           onOpenCancelConfirm={actions.openCancelFromEditing}

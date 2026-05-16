@@ -43,13 +43,16 @@ export default function AgendaAppointmentCard({
   const patientName = `${item.patient.firstName} ${item.patient.lastName}`.trim();
   const doctorName = `${item.doctor.profile?.firstName ?? ""} ${item.doctor.profile?.lastName ?? ""}`.trim();
   const boxName = item.box?.name?.trim() ?? "";
+  const treatmentPlanLabel = item.treatmentPlan
+    ? `${item.treatmentPlan.name} - S${item.treatmentPlan.sessionIndex ?? "?"}/${item.treatmentPlan.totalSessions}`
+    : "";
   const scheduleLabel = `${formatTimeLabel(start)} - ${formatTimeLabel(end)}`;
   const isCompact = durationSlots <= 1;
   const isCondensed = durationSlots === 2;
   const showCombinedMeta = durationSlots >= 2;
   const showSeparatedMeta = durationSlots >= 4;
-  const combinedMeta = [doctorName, boxName].filter(Boolean).join(" • ");
-  const cardTitle = [patientName, scheduleLabel, doctorName, boxName].filter(Boolean).join(" • ");
+  const combinedMeta = [doctorName, boxName, treatmentPlanLabel].filter(Boolean).join(" · ");
+  const cardTitle = [patientName, scheduleLabel, doctorName, boxName, treatmentPlanLabel].filter(Boolean).join(" · ");
   const canShowResizeHandles = canResize && !isGhost && !isDraggingDisabled;
 
   return (
@@ -127,6 +130,11 @@ export default function AgendaAppointmentCard({
 
         {showSeparatedMeta ? (
           <>
+            {treatmentPlanLabel ? (
+              <p className="mt-1 truncate text-[10px] font-semibold leading-tight text-[#0f8f98]">
+                {treatmentPlanLabel}
+              </p>
+            ) : null}
             {doctorName ? (
               <p className="mt-1 truncate text-[10px] leading-tight text-slate-500">{doctorName}</p>
             ) : null}
@@ -141,3 +149,4 @@ export default function AgendaAppointmentCard({
     </div>
   );
 }
+

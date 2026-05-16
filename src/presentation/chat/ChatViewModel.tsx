@@ -76,6 +76,57 @@ export function formatMessageDayLabel(value: string) {
   }).format(date);
 }
 
+function getContactSortTimestamp(contact: Contact) {
+  if (!contact.lastMessageAt) return 0;
+  const parsed = new Date(contact.lastMessageAt);
+  return Number.isNaN(parsed.getTime()) ? 0 : parsed.getTime();
+}
+
+function sortContactsByRecency(items: Contact[]) {
+  return [...items].sort((left, right) => {
+    const rightTime = getContactSortTimestamp(right);
+    const leftTime = getContactSortTimestamp(left);
+
+    if (rightTime !== leftTime) {
+      return rightTime - leftTime;
+    }
+
+    if (left.isOnline !== right.isOnline) {
+      return left.isOnline ? -1 : 1;
+    }
+
+    const leftName = getDisplayName(left);
+    const rightName = getDisplayName(right);
+    return leftName.localeCompare(rightName, "es", { sensitivity: "base" });
+  });
+}
+
+export function getContactLastMessagePreview(contact: Contact) {
+  const text = contact.lastMessageText?.trim();
+  if (text) return text;
+  return contact.email;
+}
+
+export function formatContactActivity(lastMessageAt: string | null, isOnline: boolean) {
+  if (isOnline) return "Activo";
+  if (!lastMessageAt) return "Sin mensajes";
+
+  const date = new Date(lastMessageAt);
+  if (Number.isNaN(date.getTime())) return "Sin actividad";
+
+  const now = new Date();
+  const sameDay =
+    now.getFullYear() === date.getFullYear() &&
+    now.getMonth() === date.getMonth() &&
+    now.getDate() === date.getDate();
+
+  if (sameDay) {
+    return new Intl.DateTimeFormat("es-CL", { hour: "2-digit", minute: "2-digit" }).format(date);
+  }
+
+  return new Intl.DateTimeFormat("es-CL", { day: "2-digit", month: "2-digit" }).format(date);
+}
+
 export function useChatViewModel() {
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -111,7 +162,7 @@ export function useChatViewModel() {
       if (showLoader) setLoading(true);
       try {
         const result = await getChatContactsUseCase.execute();
-        setContacts(result.contacts);
+        setContacts(sortContactsByRecency(result.contacts));
         setClinicLabel(result.clinicLabel);
         setSelectedId((current) => {
           if (current && result.contacts.some((contact) => contact.id === current)) {
@@ -140,7 +191,12 @@ export function useChatViewModel() {
       try {
         const result = await getChatMessagesUseCase.execute(contactId);
         setCurrentUserId(result.currentUserId);
-        setMessages(result.messages);
+        setMessages(
+          [...result.messages].sort(
+            (left, right) =>
+              new Date(left.createdAt).getTime() - new Date(right.createdAt).getTime()
+          )
+        );
       } catch (loadError) {
         setError(loadError instanceof Error ? loadError.message : "No se pudieron cargar los mensajes.");
         setMessages([]);
@@ -199,6 +255,7 @@ export function useChatViewModel() {
     null;
 
   const processFile = useCallback((file: File) => {
+    setError(null);
     if (file.size > 10 * 1024 * 1024) {
       setError("El archivo excede el limite de 10MB.");
       return;
@@ -268,6 +325,25 @@ export function useChatViewModel() {
     [processFile]
   );
 
+  const handlePaste = useCallback(
+    (event: React.ClipboardEvent<HTMLTextAreaElement>) => {
+      const clipboardItems = event.clipboardData?.items;
+      if (!clipboardItems) return;
+
+      const imageItem = Array.from(clipboardItems).find(
+        (item) => item.kind === "file" && item.type.startsWith("image/")
+      );
+      if (!imageItem) return;
+
+      const pastedImage = imageItem.getAsFile();
+      if (!pastedImage) return;
+
+      event.preventDefault();
+      processFile(pastedImage);
+    },
+    [processFile]
+  );
+
   const onlineCount = contacts.filter((contact) => contact.isOnline).length;
 
   const handleSendMessage = async () => {
@@ -288,7 +364,29 @@ export function useChatViewModel() {
         attachment,
       });
 
-      setMessages((current) => [...current, message]);
+      setMessages((current) =>
+        [...current, message].sort(
+          (left, right) =>
+            new Date(left.createdAt).getTime() - new Date(right.createdAt).getTime()
+        )
+      );
+
+      const messagePreview =
+        message.text.trim() || `[Archivo] ${message.attachmentName ?? "Adjunto"}`;
+      setContacts((current) =>
+        sortContactsByRecency(
+          current.map((contact) =>
+            contact.id === selectedContact.id
+              ? {
+                  ...contact,
+                  lastMessageAt: message.createdAt,
+                  lastMessageText: messagePreview,
+                }
+              : contact
+          )
+        )
+      );
+
       setDraft("");
       clearSelectedFile();
     } catch (sendError) {
@@ -328,6 +426,7 @@ export function useChatViewModel() {
       handleDragLeave,
       handleDragOver,
       handleDrop,
+      handlePaste,
     },
     refs: {
       fileInputRef,

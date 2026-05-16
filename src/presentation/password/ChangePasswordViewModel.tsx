@@ -11,9 +11,12 @@ type FieldErrors = Partial<
 
 export function useChangePasswordViewModel() {
   const router = useRouter();
-  const changePasswordUseCase = useMemo(() => {
+  const { authRepository, changePasswordUseCase } = useMemo(() => {
     const repo = new AuthRepositoryHttp();
-    return new ChangePasswordUseCase(repo);
+    return {
+      authRepository: repo,
+      changePasswordUseCase: new ChangePasswordUseCase(repo),
+    };
   }, []);
 
   const [currentPassword, setCurrentPassword] = useState("");
@@ -59,7 +62,8 @@ export function useChangePasswordViewModel() {
     setLoading(true);
     try {
       await changePasswordUseCase.execute({ currentPassword, newPassword });
-      router.push("/select-clinic");
+      const session = await authRepository.getCurrentSession();
+      router.push(session.isSuperAdmin ? "/super-admin" : "/select-clinic");
     } catch (error) {
       setFormError(
         error instanceof Error ? error.message : "No se pudo actualizar la contrasena."
