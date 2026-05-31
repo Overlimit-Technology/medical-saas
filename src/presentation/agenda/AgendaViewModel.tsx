@@ -1044,6 +1044,7 @@ export function useAgendaViewModel() {
   const handleStartRegisterNewPatient = () => {
     setIsRegisteringNewPatient(true);
     setPatients([]);
+    setErrorMessage(null);
   };
 
   const createOrUpdateAppointment = async (event: React.FormEvent) => {

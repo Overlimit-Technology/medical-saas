@@ -122,7 +122,7 @@ export default function AppointmentFormModal({
   onStartRegisterNewPatient,
   onOpenCancelConfirm,
 }: Props) {
-  const shouldShowPatientResults = !form.patientId && normalizeId(form.patientRun).length >= 3;
+  const shouldShowPatientResults = !isRegisteringNewPatient && !form.patientId && normalizeId(form.patientRun).length >= 3;
   const fieldClassName =
     "w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm text-slate-700 transition-all duration-200 focus:border-[#19b3bc] focus:outline-none focus:ring-2 focus:ring-[#19b3bc]/15";
   const dropdownTriggerClassName =
