@@ -1547,8 +1547,6 @@ export function useAgendaViewModel() {
       form,
       continuousPlanForm,
       isRegisteringNewPatient,
-      continuousPlanForm,
-      isRegisteringNewPatient,
       selection,
       now,
     },
