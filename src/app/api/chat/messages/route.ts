@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { requireClinicSession, requireRole } from "@/server/auth/requireSession";
+import { requireClinicSession } from "@/server/auth/requireSession";
 import { ChatService } from "@/server/chat/ChatService";
 
 export const dynamic = "force-dynamic";
@@ -21,7 +21,6 @@ const sendMessageSchema = z.object({
 export async function GET(req: NextRequest) {
   try {
     const session = await requireClinicSession();
-    requireRole(session, ["ADMIN"], "CHAT");
 
     const contactId = req.nextUrl.searchParams.get("contactId")?.trim() ?? "";
     const data = await ChatService.listMessages(session.clinicId, session.userId, contactId);
@@ -42,7 +41,6 @@ export async function GET(req: NextRequest) {
 export async function POST(req: Request) {
   try {
     const session = await requireClinicSession();
-    requireRole(session, ["ADMIN"], "CHAT");
 
     const body = await req.json();
     const parsed = sendMessageSchema.safeParse(body);

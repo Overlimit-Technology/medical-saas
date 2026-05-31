@@ -1,10 +1,12 @@
-import SuperAdminUserManagement from "@/presentation/superadmin/SuperAdminUserManagement";
-import { Suspense } from "react";
+import { redirect } from "next/navigation";
+import { requireAuthSession } from "@/server/auth/requireSession";
 
-export default function GestionUsuariosPage() {
-  return (
-    <Suspense fallback={<div className="p-4 text-sm text-slate-500">Cargando gestión de usuarios...</div>}>
-      <SuperAdminUserManagement />
-    </Suspense>
-  );
+export default async function LegacyGestionUsuariosPage() {
+  const session = await requireAuthSession();
+  if (session.isSuperAdmin) {
+    redirect("/super-admin/usuarios");
+  }
+
+  redirect("/dashboard");
 }
+

@@ -7,6 +7,7 @@ import {
 import type {
   AgendaAppointment,
   AppointmentFormState,
+  ContinuousPlanFormState,
 } from "./agenda.types";
 import type { AppointmentStatus } from "./statusColors";
 
@@ -204,5 +205,16 @@ export function createEmptyAppointmentForm(date = new Date()): AppointmentFormSt
     start: formatTimeValue(startAt),
     end: formatTimeValue(endAt),
     notes: "",
+  };
+}
+
+export function createEmptyContinuousPlanForm(): ContinuousPlanFormState {
+  return {
+    enabled: false,
+    name: "",
+    notes: "",
+    totalSessions: "10",
+    frequencyDays: "7",
+    treatmentIds: [],
   };
 }

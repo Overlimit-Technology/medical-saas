@@ -127,7 +127,7 @@ export function useTreatmentsViewModel() {
 
   useEffect(() => {
     if (roleLoading) return;
-    if (role !== "ADMIN" && role !== "DOCTOR") {
+    if (role !== "ADMIN" && role !== "DOCTOR" && role !== "SECRETARY") {
       window.location.assign("/dashboard");
       return;
     }
@@ -215,7 +215,7 @@ export function useTreatmentsViewModel() {
     setDeleteError(null);
   };
 
-  const hasAccess = role === "ADMIN" || role === "DOCTOR";
+  const hasAccess = role === "ADMIN" || role === "DOCTOR" || role === "SECRETARY";
 
   return {
     state: {

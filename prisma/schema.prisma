@@ -43,6 +43,12 @@ enum PaymentStatus {
   WAIVED
 }
 
+enum TreatmentPlanStatus {
+  ACTIVE
+  COMPLETED
+  CANCELLED
+}
+
 enum ObservationStatus {
   PRELIMINARY
   FINAL
@@ -158,6 +164,7 @@ model User {
   clinicalRecordsAsDoctor ClinicalRecord[]       @relation("ClinicalRecordDoctor")
   assignedLeads           CrmLead[]              @relation("LeadAssignedDoctor")
   cashMovementsCreated    CashMovement[]         @relation("CashMovementCreatedBy")
+  treatmentPlansCreated   TreatmentPlan[]        @relation("TreatmentPlanCreatedBy")
 }
 
 model UserProfile {
@@ -268,6 +275,7 @@ model Clinic {
   leadColumns     LeadColumn[]
   crmLeads        CrmLead[]
   cashMovements   CashMovement[]
+  treatmentPlans  TreatmentPlan[]
 }
 
 model ClinicSettings {
@@ -323,6 +331,7 @@ model Patient {
   observations    Observation[]
   patientTreatments PatientTreatment[]
   clinicalRecords ClinicalRecord[]
+  treatmentPlans  TreatmentPlan[]
 
   @@index([clinicId, isActive])
   @@unique([clinicId, runNormalized])
@@ -364,6 +373,8 @@ model Appointment {
   patientId     String
   doctorId      String
   boxId         String
+  treatmentPlanId String?
+  planSessionIndex Int?
   startAt       DateTime
   endAt         DateTime
   status        AppointmentStatus @default(SCHEDULED)
@@ -377,6 +388,7 @@ model Appointment {
   patient        Patient         @relation(fields: [patientId], references: [id], onDelete: Restrict)
   doctor         User            @relation("AppointmentDoctor", fields: [doctorId], references: [id], onDelete: Restrict)
   box            Box             @relation(fields: [boxId], references: [id], onDelete: Restrict)
+  treatmentPlan  TreatmentPlan?  @relation(fields: [treatmentPlanId], references: [id], onDelete: SetNull)
   createdByUser   User?           @relation("AppointmentCreatedBy", fields: [createdBy], references: [id], onDelete: SetNull)
   clinicalVisits  ClinicalVisit[]
   clinicalRecords ClinicalRecord[]
@@ -386,6 +398,7 @@ model Appointment {
   @@index([doctorId, startAt])
   @@index([boxId, startAt])
   @@index([patientId, startAt])
+  @@index([treatmentPlanId, startAt])
 }
 
 model FhirLink {
@@ -506,6 +519,43 @@ model Treatment {
   // Precio del tratamiento
   price Decimal @db.Decimal(10, 2)
   patientTreatments PatientTreatment[]
+  treatmentPlans   TreatmentPlanTreatment[]
+}
+
+model TreatmentPlan {
+  id        String              @id @default(cuid())
+  clinicId  String
+  patientId String
+  createdBy String?
+  name      String
+  notes     String?
+  status    TreatmentPlanStatus @default(ACTIVE)
+  startsAt  DateTime
+  endsAt    DateTime?
+  createdAt DateTime            @default(now())
+  updatedAt DateTime            @updatedAt
+
+  clinic        Clinic                  @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+  patient       Patient                 @relation(fields: [patientId], references: [id], onDelete: Restrict)
+  createdByUser User?                   @relation("TreatmentPlanCreatedBy", fields: [createdBy], references: [id], onDelete: SetNull)
+  treatments    TreatmentPlanTreatment[]
+  appointments  Appointment[]
+
+  @@index([clinicId, startsAt])
+  @@index([patientId, status])
+}
+
+model TreatmentPlanTreatment {
+  id          String @id @default(cuid())
+  planId      String
+  treatmentId String
+  position    Int    @default(0)
+
+  plan      TreatmentPlan @relation(fields: [planId], references: [id], onDelete: Cascade)
+  treatment Treatment     @relation(fields: [treatmentId], references: [id], onDelete: Restrict)
+
+  @@unique([planId, treatmentId])
+  @@index([treatmentId])
 }
 
 model PatientTreatment {

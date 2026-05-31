@@ -11,7 +11,6 @@ type FieldErrors = Partial<Record<"email" | "password", string>>;
 export function useLoginViewModel() {
   const router = useRouter();
 
-  // Repo HTTP (client-side) + UseCase (domain)
   const useCase = useMemo(() => {
     const repo = new AuthRepositoryHttp();
     return new LoginUseCase(repo);
@@ -19,7 +18,6 @@ export function useLoginViewModel() {
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-
   const [loading, setLoading] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
@@ -32,7 +30,6 @@ export function useLoginViewModel() {
   async function submit() {
     clearErrors();
 
-    // Validación UX (rápida, antes de pegarle al server)
     const parsed = loginSchema.safeParse({ email, password });
     if (!parsed.success) {
       const flat = parsed.error.flatten();
@@ -48,15 +45,13 @@ export function useLoginViewModel() {
       const user = await useCase.execute(parsed.data);
       const next = user.mustChangePassword
         ? "/change-password"
-        : user.role === "ADMIN" && user.isSuperAdmin === true
-          ? "/dashboard/admin"
+        : user.isSuperAdmin
+          ? "/super-admin"
           : "/select-clinic";
       router.push(next);
-    } catch (e) {
+    } catch (error) {
       setFormError(
-        e instanceof Error
-          ? e.message
-          : "No se pudo iniciar sesión. Intenta nuevamente."
+        error instanceof Error ? error.message : "No se pudo iniciar sesion. Intenta nuevamente."
       );
     } finally {
       setLoading(false);
