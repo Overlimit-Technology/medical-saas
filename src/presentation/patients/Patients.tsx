@@ -122,7 +122,7 @@ function getPatientFullName(patient: {
 }
 
 function roleLabel(role: SessionRole, isSuperAdmin: boolean) {
-  if (role === "ADMIN") return isSuperAdmin ? "Super admin" : "Admin";
+  if (role === "ADMIN") return isSuperAdmin ? "Super Admin" : "Admin";
   if (role === "DOCTOR") return "Doctor";
   if (role === "SECRETARY") return "Secretary";
   return "Sin sesión";

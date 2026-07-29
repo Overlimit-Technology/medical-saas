@@ -36,7 +36,9 @@ export async function POST(req: Request) {
 
   const roleHome =
     session.role === "ADMIN"
-      ? "/dashboard/admin"
+      ? session.isSuperAdmin
+        ? "/dashboard/admin"
+        : "/clinic-dashboard"
       : session.role === "SECRETARY"
         ? "/dashboard/secretary"
         : "/dashboard";

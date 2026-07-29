@@ -46,7 +46,11 @@ export function useLoginViewModel() {
     setLoading(true);
     try {
       const user = await useCase.execute(parsed.data);
-      const next = user.mustChangePassword ? "/change-password" : "/select-clinic";
+      const next = user.mustChangePassword
+        ? "/change-password"
+        : user.role === "ADMIN" && user.isSuperAdmin === true
+          ? "/dashboard/admin"
+          : "/select-clinic";
       router.push(next);
     } catch (e) {
       setFormError(

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { requireClinicSession } from "@/server/auth/requireSession";
+import { requireAuthSession } from "@/server/auth/requireSession";
 
 const updateSchema = z.object({
   status: z.enum(["ACTIVE", "SUSPENDED"]).optional(),
@@ -10,7 +10,7 @@ const updateSchema = z.object({
 
 export async function PATCH(req: Request, context: { params: { userId: string } }) {
   try {
-    const session = await requireClinicSession();
+    const session = await requireAuthSession();
     if (!session.isSuperAdmin) {
       return NextResponse.json({ ok: false, error: "Acceso denegado." }, { status: 403 });
     }

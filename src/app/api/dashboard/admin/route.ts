@@ -6,6 +6,9 @@ export async function GET() {
   try {
     const session = await requireClinicSession();
     requireRole(session.role, ["ADMIN"]);
+    if (!session.isSuperAdmin) {
+      throw new Error("Acceso denegado.");
+    }
     const clinicId = session.clinicId;
 
     const now = new Date();

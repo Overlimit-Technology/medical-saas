@@ -9,6 +9,7 @@ datasource db {
 }
 
 // Enum de roles (para autorización / permisos)
+// Roles base en BD. Super Admin = ADMIN + isSuperAdmin=true.
 enum UserRole {
   ADMIN
   DOCTOR
