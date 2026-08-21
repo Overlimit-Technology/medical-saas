@@ -4,6 +4,7 @@ import { requireClinicSession, requireRole } from "@/server/auth/requireSession"
 import { AppointmentsService, type AppointmentInput } from "@/server/appointments/AppointmentsService";
 import { prisma } from "@/lib/prisma";
 import { sendEmail } from "@/server/notifications/email";
+import { resolveEmailTemplate } from "@/server/notifications/emailTemplates";
 import { resolveSingleClinicLabel } from "@/server/clinics/clinicDisplay";
 import { InternalAlertsService } from "@/server/internal-alerts/InternalAlertsService";
 
@@ -353,26 +354,25 @@ export async function DELETE(req: Request, { params }: { params: { id: string } 
         .join(" ")
         .trim() || item.doctor.email;
 
-      const lines = [
-        `Hola ${patientName || item.patient.firstName},`,
-        "",
-        "Tu cita fue cancelada en ZENSYA.",
-        `Fecha y hora cancelada: ${formatDateTime(item.startAt)}`,
-        `Profesional: ${doctorName}`,
-        `Sede: ${clinicLabel}`,
-        `Motivo: ${reason}`,
-      ];
-      lines.push("", "Si necesitas reagendar, contacta a la clinica.");
-
-      const origin = new URL(req.url).origin;
-      const sent = await sendEmail({
-        origin,
-        to: item.patient.email,
-        subject: "Tu cita fue cancelada en ZENSYA",
-        text: lines.join("\n"),
+      const tpl = await resolveEmailTemplate(session.clinicId, "APPOINTMENT_CANCELLATION", {
+        patientName: patientName || item.patient.firstName,
+        doctorName,
+        dateTime: formatDateTime(item.startAt),
+        clinicName: clinicLabel,
+        reason,
       });
-      if (!sent.ok) {
-        notificationWarning = sent.error;
+
+      if (tpl.enabled) {
+        const origin = new URL(req.url).origin;
+        const sent = await sendEmail({
+          origin,
+          to: item.patient.email,
+          subject: tpl.subject,
+          html: tpl.body,
+        });
+        if (!sent.ok) {
+          notificationWarning = sent.error;
+        }
       }
     }
 

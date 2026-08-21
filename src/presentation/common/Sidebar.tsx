@@ -19,6 +19,7 @@ import {
   Activity,
   Building2,
   UserCog,
+  Settings,
 } from "lucide-react";
 
 import { hasPermission, type UserPermission } from "@/lib/permissions";
@@ -83,6 +84,13 @@ const NAV_ITEMS: NavItem[] = [
     label: "Mensajeria interna",
     icon: MessageCircle,
     group: "paginas",
+  },
+  {
+    href: "/configuracion",
+    label: "Configuracion",
+    icon: Settings,
+    group: "paginas",
+    roles: ["ADMIN", "SECRETARY", "DOCTOR"],
   },
   {
     href: "/gestion-usuarios",

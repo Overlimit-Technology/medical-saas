@@ -11,6 +11,7 @@ const profileUpdateSchema = z.object({
   lastName: z.string().trim().min(1),
   phone: z.string().trim().optional().nullable(),
   image: z.string().trim().url().optional().nullable().or(z.literal("")),
+  teamCategoryId: z.string().optional().nullable(),
 });
 
 function mapProfile(item: {
@@ -24,6 +25,8 @@ function mapProfile(item: {
     firstName: string;
     lastName: string;
     phone: string | null;
+    teamCategoryId: string | null;
+    teamCategory: { id: string; name: string } | null;
   } | null;
 }) {
   return {
@@ -36,6 +39,8 @@ function mapProfile(item: {
     firstName: item.profile?.firstName ?? "",
     lastName: item.profile?.lastName ?? "",
     phone: item.profile?.phone ?? "",
+    teamCategoryId: item.profile?.teamCategoryId ?? null,
+    teamCategoryName: item.profile?.teamCategory?.name ?? null,
   };
 }
 
@@ -56,6 +61,8 @@ export async function GET() {
             firstName: true,
             lastName: true,
             phone: true,
+            teamCategoryId: true,
+            teamCategory: { select: { id: true, name: true } },
           },
         },
       },
@@ -88,6 +95,7 @@ export async function PUT(req: Request) {
 
     const image = parsed.data.image ? parsed.data.image.trim() : null;
     const phone = parsed.data.phone ? parsed.data.phone.trim() : null;
+    const teamCategoryId = parsed.data.teamCategoryId || null;
 
     const user = await prisma.user.update({
       where: { id: session.userId },
@@ -99,11 +107,13 @@ export async function PUT(req: Request) {
               firstName: parsed.data.firstName,
               lastName: parsed.data.lastName,
               phone,
+              teamCategoryId,
             },
             update: {
               firstName: parsed.data.firstName,
               lastName: parsed.data.lastName,
               phone,
+              teamCategoryId,
             },
           },
         },
@@ -120,6 +130,8 @@ export async function PUT(req: Request) {
             firstName: true,
             lastName: true,
             phone: true,
+            teamCategoryId: true,
+            teamCategory: { select: { id: true, name: true } },
           },
         },
       },

@@ -51,7 +51,11 @@ export class PatientsRepositoryHttp implements PatientsRepository {
       throw new Error(data?.error ?? "No se pudo guardar el paciente.");
     }
 
-    return { patientId: data.item?.id, notificationWarning: data.notificationWarning ?? null };
+    return {
+      item: data.item ?? undefined,
+      patientId: data.item?.id,
+      notificationWarning: data.notificationWarning ?? null,
+    };
   }
 
   async deletePatient(patientId: string): Promise<DeletePatientResult> {

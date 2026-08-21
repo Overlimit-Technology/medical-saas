@@ -54,6 +54,7 @@ export type PatientsResult = {
 };
 
 export type SavePatientResult = {
+  item?: Patient;
   patientId?: string;
   notificationWarning?: string | null;
 };

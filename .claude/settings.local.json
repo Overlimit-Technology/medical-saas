@@ -30,7 +30,16 @@
       "mcp__ide__getDiagnostics",
       "Read(//c/Users/migue/Desktop/**)",
       "Bash(xargs find:*)",
-      "Bash(grep -E \"page\\\\.tsx$\")"
+      "Bash(grep -E \"page\\\\.tsx$\")",
+      "Bash(find /c/Users/migue/Desktop/Zensya/medical-saas/src -type f \\\\\\( -name \"*.ts\" -o -name \"*.tsx\" \\\\\\) -exec grep -l \"cancelAppointment\\\\|DELETE.*appointments\\\\|/api/appointments\" {} \\\\;)",
+      "Bash(pkill -f \"next dev\")",
+      "Bash(npx tsx:*)",
+      "WebFetch(domain:onlinehtmleditor.dev)",
+      "Bash(curl -s http://localhost:3002/configuracion)",
+      "Bash(grep -E \"\\\\.\\(ts|tsx\\)$\")",
+      "Bash(grep -v \"^$\")",
+      "Bash(xargs basename:*)",
+      "Bash(grep -E \"\\\\.tsx$\")"
     ]
   }
 }

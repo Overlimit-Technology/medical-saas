@@ -186,6 +186,10 @@ model UserProfile {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  // Equipo de trabajo (configurable por clínica)
+  teamCategoryId String?
+  teamCategory   TeamCategory? @relation(fields: [teamCategoryId], references: [id], onDelete: SetNull)
+
   // Relación: este perfil pertenece a un User
   // onDelete: Cascade => si borras el User, se borra automáticamente el profile
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -254,12 +258,18 @@ model VerificationToken {
 }
 
 model Clinic {
-  id        String   @id @default(cuid())
-  name      String
-  city      String
-  isActive  Boolean  @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id           String   @id @default(cuid())
+  name         String
+  city         String
+  address      String?
+  phone        String?
+  email        String?
+  logo         String?
+  openingTime  String?  @default("08:00")
+  closingTime  String?  @default("20:00")
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
   memberships     ClinicMembership[]
   patients        Patient[]
@@ -277,6 +287,7 @@ model Clinic {
   cashMovements   CashMovement[]
   treatmentPlans  TreatmentPlan[]
   patientImaging  PatientImaging[]
+  teamCategories  TeamCategory[]
 }
 
 model ClinicSettings {
@@ -285,10 +296,44 @@ model ClinicSettings {
   statusColors                       Json?
   professionalPayoutClinicPercentage Decimal? @db.Decimal(5, 2)
   professionalPayoutSiiPercentage    Decimal? @db.Decimal(5, 2)
+  whatsappPhoneNumberId              String?
+  whatsappBusinessAccountId          String?
+  whatsappAccessToken                String?
+  instagramUrl                       String?
+  facebookUrl                        String?
+  tiktokUrl                          String?
+  websiteUrl                         String?
   createdAt                          DateTime @default(now())
   updatedAt                          DateTime @updatedAt
 
-  clinic Clinic @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+  clinic         Clinic          @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+  emailTemplates EmailTemplate[]
+}
+
+enum EmailTemplateType {
+  APPOINTMENT_CONFIRMATION
+  APPOINTMENT_REMINDER
+  APPOINTMENT_CANCELLATION
+  PATIENT_WELCOME
+  USER_WELCOME
+  PAYMENT_UPDATE
+  PROFESSIONAL_PAYOUT
+  INTERNAL_ALERT
+}
+
+model EmailTemplate {
+  id               String            @id @default(cuid())
+  clinicSettingsId String
+  eventType        EmailTemplateType
+  subject          String
+  body             String            @db.Text
+  enabled          Boolean           @default(true)
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+
+  clinicSettings ClinicSettings @relation(fields: [clinicSettingsId], references: [id], onDelete: Cascade)
+
+  @@unique([clinicSettingsId, eventType])
 }
 
 model ClinicMembership {
@@ -805,4 +850,19 @@ model PatientImaging {
   patient Patient @relation(fields: [patientId], references: [id], onDelete: Cascade)
 
   @@index([clinicId, patientId, studiedAt])
+}
+
+// --- Equipos de trabajo (configurables por clínica) --------------------------
+
+model TeamCategory {
+  id        String   @id @default(cuid())
+  clinicId  String
+  name      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  clinic  Clinic        @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+  members UserProfile[]
+
+  @@unique([clinicId, name])
 }

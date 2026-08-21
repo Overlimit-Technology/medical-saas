@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { Patient } from "@/domain/patients/entities/Patient";
 import { PatientsRepositoryHttp } from "@/data/patients/PatientsRepository";
 import { DeletePatientUseCase, GetPatientsUseCase, SavePatientUseCase } from "@/domain/patients/usecases/PatientsUseCases";
@@ -113,20 +113,46 @@ export function usePatientsViewModel() {
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [totalCount, setTotalCount] = useState(0);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const PAGE_SIZE = 20;
 
   const loadPatients = async (q?: string) => {
     setLoading(true);
     setApiError(null);
+    setPage(1);
     try {
-      const data = await getPatientsUseCase.execute({ query: q ?? "", page: 1, pageSize: 200 });
-      setItems(data.items ?? []);
-      if (!q) {
-        setTotalCount(data.total ?? data.items?.length ?? 0);
-      }
+      const data = await getPatientsUseCase.execute({ query: q ?? "", page: 1, pageSize: PAGE_SIZE });
+      const fetched = data.items ?? [];
+      setItems(fetched);
+      const total = data.total ?? fetched.length;
+      setTotalCount(total);
+      setHasMore(fetched.length < total);
     } catch (error) {
       setApiError(error instanceof Error ? error.message : "No se pudieron cargar los pacientes.");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadMore = async () => {
+    if (loadingMore || !hasMore) return;
+    setLoadingMore(true);
+    const nextPage = page + 1;
+    try {
+      const data = await getPatientsUseCase.execute({ query: query, page: nextPage, pageSize: PAGE_SIZE });
+      const fetched = data.items ?? [];
+      setItems((prev) => [...prev, ...fetched]);
+      setPage(nextPage);
+      const total = data.total ?? 0;
+      setHasMore(items.length + fetched.length < total);
+    } catch {
+      // Silently fail on load more
+    } finally {
+      setLoadingMore(false);
     }
   };
 
@@ -265,7 +291,10 @@ export function usePatientsViewModel() {
 
   const handleSearchChange = (value: string) => {
     setQuery(value);
-    loadPatients(value);
+    if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
+    searchTimerRef.current = setTimeout(() => {
+      void loadPatients(value);
+    }, 300);
   };
 
   return {
@@ -298,6 +327,11 @@ export function usePatientsViewModel() {
       setDeleteTarget,
       dismissDeleteModal,
       handleSearchChange,
+      loadMore,
+    },
+    extra: {
+      hasMore,
+      loadingMore,
     },
   };
 }
