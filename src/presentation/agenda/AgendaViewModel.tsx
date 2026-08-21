@@ -1124,31 +1124,6 @@ export function useAgendaViewModel() {
       return;
     }
 
-    let effectivePatientId = form.patientId;
-
-    if (!effectivePatientId) {
-      try {
-        const result = await savePatientUseCase.execute(null, {
-          firstName: cleanPatientFirstName,
-          lastName: cleanPatientLastName,
-          secondLastName: form.patientSecondLastName.trim() || null,
-          run: formatRun(form.patientRun),
-          email: form.patientEmail.trim() || null,
-          phone: form.patientPhone.trim() || null,
-        });
-
-        if (!result.patientId) {
-          setErrorMessage("No se pudo crear el paciente.");
-          return;
-        }
-
-        effectivePatientId = result.patientId;
-      } catch (error) {
-        setErrorMessage(error instanceof Error ? error.message : "No se pudo crear el paciente.");
-        return;
-      }
-    }
-
     if (!form.doctorId || !form.boxId) {
       setErrorMessage("Selecciona un profesional y un box disponible.");
       return;
