@@ -866,7 +866,7 @@ export default function Patients() {
                           <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-100">
                             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-slate-400"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
                           </div>
-                          <p className="text-sm font-medium text-slate-700">Sin resultados para "{state.query}"</p>
+                          <p className="text-sm font-medium text-slate-700">Sin resultados para &quot;{state.query}&quot;</p>
                           <p className="text-xs text-slate-400">Intenta con nombre, RUN o telefono</p>
                         </div>
                       </td>
