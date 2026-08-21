@@ -19,7 +19,7 @@ function ClinicalRecordsSection({
   patientName: string;
   doctorName: string;
 }) {
-  const { state, actions } = useClinicalRecordsViewModel(appointmentId, patientId);
+  const { state, actions } = useClinicalRecordsViewModel(patientId, appointmentId);
 
   return (
     <div className="space-y-4">
@@ -38,6 +38,7 @@ function ClinicalRecordsSection({
           <ClinicalRecordsList
             records={state.records}
             patientName={patientName}
+            clinicLogo={state.clinicLogo}
             onEdit={actions.openEditForm}
           />
         </>
@@ -53,6 +54,7 @@ function ClinicalRecordsSection({
           isEdit={Boolean(state.editingRecord)}
           patientName={patientName}
           doctorName={doctorName}
+          clinicLogo={state.clinicLogo}
           onFieldChange={actions.setFieldValue}
           onSubmit={actions.handleSubmit}
           onCancel={actions.closeForm}

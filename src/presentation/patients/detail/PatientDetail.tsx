@@ -6,6 +6,10 @@ import { usePatientDetailViewModel } from "./PatientDetailViewModel";
 import type { PatientTreatmentItem } from "./PatientDetailViewModel";
 import { formatRelativeDate } from "../PatientsViewModel";
 import { generatePatientPDF } from "./generatePatientPDF";
+import { useClinicalRecordsViewModel } from "@/presentation/clinical-records/ClinicalRecordsViewModel";
+import ClinicalRecordsList from "@/presentation/clinical-records/ClinicalRecordsList";
+import ClinicalRecordForm from "@/presentation/clinical-records/ClinicalRecordForm";
+import TemplateSelector from "@/presentation/clinical-records/TemplateSelector";
 
 // ─── Tipos ────────────────────────────────────────────────────────────────────
 
@@ -343,6 +347,58 @@ function EditableField({
 }
 
 // ─── Componente principal ─────────────────────────────────────────────────────
+function PatientClinicalRecordsSection({
+  patientId,
+  patientName,
+}: {
+  patientId: string;
+  patientName: string;
+}) {
+  const { state, actions } = useClinicalRecordsViewModel(patientId);
+
+  return (
+    <div className="space-y-4">
+      <h2 className="text-lg font-semibold text-slate-900">Fichas clínicas</h2>
+
+      {state.loading && <p className="text-sm text-slate-400">Cargando fichas...</p>}
+
+      {!state.loading && !state.isFormOpen && (
+        <>
+          <TemplateSelector templates={state.templates} onSelect={actions.openCreateForm} />
+          <ClinicalRecordsList
+            records={state.records}
+            patientName={patientName}
+            clinicLogo={state.clinicLogo}
+            onEdit={actions.openEditForm}
+          />
+        </>
+      )}
+
+      {state.isFormOpen && state.selectedTemplate && (
+        <ClinicalRecordForm
+          templateName={state.selectedTemplate.name}
+          fields={state.selectedTemplate.fields}
+          values={state.values}
+          saving={state.saving}
+          apiError={state.apiError}
+          isEdit={Boolean(state.editingRecord)}
+          patientName={patientName}
+          doctorName=""
+          clinicLogo={state.clinicLogo}
+          onFieldChange={actions.setFieldValue}
+          onSubmit={actions.handleSubmit}
+          onCancel={actions.closeForm}
+        />
+      )}
+
+      {state.successMessage && (
+        <div className="animate-fade-in fixed bottom-6 right-6 z-50 rounded-2xl bg-emerald-500 px-4 py-3 text-sm font-medium text-white shadow-lg shadow-emerald-500/30">
+          {state.successMessage}
+        </div>
+      )}
+    </div>
+  );
+}
 
 export default function PatientDetail() {
   const { state, actions } = usePatientDetailViewModel();
@@ -707,6 +763,13 @@ export default function PatientDetail() {
         loading={loadingTreatments}
         patientId={patient.id}
       />
+      {/* ── Fichas Clínicas ── */}
+      <div className="rounded-2xl border border-slate-100 bg-white px-6 pb-6 pt-5 shadow-sm">
+        <PatientClinicalRecordsSection
+          patientId={patient.id}
+          patientName={`${patient.firstName} ${patient.lastName}`}
+        />
+      </div>
 
       {/* ── Eliminar paciente (solo admin) ── */}
       {isAdmin && (

@@ -19,6 +19,7 @@ type Props = {
   values: Record<string, string>;
   patientName: string;
   doctorName: string;
+  clinicLogo?: string | null;
 };
 
 function formatValue(value: string, fieldType: string): string {
@@ -27,14 +28,30 @@ function formatValue(value: string, fieldType: string): string {
   return value;
 }
 
+function SignaturePlaceholder({ label, name }: { label: string; name?: string }) {
+  return (
+    <div className="flex flex-col items-center gap-1 pt-2">
+      <div className="flex h-12 w-40 items-center justify-center rounded-lg border-2 border-dashed border-slate-300 bg-slate-50">
+        <span className="text-[10px] text-slate-400">{label}</span>
+      </div>
+      {name && <p className="text-[10px] text-slate-500">{name}</p>}
+      <p className="text-[9px] text-slate-400">Nombre: ___________________________</p>
+      <p className="text-[9px] text-slate-400">Fecha: ____________________________</p>
+    </div>
+  );
+}
+
 export default function RecordPreview({
   templateName,
   fields,
   values,
   patientName,
   doctorName,
+  clinicLogo,
 }: Props) {
   const sortedFields = [...fields].sort((a, b) => a.position - b.position);
+  const regularFields = sortedFields.filter((f) => f.fieldType !== "SIGNATURE");
+  const signatureFields = sortedFields.filter((f) => f.fieldType === "SIGNATURE");
 
   return (
     <div className="sticky top-0">
@@ -52,23 +69,22 @@ export default function RecordPreview({
           >
             {/* Content */}
             <div className="space-y-4">
-              {/* Clinic logo placeholder */}
               <div className="flex justify-center">
-                <div className="flex h-14 w-36 items-center justify-center rounded-lg border-2 border-dashed border-slate-300 bg-slate-50">
-                  <span className="text-[10px] text-slate-400">
-                    Logo Clínica
-                  </span>
-                </div>
+                {clinicLogo ? (
+                  <img src={clinicLogo} alt="Logo" className="h-14 max-w-[144px] object-contain" />
+                ) : (
+                  <div className="flex h-14 w-36 items-center justify-center rounded-lg border-2 border-dashed border-slate-300 bg-slate-50">
+                    <span className="text-[10px] text-slate-400">Logo Clínica</span>
+                  </div>
+                )}
               </div>
 
-              {/* Template name */}
               <h3 className="text-center text-base font-bold text-slate-900">
                 {templateName}
               </h3>
 
               <hr className="border-slate-200" />
 
-              {/* Patient / Doctor info */}
               <div className="space-y-0.5 text-[11px] text-slate-500">
                 <p>
                   <span className="font-semibold text-slate-600">
@@ -88,9 +104,8 @@ export default function RecordPreview({
 
               <hr className="border-slate-200" />
 
-              {/* Fields with real values */}
               <div className="space-y-3">
-                {sortedFields.map((field) => (
+                {regularFields.map((field) => (
                   <div key={getFieldKey(field)}>
                     <p className="text-[9px] font-bold uppercase tracking-wider text-slate-400">
                       {field.label}
@@ -107,20 +122,29 @@ export default function RecordPreview({
             <div className="mt-6 space-y-4">
               <hr className="border-slate-200" />
 
-              {/* Doctor signature placeholder */}
-              <div className="flex flex-col items-center gap-1 pt-2">
-                <div className="flex h-12 w-40 items-center justify-center rounded-lg border-2 border-dashed border-slate-300 bg-slate-50">
-                  <span className="text-[10px] text-slate-400">
-                    Firma del Doctor
-                  </span>
+              {signatureFields.length > 0 ? (
+                <div className={`flex ${signatureFields.length > 1 ? "justify-around" : "justify-center"} gap-4 pt-2`}>
+                  {signatureFields.map((field) => (
+                    <SignaturePlaceholder
+                      key={getFieldKey(field)}
+                      label={field.label || (field.options === "doctor" ? "Firma del Profesional" : "Firma del Paciente")}
+                      name={field.options === "doctor" ? doctorName : undefined}
+                    />
+                  ))}
                 </div>
-                <p className="text-[10px] text-slate-500">{doctorName}</p>
-              </div>
+              ) : (
+                <div className="flex flex-col items-center gap-1 pt-2">
+                  <div className="flex h-12 w-40 items-center justify-center rounded-lg border-2 border-dashed border-slate-300 bg-slate-50">
+                    <span className="text-[10px] text-slate-400">
+                      Firma del Doctor
+                    </span>
+                  </div>
+                  <p className="text-[10px] text-slate-500">{doctorName}</p>
+                </div>
+              )}
 
-              {/* Generated footer */}
               <p className="text-center text-[8px] text-slate-300">
-                Generado el {new Date().toLocaleString("es-CL")} — Página 1 de
-                1
+                Generado el {new Date().toLocaleString("es-CL")} — Página 1 de 1
               </p>
             </div>
           </div>

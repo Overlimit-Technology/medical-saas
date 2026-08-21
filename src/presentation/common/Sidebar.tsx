@@ -258,7 +258,7 @@ export default function Sidebar() {
           )}
         </Link>
 
-        {!state.isSuperAdmin && (
+        {state.canChangeClinic && !state.isSuperAdmin && (
           <button
             type="button"
             onClick={actions.handleChangeClinic}

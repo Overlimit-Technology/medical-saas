@@ -25,6 +25,7 @@ type Props = {
   isEdit: boolean;
   patientName: string;
   doctorName: string;
+  clinicLogo?: string | null;
   onFieldChange: (fieldId: string, value: string) => void;
   onSubmit: (e: React.FormEvent) => void;
   onCancel: () => void;
@@ -39,6 +40,7 @@ export default function ClinicalRecordForm({
   isEdit,
   patientName,
   doctorName,
+  clinicLogo,
   onFieldChange,
   onSubmit,
   onCancel,
@@ -106,6 +108,7 @@ export default function ClinicalRecordForm({
               values={values}
               patientName={patientName}
               doctorName={doctorName}
+              clinicLogo={clinicLogo}
             />
           </div>
         )}

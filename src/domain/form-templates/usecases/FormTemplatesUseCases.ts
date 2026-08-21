@@ -1,11 +1,11 @@
-import type { FormTemplate, TemplateField } from "../entities/FormTemplate";
+import type { FormTemplate, TemplateField, TemplateType } from "../entities/FormTemplate";
 import type { FormTemplatesRepository } from "../repositories/FormTemplatesRepository";
 
 export class GetFormTemplatesUseCase {
   constructor(private readonly repo: FormTemplatesRepository) {}
 
-  async execute(): Promise<FormTemplate[]> {
-    return this.repo.getTemplates();
+  async execute(templateType?: TemplateType): Promise<FormTemplate[]> {
+    return this.repo.getTemplates(templateType);
   }
 }
 
@@ -16,6 +16,7 @@ export class SaveFormTemplateUseCase {
     id?: string;
     name: string;
     description: string | null;
+    templateType?: TemplateType;
     fields?: TemplateField[];
   }): Promise<void> {
     await this.repo.saveTemplate(input);

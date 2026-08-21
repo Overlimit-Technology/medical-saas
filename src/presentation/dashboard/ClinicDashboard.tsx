@@ -1,5 +1,6 @@
 "use client";
 
+import { useRef } from "react";
 import { useClinicDashboardViewModel } from "./ClinicDashboardViewModel";
 import {
   formatCurrency,
@@ -32,9 +33,20 @@ const MODULE_ICONS: Record<string, React.ComponentType<{ className?: string }>> 
 };
 
 export default function ClinicDashboard() {
-  const { state, actions } = useClinicDashboardViewModel();
+  const {
+    state,
+    clinicProfile,
+    isAdmin,
+    profileForm,
+    profileEditing,
+    profileSaving,
+    profileError,
+    profileSuccess,
+    actions,
+  } = useClinicDashboardViewModel();
   const { data, loading, error } = state;
   const { fetchData } = actions;
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   /* ----- Loading skeleton ----- */
   if (loading && !data) {
@@ -328,6 +340,134 @@ export default function ClinicDashboard() {
           </Link>
         </div>
       </div>
+
+      {/* Clinic Profile */}
+      {clinicProfile && (
+        <div className="rounded-2xl border border-slate-100 bg-white px-6 pb-6 pt-5 shadow-sm animate-card-in" style={{ animationDelay: "600ms" }}>
+          <div className="flex items-start justify-between">
+            <div>
+              <h2 className="text-lg font-semibold text-slate-900">Perfil de la clínica</h2>
+              <p className="mt-0.5 text-xs text-slate-400">Logo, nombre, dirección y teléfono</p>
+            </div>
+            {isAdmin && !profileEditing && (
+              <button
+                onClick={actions.startProfileEditing}
+                className="rounded-full border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-600 transition-colors hover:border-slate-300 hover:text-slate-800"
+              >
+                Editar
+              </button>
+            )}
+            {isAdmin && profileEditing && (
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={actions.cancelProfileEditing}
+                  className="rounded-full border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-600 transition-colors hover:border-slate-300 hover:text-slate-800"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={actions.saveProfile}
+                  disabled={profileSaving}
+                  className="rounded-full bg-slate-900 px-3 py-1.5 text-xs font-semibold text-white transition-all hover:bg-slate-800 disabled:opacity-50"
+                >
+                  {profileSaving ? "Guardando..." : "Guardar"}
+                </button>
+              </div>
+            )}
+          </div>
+
+          <div className="mt-4 grid gap-6 sm:grid-cols-[auto_1fr]">
+            {/* Logo */}
+            <div className="flex flex-col items-center gap-2">
+              {(profileEditing ? profileForm.logoBase64 : clinicProfile.logoBase64) ? (
+                <img
+                  src={(profileEditing ? profileForm.logoBase64 : clinicProfile.logoBase64) ?? ""}
+                  alt="Logo clínica"
+                  className="h-20 max-w-[160px] rounded-lg border border-slate-200 object-contain p-1"
+                />
+              ) : (
+                <div className="flex h-20 w-40 items-center justify-center rounded-lg border-2 border-dashed border-slate-300 bg-slate-50">
+                  <span className="text-xs text-slate-400">Sin logo</span>
+                </div>
+              )}
+              {profileEditing && (
+                <>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/png,image/jpeg,image/webp"
+                    className="hidden"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) actions.handleLogoUpload(file);
+                    }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    className="text-xs text-[#19b3bc] hover:underline"
+                  >
+                    {clinicProfile.logoBase64 ? "Cambiar logo" : "Subir logo"}
+                  </button>
+                  {profileForm.logoBase64 && (
+                    <button
+                      type="button"
+                      onClick={() => actions.handleProfileFieldChange("logoBase64", null)}
+                      className="text-xs text-rose-400 hover:underline"
+                    >
+                      Quitar logo
+                    </button>
+                  )}
+                  <p className="text-center text-[10px] text-slate-400">PNG, JPG o WebP · máx. 300 KB</p>
+                </>
+              )}
+            </div>
+
+            {/* Fields */}
+            <div className="grid gap-3 sm:grid-cols-2">
+              {(["name", "city", "address", "phone"] as const).map((key) => {
+                const labels: Record<string, string> = {
+                  name: "Nombre",
+                  city: "Ciudad",
+                  address: "Dirección",
+                  phone: "Teléfono",
+                };
+                return (
+                  <div key={key}>
+                    <p className="mb-1 text-[11px] font-medium uppercase tracking-wider text-slate-400">
+                      {labels[key]}
+                    </p>
+                    {profileEditing ? (
+                      <input
+                        value={profileForm[key]}
+                        onChange={(e) => actions.handleProfileFieldChange(key, e.target.value)}
+                        className="w-full rounded-xl border border-slate-200 bg-slate-50/40 px-3 py-2 text-sm focus:border-blue-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-100"
+                      />
+                    ) : (
+                      <p className="text-sm text-slate-700">
+                        {clinicProfile[key] || <span className="italic text-slate-400">—</span>}
+                      </p>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {profileError && (
+            <div className="mt-3 animate-fade-in rounded-xl border border-rose-200 bg-rose-50 px-3.5 py-2.5 text-sm text-rose-600">
+              {profileError}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Profile success toast */}
+      {profileSuccess && (
+        <div className="animate-fade-in fixed bottom-6 right-6 z-50 rounded-2xl bg-emerald-500 px-4 py-3 text-sm font-medium text-white shadow-lg shadow-emerald-500/30">
+          {profileSuccess}
+        </div>
+      )}
     </div>
   );
 }
