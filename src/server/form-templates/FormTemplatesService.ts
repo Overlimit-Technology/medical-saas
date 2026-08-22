@@ -13,6 +13,7 @@ type FieldInput = {
 type CreateTemplateInput = {
   name: string;
   description?: string | null;
+  includeLogo?: boolean;
   templateType?: TemplateType;
   fields: FieldInput[];
 };
@@ -20,6 +21,7 @@ type CreateTemplateInput = {
 type UpdateTemplateInput = {
   name?: string;
   description?: string | null;
+  includeLogo?: boolean;
   isActive?: boolean;
   fields?: FieldInput[];
 };
@@ -113,6 +115,7 @@ export class FormTemplatesService {
         ownerDoctorId,
         name: input.name.trim(),
         description: input.description?.trim() || null,
+        includeLogo: input.includeLogo ?? true,
         templateType,
         fields: {
           create: input.fields.map((f, idx) => ({
@@ -147,6 +150,7 @@ export class FormTemplatesService {
         data: {
           name: input.name?.trim() ?? template.name,
           description: input.description !== undefined ? (input.description?.trim() || null) : undefined,
+          includeLogo: input.includeLogo !== undefined ? input.includeLogo : undefined,
           isActive: input.isActive !== undefined ? input.isActive : undefined,
         },
         include: {
@@ -166,6 +170,7 @@ export class FormTemplatesService {
         data: {
           name: input.name?.trim() ?? template.name,
           description: input.description !== undefined ? (input.description?.trim() || null) : undefined,
+          includeLogo: input.includeLogo !== undefined ? input.includeLogo : undefined,
           isActive: input.isActive !== undefined ? input.isActive : undefined,
           ...(input.fields
             ? {

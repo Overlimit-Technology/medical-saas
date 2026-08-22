@@ -61,6 +61,25 @@ export async function uploadProfileImage(fileBuffer: Buffer, userId: string) {
   return result.secure_url;
 }
 
+export async function uploadClinicLogo(fileBuffer: Buffer, clinicId: string, mimeType: string) {
+  ensureCloudinaryConfig();
+
+  const safeMimeType = mimeType?.trim() || "image/png";
+  const dataUri = `data:${safeMimeType};base64,${fileBuffer.toString("base64")}`;
+
+  const result = await cloudinary.uploader.upload(dataUri, {
+    folder: "medigest/clinic-logos",
+    public_id: `logo-${clinicId}`,
+    overwrite: true,
+    invalidate: true,
+    resource_type: "image",
+    // Normalizamos a PNG: jsPDF no sabe dibujar SVG en los PDF.
+    format: "png",
+  });
+
+  return result.secure_url;
+}
+
 export async function uploadImagingAsset(fileBuffer: Buffer, userId: string, mimeType: string) {
   ensureCloudinaryConfig();
 

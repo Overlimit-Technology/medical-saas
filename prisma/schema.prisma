@@ -675,6 +675,7 @@ model FormTemplate {
   name          String
   description   String?
   isActive      Boolean      @default(true)
+  includeLogo   Boolean      @default(true)
   templateType  TemplateType @default(REPORT)
   createdAt     DateTime     @default(now())
   updatedAt     DateTime     @updatedAt

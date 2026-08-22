@@ -15,6 +15,7 @@ const fieldSchema = z.object({
 const updateSchema = z.object({
   name: z.string().trim().min(1).optional(),
   description: z.string().nullable().optional(),
+  includeLogo: z.boolean().optional(),
   isActive: z.boolean().optional(),
   fields: z.array(fieldSchema).min(1).optional(),
 });

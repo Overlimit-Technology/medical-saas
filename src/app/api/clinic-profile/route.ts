@@ -8,11 +8,12 @@ const patchSchema = z.object({
   city: z.string().optional(),
   address: z.string().optional(),
   phone: z.string().optional(),
-  logoBase64: z
+  logoUrl: z
     .string()
-    .refine((v) => v === "" || v.startsWith("data:image/"), {
-      message: "El logo debe ser una imagen en formato base64.",
+    .refine((v) => v === "" || /^https?:\/\//.test(v), {
+      message: "El logo debe ser una URL valida.",
     })
+    .nullable()
     .optional(),
 });
 
@@ -27,6 +28,7 @@ export async function GET() {
         city: true,
         address: true,
         phone: true,
+        logo: true,
         settings: { select: { logoBase64: true } },
       },
     });
@@ -37,7 +39,8 @@ export async function GET() {
       city: clinic?.city ?? "",
       address: clinic?.address ?? "",
       phone: clinic?.phone ?? "",
-      logoBase64: clinic?.settings?.logoBase64 ?? null,
+      // `logo` es la URL de Cloudinary; `logoBase64` es el formato antiguo (fallback).
+      logoUrl: clinic?.logo ?? clinic?.settings?.logoBase64 ?? null,
       isAdmin: session.role === "ADMIN",
     });
   } catch (error) {
@@ -60,13 +63,14 @@ export async function PATCH(req: Request) {
       );
     }
 
-    const { name, city, address, phone, logoBase64 } = parsed.data;
+    const { name, city, address, phone, logoUrl } = parsed.data;
 
     const clinicUpdate: Record<string, unknown> = {};
     if (name !== undefined) clinicUpdate.name = name;
     if (city !== undefined) clinicUpdate.city = city;
     if (address !== undefined) clinicUpdate.address = address;
     if (phone !== undefined) clinicUpdate.phone = phone;
+    if (logoUrl !== undefined) clinicUpdate.logo = logoUrl || null;
 
     if (Object.keys(clinicUpdate).length > 0) {
       await prisma.clinic.update({
@@ -75,11 +79,11 @@ export async function PATCH(req: Request) {
       });
     }
 
-    if (logoBase64 !== undefined) {
-      await prisma.clinicSettings.upsert({
+    // Al fijar una URL nueva se descarta el base64 heredado para no dejar dos fuentes.
+    if (logoUrl !== undefined) {
+      await prisma.clinicSettings.updateMany({
         where: { clinicId: session.clinicId },
-        create: { clinicId: session.clinicId, logoBase64: logoBase64 || null },
-        update: { logoBase64: logoBase64 || null },
+        data: { logoBase64: null },
       });
     }
 

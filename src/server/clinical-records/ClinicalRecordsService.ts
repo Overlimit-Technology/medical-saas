@@ -21,7 +21,7 @@ export class ClinicalRecordsService {
     return prisma.clinicalRecord.findMany({
       where: { clinicId, appointmentId },
       include: {
-        template: { select: { id: true, name: true } },
+        template: { select: { id: true, name: true, includeLogo: true } },
         doctor: {
           select: {
             id: true,
@@ -44,7 +44,7 @@ export class ClinicalRecordsService {
     return prisma.clinicalRecord.findMany({
       where: { clinicId, patientId },
       include: {
-        template: { select: { id: true, name: true } },
+        template: { select: { id: true, name: true, includeLogo: true } },
         doctor: {
           select: {
             id: true,
@@ -167,7 +167,7 @@ export class ClinicalRecordsService {
         },
       },
       include: {
-        template: { select: { id: true, name: true } },
+        template: { select: { id: true, name: true, includeLogo: true } },
         values: {
           include: {
             field: { select: { id: true, label: true, fieldType: true, position: true } },
@@ -201,7 +201,7 @@ export class ClinicalRecordsService {
           },
         },
         include: {
-          template: { select: { id: true, name: true } },
+          template: { select: { id: true, name: true, includeLogo: true } },
           values: {
             include: {
               field: { select: { id: true, label: true, fieldType: true, position: true } },

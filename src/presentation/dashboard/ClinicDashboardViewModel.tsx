@@ -19,7 +19,7 @@ export type ClinicProfile = {
   city: string;
   address: string;
   phone: string;
-  logoBase64: string | null;
+  logoUrl: string | null;
 };
 
 type ProfileForm = {
@@ -27,7 +27,7 @@ type ProfileForm = {
   city: string;
   address: string;
   phone: string;
-  logoBase64: string | null;
+  logoUrl: string | null;
 };
 
 export function useClinicDashboardViewModel() {
@@ -48,12 +48,13 @@ export function useClinicDashboardViewModel() {
     city: "",
     address: "",
     phone: "",
-    logoBase64: null,
+    logoUrl: null,
   });
   const [profileEditing, setProfileEditing] = useState(false);
   const [profileSaving, setProfileSaving] = useState(false);
   const [profileError, setProfileError] = useState<string | null>(null);
   const [profileSuccess, setProfileSuccess] = useState<string | null>(null);
+  const [logoUploading, setLogoUploading] = useState(false);
 
   const fetchData = async () => {
     setState((prev) => ({ ...prev, loading: true, error: null }));
@@ -110,7 +111,7 @@ export function useClinicDashboardViewModel() {
       city: clinicProfile.city,
       address: clinicProfile.address,
       phone: clinicProfile.phone,
-      logoBase64: clinicProfile.logoBase64,
+      logoUrl: clinicProfile.logoUrl,
     });
     setProfileError(null);
     setProfileEditing(true);
@@ -125,20 +126,46 @@ export function useClinicDashboardViewModel() {
     setProfileForm((prev) => ({ ...prev, [key]: value }));
   };
 
-  const handleLogoUpload = (file: File) => {
-    if (file.size > 300 * 1024) {
-      setProfileError("El logo no puede superar 300 KB.");
+  const handleLogoUpload = async (file: File) => {
+    if (file.size > 2 * 1024 * 1024) {
+      setProfileError("El logo no puede superar 2 MB.");
       return;
     }
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const result = e.target?.result;
-      if (typeof result === "string") {
-        setProfileForm((prev) => ({ ...prev, logoBase64: result }));
-        setProfileError(null);
+
+    setLogoUploading(true);
+    setProfileError(null);
+    try {
+      const body = new FormData();
+      body.append("file", file);
+      const res = await fetch("/api/clinic-profile/logo", { method: "POST", body });
+      const data = (await res.json()) as { ok: boolean; logoUrl?: string; error?: string };
+      if (!res.ok || !data.ok || !data.logoUrl) {
+        throw new Error(data.error ?? "No se pudo subir el logo.");
       }
-    };
-    reader.readAsDataURL(file);
+      // La ruta ya persistio la URL en la clinica; reflejamos el cambio en la UI.
+      setProfileForm((prev) => ({ ...prev, logoUrl: data.logoUrl! }));
+      setClinicProfile((prev) => (prev ? { ...prev, logoUrl: data.logoUrl! } : prev));
+    } catch (error) {
+      setProfileError(error instanceof Error ? error.message : "No se pudo subir el logo.");
+    } finally {
+      setLogoUploading(false);
+    }
+  };
+
+  const handleLogoRemove = async () => {
+    setLogoUploading(true);
+    setProfileError(null);
+    try {
+      const res = await fetch("/api/clinic-profile/logo", { method: "DELETE" });
+      const data = (await res.json()) as { ok: boolean; error?: string };
+      if (!res.ok || !data.ok) throw new Error(data.error ?? "No se pudo quitar el logo.");
+      setProfileForm((prev) => ({ ...prev, logoUrl: null }));
+      setClinicProfile((prev) => (prev ? { ...prev, logoUrl: null } : prev));
+    } catch (error) {
+      setProfileError(error instanceof Error ? error.message : "No se pudo quitar el logo.");
+    } finally {
+      setLogoUploading(false);
+    }
   };
 
   const saveProfile = async () => {
@@ -173,12 +200,14 @@ export function useClinicDashboardViewModel() {
     profileSaving,
     profileError,
     profileSuccess,
+    logoUploading,
     actions: {
       fetchData,
       startProfileEditing,
       cancelProfileEditing,
       handleProfileFieldChange,
       handleLogoUpload,
+      handleLogoRemove,
       saveProfile,
     },
   };

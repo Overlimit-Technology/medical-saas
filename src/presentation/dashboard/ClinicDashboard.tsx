@@ -42,6 +42,7 @@ export default function ClinicDashboard() {
     profileSaving,
     profileError,
     profileSuccess,
+    logoUploading,
     actions,
   } = useClinicDashboardViewModel();
   const { data, loading, error } = state;
@@ -379,9 +380,9 @@ export default function ClinicDashboard() {
           <div className="mt-4 grid gap-6 sm:grid-cols-[auto_1fr]">
             {/* Logo */}
             <div className="flex flex-col items-center gap-2">
-              {(profileEditing ? profileForm.logoBase64 : clinicProfile.logoBase64) ? (
+              {(profileEditing ? profileForm.logoUrl : clinicProfile.logoUrl) ? (
                 <img
-                  src={(profileEditing ? profileForm.logoBase64 : clinicProfile.logoBase64) ?? ""}
+                  src={(profileEditing ? profileForm.logoUrl : clinicProfile.logoUrl) ?? ""}
                   alt="Logo clínica"
                   className="h-20 max-w-[160px] rounded-lg border border-slate-200 object-contain p-1"
                 />
@@ -395,30 +396,33 @@ export default function ClinicDashboard() {
                   <input
                     ref={fileInputRef}
                     type="file"
-                    accept="image/png,image/jpeg,image/webp"
+                    accept="image/png,image/jpeg,image/webp,image/svg+xml"
                     className="hidden"
                     onChange={(e) => {
                       const file = e.target.files?.[0];
-                      if (file) actions.handleLogoUpload(file);
+                      if (file) void actions.handleLogoUpload(file);
+                      e.target.value = "";
                     }}
                   />
                   <button
                     type="button"
+                    disabled={logoUploading}
                     onClick={() => fileInputRef.current?.click()}
-                    className="text-xs text-[#19b3bc] hover:underline"
+                    className="text-xs text-[#19b3bc] hover:underline disabled:opacity-50"
                   >
-                    {clinicProfile.logoBase64 ? "Cambiar logo" : "Subir logo"}
+                    {logoUploading ? "Subiendo..." : clinicProfile.logoUrl ? "Cambiar logo" : "Subir logo"}
                   </button>
-                  {profileForm.logoBase64 && (
+                  {profileForm.logoUrl && (
                     <button
                       type="button"
-                      onClick={() => actions.handleProfileFieldChange("logoBase64", null)}
-                      className="text-xs text-rose-400 hover:underline"
+                      disabled={logoUploading}
+                      onClick={() => void actions.handleLogoRemove()}
+                      className="text-xs text-rose-400 hover:underline disabled:opacity-50"
                     >
                       Quitar logo
                     </button>
                   )}
-                  <p className="text-center text-[10px] text-slate-400">PNG, JPG o WebP · máx. 300 KB</p>
+                  <p className="text-center text-[10px] text-slate-400">PNG, JPG, WebP o SVG · máx. 2 MB</p>
                 </>
               )}
             </div>

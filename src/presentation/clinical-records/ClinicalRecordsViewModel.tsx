@@ -23,7 +23,7 @@ function getTemplateFieldKey(field: FormTemplate["fields"][number]) {
 }
 
 export function useClinicalRecordsViewModel(patientId: string, appointmentId?: string | null) {
-  const { logoBase64: clinicLogo } = useClinicBranding();
+  const { logoUrl: clinicLogo } = useClinicBranding();
   const [records, setRecords] = useState<ClinicalRecord[]>([]);
   const [templates, setTemplates] = useState<TemplateOption[]>([]);
   const [loading, setLoading] = useState(true);

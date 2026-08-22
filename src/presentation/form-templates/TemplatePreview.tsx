@@ -7,6 +7,7 @@ type Props = {
   templateName: string;
   fields: TemplateField[];
   clinicLogo?: string | null;
+  includeLogo?: boolean;
 };
 
 function getSampleValue(fieldType: string, options?: string | null): string {
@@ -48,7 +49,7 @@ function SignaturePlaceholder({ label, name }: { label: string; name?: string })
   );
 }
 
-export default function TemplatePreview({ templateName, fields, clinicLogo }: Props) {
+export default function TemplatePreview({ templateName, fields, clinicLogo, includeLogo = true }: Props) {
   const sortedFields = [...fields].sort((a, b) => a.position - b.position);
   const regularFields = sortedFields.filter((f) => f.fieldType !== "SIGNATURE");
   const signatureFields = sortedFields.filter((f) => f.fieldType === "SIGNATURE");
@@ -66,15 +67,17 @@ export default function TemplatePreview({ templateName, fields, clinicLogo }: Pr
           <div className="flex flex-col justify-between" style={{ minHeight: "460px" }}>
             {/* Content */}
             <div className="space-y-4">
-              <div className="flex justify-center">
-                {clinicLogo ? (
-                  <img src={clinicLogo} alt="Logo" className="h-14 max-w-[144px] object-contain" />
-                ) : (
-                  <div className="flex h-14 w-36 items-center justify-center rounded-lg border-2 border-dashed border-slate-300 bg-slate-50">
-                    <span className="text-[10px] text-slate-400">Logo Clínica</span>
-                  </div>
-                )}
-              </div>
+              {includeLogo && (
+                <div className="flex justify-center">
+                  {clinicLogo ? (
+                    <img src={clinicLogo} alt="Logo" className="h-14 max-w-[144px] object-contain" />
+                  ) : (
+                    <div className="flex h-14 w-36 items-center justify-center rounded-lg border-2 border-dashed border-slate-300 bg-slate-50">
+                      <span className="text-[10px] text-slate-400">Logo Clínica</span>
+                    </div>
+                  )}
+                </div>
+              )}
 
               <h3 className="text-center text-base font-bold text-slate-900">
                 {templateName}

@@ -17,6 +17,7 @@ export type FormTemplate = {
   name: string;
   description: string | null;
   isActive: boolean;
+  includeLogo: boolean;
   templateType: TemplateType;
   ownerDoctorId: string | null;
   fields: TemplateField[];

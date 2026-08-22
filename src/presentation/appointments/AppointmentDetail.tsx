@@ -55,6 +55,7 @@ function ClinicalRecordsSection({
           patientName={patientName}
           doctorName={doctorName}
           clinicLogo={state.clinicLogo}
+          includeLogo={state.selectedTemplate.includeLogo !== false}
           onFieldChange={actions.setFieldValue}
           onSubmit={actions.handleSubmit}
           onCancel={actions.closeForm}

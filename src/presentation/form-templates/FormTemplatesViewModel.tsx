@@ -18,6 +18,7 @@ export { TEMPLATE_VARIABLES };
 export type FormState = {
   name: string;
   description: string;
+  includeLogo: boolean;
   fields: TemplateField[];
 };
 
@@ -35,6 +36,7 @@ const EMPTY_FIELD: TemplateField = {
 const EMPTY_FORM: FormState = {
   name: "",
   description: "",
+  includeLogo: true,
   fields: [{ ...EMPTY_FIELD, position: 0 }],
 };
 
@@ -181,6 +183,7 @@ export function useFormTemplatesViewModel() {
     setForm({
       name: template.name,
       description: template.description ?? "",
+      includeLogo: template.includeLogo ?? true,
       fields: template.fields.map((field) => ({ ...field })),
     });
     setErrors({});
@@ -216,6 +219,10 @@ export function useFormTemplatesViewModel() {
       delete next.name;
       setErrors(next);
     }
+  };
+
+  const toggleIncludeLogo = () => {
+    setForm((current) => ({ ...current, includeLogo: !current.includeLogo }));
   };
 
   const addField = () => {
@@ -280,6 +287,7 @@ export function useFormTemplatesViewModel() {
         id: selected?.id,
         name: form.name.trim(),
         description: form.description.trim() || null,
+        includeLogo: form.includeLogo,
         templateType: selected ? undefined : effectiveTemplateType,
         fields:
           selected && hasRecords
@@ -362,6 +370,7 @@ export function useFormTemplatesViewModel() {
       openEditModal,
       closeModal,
       handleFieldChange,
+      toggleIncludeLogo,
       addField,
       removeField,
       updateField,

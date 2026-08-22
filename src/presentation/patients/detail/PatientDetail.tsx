@@ -385,6 +385,7 @@ function PatientClinicalRecordsSection({
           patientName={patientName}
           doctorName=""
           clinicLogo={state.clinicLogo}
+          includeLogo={state.selectedTemplate.includeLogo !== false}
           onFieldChange={actions.setFieldValue}
           onSubmit={actions.handleSubmit}
           onCancel={actions.closeForm}

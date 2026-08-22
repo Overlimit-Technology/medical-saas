@@ -20,7 +20,29 @@ function formatValue(value: string, fieldType: string): string {
   return value;
 }
 
-export function exportRecordPdf(data: ExportData) {
+/**
+ * jsPDF solo dibuja data URLs, no URLs remotas. El logo vive en Cloudinary,
+ * asi que lo descargamos y convertimos antes de insertarlo. Si falla (red, CORS),
+ * devolvemos null y el PDF se genera sin logo en vez de romperse.
+ */
+async function resolveLogoDataUrl(src: string): Promise<string | null> {
+  if (src.startsWith("data:")) return src;
+  try {
+    const res = await fetch(src, { mode: "cors" });
+    if (!res.ok) return null;
+    const blob = await res.blob();
+    return await new Promise<string | null>((resolve) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(typeof reader.result === "string" ? reader.result : null);
+      reader.onerror = () => resolve(null);
+      reader.readAsDataURL(blob);
+    });
+  } catch {
+    return null;
+  }
+}
+
+export async function exportRecordPdf(data: ExportData) {
   const doc = new jsPDF();
   const pageWidth = doc.internal.pageSize.getWidth();
   const marginLeft = 20;
@@ -30,11 +52,22 @@ export function exportRecordPdf(data: ExportData) {
 
   // Logo
   if (data.clinicLogo) {
-    const format = data.clinicLogo.includes("image/png") ? "PNG" : "JPEG";
-    const logoW = 36;
-    const logoH = 14;
-    doc.addImage(data.clinicLogo, format, pageWidth / 2 - logoW / 2, y, logoW, logoH);
-    y += logoH + 6;
+    const logoDataUrl = await resolveLogoDataUrl(data.clinicLogo);
+    if (logoDataUrl) {
+      try {
+        // Respetamos la proporcion original en vez de deformar a una caja fija.
+        const props = doc.getImageProperties(logoDataUrl);
+        const maxW = 40;
+        const maxH = 16;
+        const scale = Math.min(maxW / props.width, maxH / props.height);
+        const logoW = props.width * scale;
+        const logoH = props.height * scale;
+        doc.addImage(logoDataUrl, "PNG", pageWidth / 2 - logoW / 2, y, logoW, logoH);
+        y += logoH + 6;
+      } catch {
+        // Imagen ilegible: seguimos sin logo.
+      }
+    }
   }
 
   // Header

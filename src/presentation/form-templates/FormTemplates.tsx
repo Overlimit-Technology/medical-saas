@@ -136,7 +136,7 @@ function SingleTemplateView({
 
 export default function FormTemplates() {
   const { state, actions } = useFormTemplatesViewModel();
-  const { logoBase64 } = useClinicBranding();
+  const { logoUrl: clinicLogo } = useClinicBranding();
 
   if (state.roleLoading) {
     return (
@@ -387,6 +387,26 @@ export default function FormTemplates() {
                 />
               </div>
 
+              <div>
+                <label className="mb-1 block text-[11px] font-medium uppercase tracking-wider text-slate-400">Encabezado</label>
+                <label className="flex cursor-pointer items-start gap-2.5 rounded-xl border border-slate-200 bg-slate-50/40 px-3 py-2.5 transition-colors hover:border-slate-300">
+                  <input
+                    type="checkbox"
+                    checked={state.form.includeLogo}
+                    onChange={actions.toggleIncludeLogo}
+                    className="mt-0.5 rounded"
+                  />
+                  <span className="min-w-0 flex-1">
+                    <span className="block text-sm text-slate-700">Incluir logo de la clínica</span>
+                    <span className="mt-0.5 block text-[11px] text-slate-400">
+                      {clinicLogo
+                        ? "El logo aparecerá centrado al inicio del PDF."
+                        : "Aún no has subido un logo. Súbelo en Mi Clínica → Editar."}
+                    </span>
+                  </span>
+                </label>
+              </div>
+
               {/* Fields builder */}
               {(!state.selected || !state.hasRecords) && (
                 <div>
@@ -514,7 +534,8 @@ export default function FormTemplates() {
                   <TemplatePreview
                     templateName={state.form.name || "Nombre de plantilla"}
                     fields={state.form.fields}
-                    clinicLogo={logoBase64}
+                    clinicLogo={clinicLogo}
+                    includeLogo={state.form.includeLogo}
                   />
                 </div>
               )}

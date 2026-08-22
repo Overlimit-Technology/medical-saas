@@ -16,6 +16,7 @@ const fieldSchema = z.object({
 const createSchema = z.object({
   name: z.string().trim().min(1),
   description: z.string().nullable().optional(),
+  includeLogo: z.boolean().default(true),
   templateType: z.enum(["REPORT", "CONSENT", "ATTENDANCE_CERTIFICATE"]).default("REPORT"),
   fields: z.array(fieldSchema).min(1),
 });

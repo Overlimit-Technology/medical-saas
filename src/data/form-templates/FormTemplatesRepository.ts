@@ -24,6 +24,7 @@ export class FormTemplatesRepositoryHttp implements FormTemplatesRepository {
     id?: string;
     name: string;
     description: string | null;
+    includeLogo?: boolean;
     templateType?: TemplateType;
     fields?: TemplateField[];
   }): Promise<void> {
@@ -32,6 +33,10 @@ export class FormTemplatesRepositoryHttp implements FormTemplatesRepository {
       name: input.name,
       description: input.description,
     };
+
+    if (input.includeLogo !== undefined) {
+      payload.includeLogo = input.includeLogo;
+    }
 
     if (!editing && input.templateType) {
       payload.templateType = input.templateType;

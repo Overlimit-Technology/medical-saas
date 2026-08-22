@@ -17,19 +17,19 @@ export default function ClinicalRecordsList({ records, patientName, clinicLogo, 
     );
   }
 
-  const handleExportPdf = (record: ClinicalRecord) => {
+  const handleExportPdf = async (record: ClinicalRecord) => {
     const doctorName = record.doctor.profile
       ? `${record.doctor.profile.firstName} ${record.doctor.profile.lastName}`
       : "Doctor";
 
     const sortedValues = [...record.values].sort((a, b) => a.field.position - b.field.position);
 
-    exportRecordPdf({
+    await exportRecordPdf({
       templateName: record.template.name,
       patientName,
       doctorName,
       date: new Date(record.createdAt).toLocaleString("es-CL"),
-      clinicLogo: clinicLogo ?? null,
+      clinicLogo: record.template.includeLogo === false ? null : (clinicLogo ?? null),
       fields: sortedValues.map((v) => ({
         label: v.field.label,
         value: v.value,
@@ -62,7 +62,7 @@ export default function ClinicalRecordsList({ records, patientName, clinicLogo, 
               <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
                 <button
                   className="rounded-full border border-slate-200 px-3 py-1 text-xs font-medium text-slate-600 transition-colors hover:border-slate-300 hover:text-slate-800"
-                  onClick={() => handleExportPdf(record)}
+                  onClick={() => void handleExportPdf(record)}
                 >
                   PDF
                 </button>

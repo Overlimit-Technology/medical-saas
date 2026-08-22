@@ -18,7 +18,7 @@ export type ClinicalRecord = {
   id: string;
   createdAt: string;
   updatedAt: string;
-  template: { id: string; name: string };
+  template: { id: string; name: string; includeLogo?: boolean };
   doctor: {
     id: string;
     profile?: { firstName: string; lastName: string } | null;

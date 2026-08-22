@@ -16,6 +16,7 @@ export class SaveFormTemplateUseCase {
     id?: string;
     name: string;
     description: string | null;
+    includeLogo?: boolean;
     templateType?: TemplateType;
     fields?: TemplateField[];
   }): Promise<void> {
