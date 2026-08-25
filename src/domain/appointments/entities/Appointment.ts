@@ -47,3 +47,11 @@ export type Appointment = {
   doctor: { profile?: { firstName: string; lastName: string } | null };
   box: { name: string };
 };
+
+/** Estado de llegada de una cita en la sala de espera de recepcion. */
+export type AppointmentArrival = {
+  id: string;
+  arrivedAt: string | null;
+  delayMinutes: number | null;
+  arrivalNotifiedAt: string | null;
+};

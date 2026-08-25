@@ -14,6 +14,7 @@ const createInternalAlertSchema = z.object({
       "APPOINTMENT_RESCHEDULED",
       "APPOINTMENT_CANCELLED",
       "APPOINTMENT_CONFLICT",
+      "PATIENT_ARRIVED",
       "PAYMENT_PENDING",
       "CUSTOM",
     ])

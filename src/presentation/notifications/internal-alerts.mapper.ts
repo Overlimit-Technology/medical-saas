@@ -62,6 +62,8 @@ function formatRelativeTime(dateValue: string) {
 
 function resolveTone(eventType: InternalAlert["eventType"]): NotificationPanelTone {
   switch (eventType) {
+    case "PATIENT_ARRIVED":
+      return "brand";
     case "APPOINTMENT_CREATED":
     case "APPOINTMENT_RESCHEDULED":
       return "info";
@@ -76,6 +78,8 @@ function resolveTone(eventType: InternalAlert["eventType"]): NotificationPanelTo
 
 function resolveCategoryLabel(eventType: InternalAlert["eventType"]) {
   switch (eventType) {
+    case "PATIENT_ARRIVED":
+      return "Sala de espera";
     case "PAYMENT_PENDING":
       return "Cobros";
     case "CUSTOM":

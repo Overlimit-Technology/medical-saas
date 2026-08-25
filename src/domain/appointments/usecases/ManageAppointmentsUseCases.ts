@@ -1,4 +1,4 @@
-import type { Appointment } from "../entities/Appointment";
+import type { Appointment, AppointmentArrival } from "../entities/Appointment";
 import type { AppointmentsRepository } from "../repositories/AppointmentsRepository";
 
 export class SaveAppointmentUseCase {
@@ -89,6 +89,21 @@ export class UpdateAppointmentPaymentUseCase {
     }
   ): Promise<Appointment> {
     return this.repo.updateAppointmentPayment(appointmentId, input);
+  }
+}
+
+export class UpdateAppointmentArrivalUseCase {
+  constructor(private readonly repo: AppointmentsRepository) {}
+
+  async execute(
+    appointmentId: string,
+    input: {
+      status: "WAITING" | "ARRIVED" | "DELAYED";
+      delayMinutes?: number;
+      notify?: boolean;
+    }
+  ): Promise<AppointmentArrival> {
+    return this.repo.updateAppointmentArrival(appointmentId, input);
   }
 }
 

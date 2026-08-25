@@ -1,4 +1,4 @@
-import type { Appointment } from "@/domain/appointments/entities/Appointment";
+import type { Appointment, AppointmentArrival } from "@/domain/appointments/entities/Appointment";
 import type { AppointmentsRepository } from "@/domain/appointments/repositories/AppointmentsRepository";
 
 type AppointmentResponse = {
@@ -143,6 +143,32 @@ export class AppointmentsRepositoryHttp implements AppointmentsRepository {
 
     if (!res.ok || !data?.ok || !data.item) {
       throw new Error(data?.error ?? "No se pudo actualizar el estado de la cita.");
+    }
+
+    return data.item;
+  }
+
+  async updateAppointmentArrival(
+    appointmentId: string,
+    input: {
+      status: "WAITING" | "ARRIVED" | "DELAYED";
+      delayMinutes?: number;
+      notify?: boolean;
+    }
+  ): Promise<AppointmentArrival> {
+    const res = await fetch(`/api/appointments/${appointmentId}/arrival`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(input),
+    });
+    const data = (await res.json().catch(() => null)) as {
+      ok?: boolean;
+      item?: AppointmentArrival;
+      error?: string;
+    } | null;
+
+    if (!res.ok || !data?.ok || !data.item) {
+      throw new Error(data?.error ?? "No se pudo actualizar la sala de espera.");
     }
 
     return data.item;

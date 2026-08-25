@@ -1,4 +1,4 @@
-import type { Appointment } from "../entities/Appointment";
+import type { Appointment, AppointmentArrival } from "../entities/Appointment";
 
 export interface AppointmentsRepository {
   getAppointmentDetail(appointmentId: string): Promise<Appointment | null>;
@@ -51,6 +51,15 @@ export interface AppointmentsRepository {
       notes: string | null;
     }
   ): Promise<Appointment>;
+  /** Sala de espera: persiste la llegada y opcionalmente avisa al profesional. */
+  updateAppointmentArrival(
+    appointmentId: string,
+    input: {
+      status: "WAITING" | "ARRIVED" | "DELAYED";
+      delayMinutes?: number;
+      notify?: boolean;
+    }
+  ): Promise<AppointmentArrival>;
   deleteAppointment(appointmentId: string): Promise<void>;
   updateAppointmentSchedule(
     appointmentId: string,

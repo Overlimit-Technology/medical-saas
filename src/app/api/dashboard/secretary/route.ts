@@ -67,9 +67,28 @@ export async function GET() {
           endAt: true,
           status: true,
           paymentStatus: true,
+          patientId: true,
+          doctorId: true,
+          // Sala de espera: el estado se deriva de estos tres campos.
+          arrivedAt: true,
+          delayMinutes: true,
+          arrivalNotifiedAt: true,
           patient: { select: { firstName: true, lastName: true } },
           doctor: { select: { profile: { select: { firstName: true, lastName: true } } } },
           box: { select: { name: true } },
+          // Cobro ya registrado, para precargar el modal y no cobrar a ciegas.
+          paymentHistory: {
+            select: {
+              id: true,
+              amount: true,
+              status: true,
+              notes: true,
+              recordedAt: true,
+              patientTreatment: {
+                select: { treatment: { select: { id: true, name: true, price: true } } },
+              },
+            },
+          },
         },
       }),
     ]);
@@ -109,11 +128,27 @@ export async function GET() {
           endAt: a.endAt,
           status: a.status,
           paymentStatus: a.paymentStatus,
+          patientId: a.patientId,
+          doctorId: a.doctorId,
+          arrivedAt: a.arrivedAt,
+          delayMinutes: a.delayMinutes,
+          arrivalNotifiedAt: a.arrivalNotifiedAt,
           patientName: `${a.patient.firstName} ${a.patient.lastName}`,
           doctorName: a.doctor.profile
             ? `${a.doctor.profile.firstName} ${a.doctor.profile.lastName}`
             : "—",
           boxName: a.box.name,
+          payment: a.paymentHistory
+            ? {
+                id: a.paymentHistory.id,
+                amount: Number(a.paymentHistory.amount),
+                status: a.paymentHistory.status,
+                notes: a.paymentHistory.notes,
+                recordedAt: a.paymentHistory.recordedAt,
+                treatmentId: a.paymentHistory.patientTreatment.treatment.id,
+                treatmentName: a.paymentHistory.patientTreatment.treatment.name,
+              }
+            : null,
         })),
       },
     });

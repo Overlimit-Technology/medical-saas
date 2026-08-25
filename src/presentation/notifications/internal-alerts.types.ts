@@ -1,6 +1,6 @@
 import type { InternalAlert } from "@/domain/internal-alerts/entities/InternalAlert";
 
-export type NotificationPanelTone = "info" | "warning" | "neutral";
+export type NotificationPanelTone = "brand" | "info" | "warning" | "neutral";
 
 export type NotificationPanelItem = {
   id: string;

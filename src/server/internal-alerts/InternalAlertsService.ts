@@ -12,6 +12,7 @@ const INTERNAL_ALERT_TYPES = [
   "APPOINTMENT_RESCHEDULED",
   "APPOINTMENT_CANCELLED",
   "APPOINTMENT_CONFLICT",
+  "PATIENT_ARRIVED",
   "PAYMENT_PENDING",
   "CUSTOM",
 ] as const;
@@ -65,6 +66,8 @@ function formatEventTypeLabel(eventType: InternalAlertTypeValue) {
       return "Cita cancelada";
     case "APPOINTMENT_CONFLICT":
       return "Conflicto de agenda";
+    case "PATIENT_ARRIVED":
+      return "Paciente en sala";
     case "PAYMENT_PENDING":
       return "Cobro/Pago pendiente";
     default:

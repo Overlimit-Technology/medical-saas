@@ -32,6 +32,41 @@ export type AdminDashboardData = {
   }>;
 };
 
+export type WaitingRoomStatus = "waiting" | "ready" | "delayed";
+
+export type SecretaryAppointment = {
+  id: string;
+  startAt: string;
+  endAt: string;
+  status: string;
+  paymentStatus: PaymentStatusValue;
+  patientId: string;
+  doctorId: string;
+  /** Momento en que recepcion marco la llegada. null = aun no llega. */
+  arrivedAt: string | null;
+  /** Demora estimada informada por el paciente. */
+  delayMinutes: number | null;
+  /** Ultima vez que se aviso al profesional. */
+  arrivalNotifiedAt: string | null;
+  patientName: string;
+  doctorName: string;
+  boxName: string;
+  /** Cobro ya registrado para esta cita, si existe. */
+  payment: SecretaryAppointmentPayment | null;
+};
+
+export type PaymentStatusValue = "PENDING" | "PAID" | "WAIVED";
+
+export type SecretaryAppointmentPayment = {
+  id: string;
+  amount: number;
+  status: PaymentStatusValue;
+  notes: string | null;
+  recordedAt: string;
+  treatmentId: string;
+  treatmentName: string;
+};
+
 export type DoctorDashboardData = {
   clinic: { name: string; city: string };
   doctorName: string;
@@ -80,14 +115,5 @@ export type SecretaryDashboardData = {
     patientName: string;
     performedAt: string;
   }>;
-  recentAppointments: Array<{
-    id: string;
-    startAt: string;
-    endAt: string;
-    status: string;
-    paymentStatus: string;
-    patientName: string;
-    doctorName: string;
-    boxName: string;
-  }>;
+  recentAppointments: SecretaryAppointment[];
 };

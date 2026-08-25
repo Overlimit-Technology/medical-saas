@@ -89,6 +89,7 @@ enum InternalAlertType {
   APPOINTMENT_RESCHEDULED
   APPOINTMENT_CANCELLED
   APPOINTMENT_CONFLICT
+  PATIENT_ARRIVED
   PAYMENT_PENDING
   CUSTOM
 }
@@ -190,6 +191,9 @@ model UserProfile {
 
   // RUT opcional y único si lo usas (ojo: en la vida real puede requerir normalización)
   rut String? @unique
+
+  // Firma digitalizada del profesional (URL de Cloudinary), se estampa en los PDF
+  signatureUrl String?
 
   // Auditoría
   createdAt DateTime @default(now())
@@ -438,6 +442,13 @@ model Appointment {
   paymentStatus PaymentStatus     @default(PENDING)
   notes         String?
   createdBy     String?
+
+  // Sala de espera (recepcion). El estado se deriva de estos campos:
+  // arrivedAt != null -> en sala; delayMinutes != null -> con demora; si no -> en espera.
+  arrivedAt         DateTime? // momento en que recepcion marco la llegada del paciente
+  delayMinutes      Int? // demora estimada informada por el paciente
+  arrivalNotifiedAt DateTime? // ultima vez que se aviso al profesional
+
   createdAt     DateTime          @default(now())
   updatedAt     DateTime          @updatedAt
 
@@ -456,6 +467,7 @@ model Appointment {
   @@index([boxId, startAt])
   @@index([patientId, startAt])
   @@index([treatmentPlanId, startAt])
+  @@index([clinicId, arrivedAt])
 }
 
 model FhirLink {

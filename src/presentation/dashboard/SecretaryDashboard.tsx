@@ -1,19 +1,32 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 
-import { useSecretaryDashboardViewModel } from "./SecretaryDashboardViewModel";
+import {
+  useSecretaryDashboardViewModel,
+  type ArrivalInput,
+  type QuickPaymentInput,
+} from "./SecretaryDashboardViewModel";
 import {
   STATUS_LABELS,
   STATUS_COLORS,
   PAYMENT_COLORS,
+  formatCurrency,
+  formatPaymentLabel,
   formatTime,
   StatCard,
   SkeletonCard,
   SkeletonBlock,
 } from "./shared";
+import type {
+  SecretaryAppointment,
+  WaitingRoomStatus,
+} from "@/domain/dashboard/entities/Dashboard";
+import type { Treatment } from "@/domain/treatments/entities/Treatment";
+import Link from "next/link";
 import {
   AlertCircle,
+  ArrowRight,
   BellRing,
   CalendarDays,
   CheckCircle2,
@@ -21,43 +34,15 @@ import {
   Clock,
   Pill,
   RefreshCw,
+  Wallet,
+  X,
 } from "lucide-react";
 
-type SecretaryAppointment = {
-  id: string;
-  startAt: string;
-  endAt: string;
-  status: string;
-  paymentStatus: string;
-  patientName: string;
-  doctorName: string;
-  boxName: string;
-};
-
-type WaitingRoomStatus = "waiting" | "ready" | "delayed";
-
 type WaitingRoomEntry = {
-  id: string;
-  patientName: string;
-  doctorName: string;
-  boxName: string;
-  startAt: string;
-  endAt: string;
-  appointmentLabel: string;
+  appointment: SecretaryAppointment;
   status: WaitingRoomStatus;
-  delayMinutes: number;
-  notifiedAt: string | null;
   initials: string;
 };
-
-type WaitingRoomNotification = {
-  id: string;
-  doctorName: string;
-  message: string;
-  createdAt: string;
-};
-
-const APPOINTMENT_LABELS = ["consulta", "control", "revisión", "seguimiento"];
 
 const WAITING_ROOM_STATUS_LABELS: Record<WaitingRoomStatus, string> = {
   waiting: "En espera",
@@ -66,65 +51,24 @@ const WAITING_ROOM_STATUS_LABELS: Record<WaitingRoomStatus, string> = {
 };
 
 const WAITING_ROOM_STATUS_STYLES: Record<WaitingRoomStatus, string> = {
-  waiting: "border-slate-200 bg-white text-slate-700",
-  ready: "border-emerald-200 bg-emerald-50 text-emerald-700",
+  waiting: "border-slate-200 bg-slate-50 text-slate-600",
+  ready: "border-[#19b3bc]/20 bg-[#e8f8f9] text-[#0f8f98]",
   delayed: "border-amber-200 bg-amber-50 text-amber-700",
 };
 
 const CARD_BUTTON_STYLES: Record<WaitingRoomStatus, string> = {
-  waiting: "bg-slate-600 text-white hover:bg-slate-700",
-  ready: "bg-slate-900 text-white",
+  waiting: "bg-[#19b3bc] text-white hover:bg-[#159ea7]",
+  ready: "bg-[#e8f8f9] text-[#0f8f98]",
   delayed: "bg-amber-100 text-amber-800 hover:bg-amber-200",
 };
 
-function buildTodayIso(hour: number, minute: number) {
-  const date = new Date();
-  date.setHours(hour, minute, 0, 0);
-  return date.toISOString();
-}
+/** Citas que siguen vivas hoy: canceladas, completadas y ausentes salen de la sala. */
+const WAITING_ROOM_APPOINTMENT_STATUSES = ["SCHEDULED", "CONFIRMED"];
 
-const FALLBACK_WAITING_ROOM_APPOINTMENTS: SecretaryAppointment[] = [
-  {
-    id: "waiting-room-1",
-    startAt: buildTodayIso(9, 0),
-    endAt: buildTodayIso(9, 20),
-    status: "CONFIRMED",
-    paymentStatus: "PENDING",
-    patientName: "Katherine Moss",
-    doctorName: "Dr. Martínez",
-    boxName: "Box 2",
-  },
-  {
-    id: "waiting-room-2",
-    startAt: buildTodayIso(11, 0),
-    endAt: buildTodayIso(11, 20),
-    status: "SCHEDULED",
-    paymentStatus: "PENDING",
-    patientName: "Orlando Diggs",
-    doctorName: "Dra. Gómez",
-    boxName: "Box 1",
-  },
-  {
-    id: "waiting-room-3",
-    startAt: buildTodayIso(15, 0),
-    endAt: buildTodayIso(15, 20),
-    status: "CONFIRMED",
-    paymentStatus: "PAID",
-    patientName: "Juan Pérez",
-    doctorName: "Dr. Martínez",
-    boxName: "Box 4",
-  },
-  {
-    id: "waiting-room-4",
-    startAt: buildTodayIso(16, 40),
-    endAt: buildTodayIso(17, 0),
-    status: "SCHEDULED",
-    paymentStatus: "PENDING",
-    patientName: "Carlos Valenzuela",
-    doctorName: "Dra. Gómez",
-    boxName: "Box 3",
-  },
-];
+const NOTE_MAX_LENGTH = 250;
+
+const DELAY_STEP_MINUTES = 15;
+const DELAY_MAX_MINUTES = 240;
 
 function getInitials(name: string) {
   return name
@@ -135,75 +79,244 @@ function getInitials(name: string) {
     .join("");
 }
 
-function buildWaitingRoomEntries(appointments: SecretaryAppointment[]) {
-  const source =
-    appointments.length >= 4
-      ? appointments.slice(0, 4)
-      : [...appointments, ...FALLBACK_WAITING_ROOM_APPOINTMENTS.slice(0, 4 - appointments.length)];
+/** El estado de sala se deriva de lo persistido en la cita, no de estado local. */
+function resolveWaitingRoomStatus(appointment: SecretaryAppointment): WaitingRoomStatus {
+  if (appointment.arrivedAt) return "ready";
+  if (appointment.delayMinutes) return "delayed";
+  return "waiting";
+}
 
-  return source.map((appointment, index) => ({
-    id: appointment.id,
-    patientName: appointment.patientName,
-    doctorName: appointment.doctorName,
-    boxName: appointment.boxName,
-    startAt: appointment.startAt,
-    endAt: appointment.endAt,
-    appointmentLabel: APPOINTMENT_LABELS[index % APPOINTMENT_LABELS.length],
-    status: "waiting" as const,
-    delayMinutes: 10 + index * 5,
-    notifiedAt: null,
-    initials: getInitials(appointment.patientName),
-  }));
+function buildWaitingRoomEntries(appointments: SecretaryAppointment[]): WaitingRoomEntry[] {
+  return appointments
+    .filter((appointment) => WAITING_ROOM_APPOINTMENT_STATUSES.includes(appointment.status))
+    .map((appointment) => ({
+      appointment,
+      status: resolveWaitingRoomStatus(appointment),
+      initials: getInitials(appointment.patientName),
+    }));
 }
 
 function getWaitingTimeLabel(entry: WaitingRoomEntry) {
-  if (entry.status === "ready") return "Listo para ingreso";
-  if (entry.status === "delayed") return `${entry.delayMinutes} min`;
+  if (entry.status === "ready") {
+    return entry.appointment.arrivedAt
+      ? `Desde ${formatTime(entry.appointment.arrivedAt)}`
+      : "Listo";
+  }
+  if (entry.status === "delayed") return `${entry.appointment.delayMinutes} min`;
   return "Pendiente";
 }
 
-function createNotificationMessage(entry: WaitingRoomEntry) {
-  if (entry.status === "delayed") {
-    return `${entry.patientName} llegará con ${entry.delayMinutes} min de retraso a la cita de ${formatTime(entry.startAt)}.`;
-  }
+type QuickPaymentModalProps = {
+  entry: WaitingRoomEntry;
+  treatments: Treatment[];
+  saving: boolean;
+  errorMessage: string | null;
+  onClose: () => void;
+  onSubmit: (input: QuickPaymentInput) => void;
+};
 
-  if (entry.status === "ready") {
-    return `${entry.patientName} ya está en recepción para la cita de ${formatTime(entry.startAt)}.`;
-  }
+/**
+ * Cobro rapido. Escribe por el mismo endpoint que la caja del dia de /agenda
+ * (PATCH /api/appointments/:id), asi que el movimiento aparece alli sin duplicarse.
+ */
+function QuickPaymentModal({
+  entry,
+  treatments,
+  saving,
+  errorMessage,
+  onClose,
+  onSubmit,
+}: QuickPaymentModalProps) {
+  const existing = entry.appointment.payment;
+  const [treatmentId, setTreatmentId] = useState(existing?.treatmentId ?? "");
+  const [status, setStatus] = useState<QuickPaymentInput["status"]>(existing?.status ?? "PAID");
+  const [amount, setAmount] = useState(existing ? String(existing.amount) : "");
+  const [notes, setNotes] = useState(existing?.notes ?? "");
 
-  return `${entry.patientName} espera en recepción para la cita de ${formatTime(entry.startAt)}.`;
+  // Al elegir tratamiento se sugiere su precio, igual que en la agenda.
+  const handleTreatmentChange = (nextId: string) => {
+    setTreatmentId(nextId);
+    const treatment = treatments.find((item) => item.id === nextId);
+    if (treatment && !amount) setAmount(String(treatment.price));
+  };
+
+  const parsedAmount = Number(amount);
+  const canSubmit =
+    Boolean(treatmentId) && Number.isFinite(parsedAmount) && parsedAmount > 0 && !saving;
+  const willAutoComplete =
+    status === "PAID" && new Date(entry.appointment.startAt).getTime() <= Date.now();
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 px-4">
+      <div className="animate-modal-in w-full max-w-md rounded-2xl border border-slate-100 bg-white p-6 shadow-lg">
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <p className="text-sm font-semibold text-slate-900">Cobrar cita</p>
+            <p className="mt-0.5 text-xs text-slate-500">
+              {entry.appointment.patientName} · {formatTime(entry.appointment.startAt)} ·{" "}
+              {entry.appointment.boxName}
+            </p>
+          </div>
+          <button
+            onClick={onClose}
+            className="rounded-lg p-1 text-slate-400 transition hover:bg-slate-50 hover:text-slate-600"
+            aria-label="Cerrar"
+          >
+            <X size={16} />
+          </button>
+        </div>
+
+        <div className="mt-4 space-y-3">
+          <div>
+            <label className="text-xs font-medium text-slate-600">Tratamiento</label>
+            <select
+              value={treatmentId}
+              onChange={(event) => handleTreatmentChange(event.target.value)}
+              className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-[#19b3bc]"
+            >
+              <option value="">Selecciona un tratamiento</option>
+              {treatments.map((treatment) => (
+                <option key={treatment.id} value={treatment.id}>
+                  {treatment.name} — {formatCurrency(treatment.price)}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="text-xs font-medium text-slate-600">Monto</label>
+            <input
+              type="number"
+              min={1}
+              value={amount}
+              onChange={(event) => setAmount(event.target.value)}
+              placeholder="0"
+              className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm tabular-nums text-slate-900 outline-none transition focus:border-[#19b3bc]"
+            />
+          </div>
+
+          <div>
+            <label className="text-xs font-medium text-slate-600">Estado</label>
+            <div className="mt-1 flex gap-2">
+              {(["PAID", "PENDING", "WAIVED"] as const).map((option) => (
+                <button
+                  key={option}
+                  onClick={() => setStatus(option)}
+                  className={`flex-1 rounded-lg px-3 py-2 text-xs font-semibold transition ${
+                    status === option
+                      ? "bg-[#19b3bc] text-white"
+                      : "border border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
+                  }`}
+                >
+                  {formatPaymentLabel(option)}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <label className="text-xs font-medium text-slate-600">Notas</label>
+            <textarea
+              value={notes}
+              maxLength={NOTE_MAX_LENGTH}
+              rows={2}
+              onChange={(event) => setNotes(event.target.value)}
+              placeholder="Opcional"
+              className="mt-1 w-full resize-none rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-[#19b3bc]"
+            />
+          </div>
+
+          {willAutoComplete ? (
+            <p className="rounded-lg bg-amber-50 px-3 py-2 text-[11px] text-amber-700">
+              Al cobrar como pagada, la cita quedará marcada como completada.
+            </p>
+          ) : null}
+
+          {errorMessage ? (
+            <p className="rounded-lg bg-red-50 px-3 py-2 text-[11px] text-red-600">{errorMessage}</p>
+          ) : null}
+        </div>
+
+        <div className="mt-5 flex justify-end gap-2">
+          <button
+            onClick={onClose}
+            className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-600 transition hover:bg-slate-50"
+          >
+            Cancelar
+          </button>
+          <button
+            disabled={!canSubmit}
+            onClick={() =>
+              onSubmit({
+                treatmentId,
+                status,
+                amount: parsedAmount,
+                notes: notes.trim() ? notes.trim() : null,
+              })
+            }
+            className="rounded-lg bg-[#19b3bc] px-4 py-2 text-xs font-semibold text-white transition hover:bg-[#159ea7] disabled:opacity-50"
+          >
+            {saving ? "Guardando..." : "Registrar cobro"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
 }
 
 export default function SecretaryDashboard() {
   const { state, actions } = useSecretaryDashboardViewModel();
-  const { data, loading, error } = state;
-  const { fetchData } = actions;
-  const [waitingRoomEntries, setWaitingRoomEntries] = useState<WaitingRoomEntry[]>([]);
-  const [notifications, setNotifications] = useState<WaitingRoomNotification[]>([]);
-  const recentAppointments = useMemo(() => data?.recentAppointments ?? [], [data?.recentAppointments]);
-  const waitingRoomSeed = useMemo(
-    () => buildWaitingRoomEntries(recentAppointments as SecretaryAppointment[]),
-    [recentAppointments],
-  );
+  const { data, loading, error, treatments, savingAppointmentId, actionError } = state;
+  const { fetchData, registerPayment, updateArrival, clearActionError } = actions;
 
-  useEffect(() => {
-    setWaitingRoomEntries(waitingRoomSeed);
-    setNotifications([]);
-  }, [waitingRoomSeed]);
+  const [payingEntryId, setPayingEntryId] = useState<string | null>(null);
+
+  const recentAppointments = useMemo(() => data?.recentAppointments ?? [], [data]);
+  const waitingRoomEntries = useMemo(
+    () => buildWaitingRoomEntries(recentAppointments),
+    [recentAppointments]
+  );
 
   const waitingRoomSummary = useMemo(() => {
     const ready = waitingRoomEntries.filter((entry) => entry.status === "ready").length;
     const delayed = waitingRoomEntries.filter((entry) => entry.status === "delayed").length;
     const waiting = waitingRoomEntries.filter((entry) => entry.status === "waiting").length;
-    const notified = waitingRoomEntries.filter((entry) => entry.notifiedAt).length;
+    const notified = waitingRoomEntries.filter(
+      (entry) => entry.appointment.arrivalNotifiedAt
+    ).length;
 
     return { ready, delayed, waiting, notified };
   }, [waitingRoomEntries]);
 
+  /** Total cobrado hoy desde esta pantalla y desde la caja del dia: misma fuente. */
+  const collectedToday = useMemo(
+    () =>
+      recentAppointments.reduce(
+        (sum, appointment) =>
+          appointment.payment?.status === "PAID" ? sum + appointment.payment.amount : sum,
+        0
+      ),
+    [recentAppointments]
+  );
+
+  const payingEntry = useMemo(
+    () => waitingRoomEntries.find((entry) => entry.appointment.id === payingEntryId) ?? null,
+    [payingEntryId, waitingRoomEntries]
+  );
+
   if (loading && !data) {
     return (
       <div className="space-y-6">
-        <SkeletonBlock h="h-[420px]" />
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <SkeletonBlock key={i} h="h-24" />
+          ))}
+        </div>
+        <SkeletonBlock h="h-28" />
+        <div className="grid gap-4 xl:grid-cols-[300px_minmax(0,1fr)]">
+          <SkeletonBlock h="h-[420px]" />
+          <SkeletonBlock h="h-[420px]" />
+        </div>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {Array.from({ length: 4 }).map((_, i) => (
             <SkeletonCard key={i} />
@@ -219,7 +332,7 @@ export default function SecretaryDashboard() {
       <div className="flex flex-col items-center justify-center gap-4 py-20 text-slate-500">
         <AlertCircle size={40} className="text-rose-400" />
         <p className="text-sm">{error}</p>
-        <button onClick={fetchData} className="text-sm text-indigo-600 underline hover:text-indigo-800">
+        <button onClick={fetchData} className="text-sm text-[#19b3bc] underline hover:text-[#159ea7]">
           Reintentar
         </button>
       </div>
@@ -236,280 +349,323 @@ export default function SecretaryDashboard() {
     day: "numeric",
   });
 
-  const markPatientAsArrived = (id: string) => {
-    setWaitingRoomEntries((current) =>
-      current.map((entry) =>
-        entry.id === id
-          ? {
-              ...entry,
-              status: "ready",
-              notifiedAt: null,
-            }
-          : entry,
-      ),
-    );
+  const applyArrival = (appointmentId: string, input: ArrivalInput) => {
+    void updateArrival(appointmentId, input);
   };
 
-  const markPatientAsDelayed = (id: string) => {
-    setWaitingRoomEntries((current) =>
-      current.map((entry) => {
-        if (entry.id !== id) return entry;
+  // "Llegó" marca la llegada y avisa al profesional en el mismo gesto: es lo que
+  // recepción necesita en la práctica, y evita un segundo clic para notificar.
+  const markPatientAsArrived = (appointmentId: string) =>
+    applyArrival(appointmentId, { status: "ARRIVED", notify: true });
 
-        const nextDelay = entry.status === "delayed" ? Math.min(entry.delayMinutes + 5, 45) : entry.delayMinutes;
-
-        return {
-          ...entry,
-          status: "delayed",
-          delayMinutes: nextDelay,
-          notifiedAt: null,
-        };
-      }),
-    );
+  const markPatientAsDelayed = (entry: WaitingRoomEntry) => {
+    const current = entry.appointment.delayMinutes ?? 0;
+    const nextDelay = Math.min(current + DELAY_STEP_MINUTES, DELAY_MAX_MINUTES);
+    applyArrival(entry.appointment.id, {
+      status: "DELAYED",
+      delayMinutes: nextDelay,
+      notify: true,
+    });
   };
 
-  const notifyDoctor = (id: string) => {
-    const entry = waitingRoomEntries.find((currentEntry) => currentEntry.id === id);
-    if (!entry) return;
+  const notifyDoctor = (entry: WaitingRoomEntry) =>
+    applyArrival(entry.appointment.id, {
+      status: entry.status === "ready" ? "ARRIVED" : entry.status === "delayed" ? "DELAYED" : "WAITING",
+      delayMinutes: entry.status === "delayed" ? entry.appointment.delayMinutes ?? undefined : undefined,
+      notify: true,
+    });
 
-    const createdAt = new Date().toISOString();
-
-    setWaitingRoomEntries((current) =>
-      current.map((currentEntry) =>
-        currentEntry.id === id
-          ? {
-              ...currentEntry,
-              notifiedAt: createdAt,
-            }
-          : currentEntry,
-      ),
-    );
-
-    setNotifications((current) => [
-      {
-        id: `${id}-${createdAt}`,
-        doctorName: entry.doctorName,
-        message: createNotificationMessage(entry),
-        createdAt,
-      },
-      ...current,
-    ].slice(0, 4));
+  const submitPayment = async (appointmentId: string, input: QuickPaymentInput) => {
+    const ok = await registerPayment(appointmentId, input);
+    if (ok) setPayingEntryId(null);
   };
 
   return (
-    <div className="space-y-6">
-      <section
-        className="animate-card-in overflow-hidden rounded-[24px] border border-slate-200 bg-[radial-gradient(circle_at_top_left,_rgba(14,165,233,0.08),_transparent_24%),linear-gradient(180deg,#ffffff_0%,#f8fafc_100%)] p-3 shadow-[0_24px_60px_-52px_rgba(15,23,42,0.55)] sm:p-4"
-        style={{ animationDelay: "40ms" }}
+    <div className="space-y-8">
+      {/* Header */}
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <p className="text-sm text-slate-500 capitalize">{today}</p>
+          <h1 className="text-2xl font-bold text-slate-900">Recepción</h1>
+          <p className="mt-1 text-xs text-slate-400">
+            {clinic.name}
+            {clinic.city ? ` · ${clinic.city}` : ""}
+          </p>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            onClick={fetchData}
+            disabled={loading}
+            className="inline-flex items-center gap-1.5 rounded-full bg-white border border-slate-200 px-3 py-1.5 text-xs text-slate-600 shadow-sm hover:bg-slate-50 transition disabled:opacity-50"
+          >
+            <RefreshCw size={12} className={loading ? "animate-spin" : ""} />
+            Actualizar
+          </button>
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-[#19b3bc]/15 bg-[#19b3bc]/10 px-3 py-1.5 text-xs font-medium text-[#0f8f98]">
+            Panel Recepción
+          </span>
+        </div>
+      </div>
+
+      {/* Resumen de sala */}
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+        {[
+          { label: "En sala", value: waitingRoomSummary.ready, icon: CheckCircle2, color: "text-[#0f8f98]" },
+          { label: "En espera", value: waitingRoomSummary.waiting, icon: Clock, color: "text-cyan-700" },
+          { label: "Con demora", value: waitingRoomSummary.delayed, icon: CircleAlert, color: "text-amber-600" },
+          { label: "Avisos enviados", value: waitingRoomSummary.notified, icon: BellRing, color: "text-[#19b3bc]" },
+        ].map((item, i) => (
+          <div
+            key={item.label}
+            className="rounded-xl bg-white border border-slate-100 p-4 shadow-sm animate-card-in"
+            style={{ animationDelay: `${i * 40}ms` }}
+          >
+            <item.icon size={16} className={`${item.color} mb-2`} />
+            <p className="text-lg font-bold text-slate-900">{item.value}</p>
+            <p className="text-[11px] text-slate-500 leading-tight">{item.label}</p>
+          </div>
+        ))}
+      </div>
+
+      {/* Caja del dia: mismos datos que /agenda, no una copia paralela */}
+      <div
+        className="rounded-2xl bg-gradient-to-br from-[#19b3bc] to-[#0f8f98] p-6 text-white shadow-sm animate-card-in lg:flex lg:items-center lg:justify-between lg:gap-6"
+        style={{ animationDelay: "160ms" }}
       >
-        <div className="flex flex-col gap-3 border-b border-slate-200/80 pb-4 lg:flex-row lg:items-start lg:justify-between">
+        <div className="flex items-center gap-3">
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/15">
+            <Wallet size={16} />
+          </div>
           <div>
-            <h1 className="text-2xl font-semibold tracking-tight text-slate-950">Recepción</h1>
-            <p className="mt-0.5 text-sm text-slate-500 capitalize">{today}</p>
-            <p className="mt-2 text-xs text-slate-500">
-              {clinic.name}
-              {clinic.city ? ` · ${clinic.city}` : ""}
+            <p className="text-sm font-medium text-white/80">Caja del día</p>
+            <p className="text-xs text-white/70">
+              Los cobros que registres aquí aparecen en la caja de la agenda.
             </p>
           </div>
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[11px] font-medium text-emerald-700">
-              <CheckCircle2 size={12} />
-              {waitingRoomSummary.ready} en sala
-            </span>
-            <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-[11px] font-medium text-amber-700">
-              <CircleAlert size={12} />
-              {waitingRoomSummary.delayed} con demora
-            </span>
-            <span className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-medium text-slate-600">
-              <BellRing size={12} />
-              {waitingRoomSummary.notified} avisos enviados
-            </span>
-            <button
-              onClick={fetchData}
-              disabled={loading}
-              className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-white px-2.5 py-1 text-[11px] text-slate-600 shadow-sm transition hover:bg-slate-50 disabled:opacity-50"
-            >
-              <RefreshCw size={11} className={loading ? "animate-spin" : ""} />
-              Actualizar
-            </button>
-          </div>
         </div>
+        <div className="mt-4 flex flex-wrap items-center gap-3 lg:mt-0">
+          <div className="rounded-xl border border-white/20 bg-white/10 px-4 py-2">
+            <p className="text-[10px] font-medium uppercase tracking-wider text-white/70">
+              Cobrado hoy
+            </p>
+            <p className="text-lg font-bold tabular-nums">{formatCurrency(collectedToday)}</p>
+          </div>
+          <div className="rounded-xl border border-white/20 bg-white/10 px-4 py-2">
+            <p className="text-[10px] font-medium uppercase tracking-wider text-white/70">
+              Avisos enviados
+            </p>
+            <p className="text-lg font-bold tabular-nums">{waitingRoomSummary.notified}</p>
+          </div>
+          <Link
+            href="/agenda"
+            className="inline-flex items-center gap-1.5 rounded-full border border-white/25 bg-white/10 px-3 py-1.5 text-xs font-medium text-white transition hover:bg-white/20"
+          >
+            Ver caja completa
+            <ArrowRight size={13} />
+          </Link>
+        </div>
+      </div>
 
-        <div className="mt-3 flex flex-col gap-2 rounded-2xl bg-slate-950 px-3 py-2.5 text-white lg:flex-row lg:items-center lg:justify-between">
-          <div className="flex items-center gap-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-white/10">
-              <BellRing size={14} />
-            </div>
-            <div>
-              <p className="text-[10px] font-medium uppercase tracking-[0.22em] text-white/45">Notificaciones</p>
-              <p className="text-xs text-white/65">Avisos recientes al equipo médico.</p>
+      {actionError ? (
+        <div className="flex items-center justify-between gap-3 rounded-2xl border border-red-100 bg-red-50 px-4 py-3">
+          <p className="text-xs text-red-600">{actionError}</p>
+          <button
+            onClick={clearActionError}
+            className="rounded-lg p-1 text-red-400 transition hover:bg-red-100 hover:text-red-600"
+            aria-label="Cerrar aviso"
+          >
+            <X size={14} />
+          </button>
+        </div>
+      ) : null}
+
+      <div className="grid gap-4 xl:grid-cols-[300px_minmax(0,1fr)]">
+        <div
+          className="rounded-2xl border border-slate-100 bg-white p-6 shadow-sm animate-card-in"
+          style={{ animationDelay: "200ms" }}
+        >
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2.5">
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#e8f8f9] text-[#0f8f98]">
+                <CalendarDays size={16} />
+              </div>
+              <div>
+                <h2 className="text-sm font-semibold text-slate-900">Citas de hoy</h2>
+                <p className="text-xs text-slate-500">{waitingRoomEntries.length} pacientes en agenda</p>
+              </div>
             </div>
           </div>
-          <div className="flex flex-wrap gap-2">
-            {notifications.length > 0 ? (
-              notifications.slice(0, 2).map((notification) => (
-                <div key={notification.id} className="rounded-xl border border-white/10 bg-white/5 px-3 py-2">
-                  <div className="flex items-center gap-2 text-[11px]">
-                    <span className="font-medium text-white">{notification.doctorName}</span>
-                    <span className="text-white/45">{formatTime(notification.createdAt)}</span>
-                  </div>
-                  <p className="mt-0.5 max-w-[320px] truncate text-xs text-white/70">{notification.message}</p>
-                </div>
-              ))
+
+          <div className="mt-3 space-y-2.5">
+            {waitingRoomEntries.length === 0 ? (
+              <p className="py-8 text-center text-xs text-slate-400">
+                No hay pacientes en la sala de espera
+              </p>
             ) : (
-              <div className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs text-white/65">
-                Aun no hay avisos enviados.
-              </div>
+              waitingRoomEntries.map((entry) => {
+                const { appointment } = entry;
+                const busy = savingAppointmentId === appointment.id;
+
+                return (
+                  <div key={appointment.id} className="rounded-xl border border-slate-100 bg-white p-3">
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <p className="text-sm font-semibold tabular-nums text-slate-900">
+                          {formatTime(appointment.startAt)} - {formatTime(appointment.endAt)}
+                        </p>
+                        <p className="mt-2 text-sm font-medium text-slate-900">
+                          {appointment.patientName}
+                        </p>
+                        <p className="mt-0.5 text-xs text-slate-500">
+                          {appointment.doctorName} · {appointment.boxName}
+                        </p>
+                      </div>
+                      <div className="flex flex-col items-end gap-2">
+                        <span
+                          className={`inline-flex rounded-full px-2 py-0.5 text-[10px] font-medium ${
+                            PAYMENT_COLORS[appointment.paymentStatus] ?? "text-slate-500"
+                          } bg-slate-50`}
+                        >
+                          {formatPaymentLabel(appointment.paymentStatus)}
+                        </span>
+                        <button
+                          onClick={() => markPatientAsArrived(appointment.id)}
+                          disabled={entry.status === "ready" || busy}
+                          className={`min-w-[74px] rounded-lg px-3 py-1.5 text-xs font-semibold transition disabled:cursor-default disabled:opacity-100 ${CARD_BUTTON_STYLES[entry.status]}`}
+                        >
+                          {entry.status === "ready" ? "En sala" : busy ? "..." : "Llegó"}
+                        </button>
+                      </div>
+                    </div>
+                    <div className="mt-3 flex items-center justify-between gap-2 border-t border-slate-100 pt-2.5">
+                      <span
+                        className={`inline-flex rounded-full border px-2 py-0.5 text-[10px] font-medium ${WAITING_ROOM_STATUS_STYLES[entry.status]}`}
+                      >
+                        {WAITING_ROOM_STATUS_LABELS[entry.status]}
+                      </span>
+                      <button
+                        onClick={() => setPayingEntryId(appointment.id)}
+                        disabled={busy}
+                        className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-semibold text-[#0f8f98] transition hover:border-[#19b3bc] hover:bg-[#e8f8f9] disabled:opacity-50"
+                      >
+                        <Wallet size={12} />
+                        {appointment.payment ? "Editar cobro" : "Cobrar"}
+                      </button>
+                    </div>
+                  </div>
+                );
+              })
             )}
           </div>
         </div>
 
-        <div className="mt-3 grid gap-3 xl:grid-cols-[280px_minmax(0,1fr)]">
-          <div className="rounded-[20px] border border-slate-200 bg-white/90 p-3.5 shadow-sm">
-            <div className="flex items-center justify-between gap-2">
-              <div className="flex items-center gap-2.5">
-                <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-slate-100 text-slate-900">
-                  <CalendarDays size={16} />
-                </div>
-                <div>
-                  <h2 className="text-lg font-semibold tracking-tight text-slate-950">Citas de hoy</h2>
-                  <p className="text-xs text-slate-500">{waitingRoomEntries.length} pacientes en agenda</p>
-                </div>
+        <div
+          className="rounded-2xl border border-slate-100 bg-white p-6 shadow-sm animate-card-in"
+          style={{ animationDelay: "260ms" }}
+        >
+          <div className="flex flex-col gap-2 border-b border-slate-100 pb-3 sm:flex-row sm:items-end sm:justify-between">
+            <div className="flex items-center gap-2.5">
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#e8f8f9] text-[#0f8f98]">
+                <Clock size={16} />
               </div>
-            </div>
-
-            <div className="mt-3 space-y-2.5">
-              {waitingRoomEntries.map((entry) => (
-                <div key={entry.id} className="rounded-xl border border-slate-200 bg-white p-3">
-                  <div className="flex items-start justify-between gap-3">
-                    <div>
-                      <p className="text-base font-semibold tracking-tight text-slate-950">
-                        {formatTime(entry.startAt)} - {formatTime(entry.endAt)}
-                      </p>
-                      <p className="mt-2 text-sm font-medium text-slate-900">{entry.patientName}</p>
-                      <p className="mt-0.5 text-xs text-slate-500">
-                        {entry.doctorName} · {entry.boxName}
-                      </p>
-                    </div>
-                    <div className="flex flex-col items-end gap-2">
-                      <span className="rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-[10px] font-medium lowercase text-slate-700">
-                        {entry.appointmentLabel}
-                      </span>
-                      <button
-                        onClick={() => markPatientAsArrived(entry.id)}
-                        disabled={entry.status === "ready"}
-                        className={`min-w-[74px] rounded-lg px-3 py-1.5 text-xs font-semibold transition disabled:cursor-default disabled:opacity-100 ${CARD_BUTTON_STYLES[entry.status]}`}
-                      >
-                        {entry.status === "ready" ? "En sala" : "Llegó"}
-                      </button>
-                    </div>
-                  </div>
-                  <div className="mt-3 flex items-center justify-between gap-2 border-t border-slate-100 pt-2.5">
-                    <span
-                      className={`inline-flex rounded-full border px-2 py-0.5 text-[10px] font-medium ${WAITING_ROOM_STATUS_STYLES[entry.status]}`}
-                    >
-                      {WAITING_ROOM_STATUS_LABELS[entry.status]}
-                    </span>
-                    <p className="text-[11px] text-slate-500">
-                      {entry.status === "delayed"
-                        ? `Llegada estimada en ${entry.delayMinutes} min`
-                        : entry.notifiedAt
-                          ? `Avisado ${formatTime(entry.notifiedAt)}`
-                          : "Pendiente de aviso"}
-                    </p>
-                  </div>
-                </div>
-              ))}
+              <div>
+                <h2 className="text-sm font-semibold text-slate-900">Sala de espera</h2>
+                <p className="text-xs text-slate-500">{waitingRoomSummary.waiting} pacientes pendientes de ingreso</p>
+              </div>
             </div>
           </div>
 
-          <div className="rounded-[20px] border border-slate-200 bg-white/90 p-3.5 shadow-sm">
-            <div className="flex flex-col gap-2 border-b border-slate-200 pb-3 sm:flex-row sm:items-end sm:justify-between">
-              <div className="flex items-center gap-2.5">
-                <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-slate-100 text-slate-900">
-                  <Clock size={16} />
-                </div>
-                <div>
-                  <h2 className="text-lg font-semibold tracking-tight text-slate-950">Sala de espera</h2>
-                  <p className="text-xs text-slate-500">{waitingRoomSummary.waiting} pacientes pendientes de ingreso</p>
-                </div>
-              </div>
-            </div>
+          <div className="mt-1 overflow-x-auto">
+            <table className="w-full min-w-[640px] text-left">
+              <thead>
+                <tr className="border-b border-slate-100 text-[11px] uppercase tracking-wider text-slate-400">
+                  <th className="px-3 py-3 font-medium">Paciente</th>
+                  <th className="px-3 py-3 font-medium">Estado</th>
+                  <th className="px-3 py-3 font-medium">Espera</th>
+                  <th className="px-3 py-3 font-medium text-right">Acciones</th>
+                </tr>
+              </thead>
+              <tbody>
+                {waitingRoomEntries.map((entry) => {
+                  const { appointment } = entry;
+                  const busy = savingAppointmentId === appointment.id;
 
-            <div className="mt-1 overflow-x-auto">
-              <table className="w-full min-w-[640px] text-left">
-                <thead>
-                  <tr className="border-b border-slate-200 text-xs text-slate-500">
-                    <th className="px-3 py-3 font-medium">Paciente</th>
-                    <th className="px-3 py-3 font-medium">Estado</th>
-                    <th className="px-3 py-3 font-medium">Espera</th>
-                    <th className="px-3 py-3 font-medium text-right">Acciones</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {waitingRoomEntries.map((entry) => (
-                    <tr key={entry.id} className="border-b border-slate-100 text-xs last:border-b-0">
-                      <td className="px-3 py-3.5">
-                        <div className="flex items-center gap-2.5">
-                          <div className="flex h-9 w-9 items-center justify-center rounded-full bg-slate-100 text-sm font-semibold text-slate-900">
-                            {entry.initials}
-                          </div>
-                          <div>
-                            <p className="font-medium text-slate-900">{entry.patientName}</p>
-                            <p className="text-[11px] text-slate-500">
-                              {entry.doctorName} · {formatTime(entry.startAt)}
-                            </p>
-                          </div>
+                  return (
+                  <tr key={appointment.id} className="border-b border-slate-100 text-xs last:border-b-0">
+                    <td className="px-3 py-3.5">
+                      <div className="flex items-center gap-2.5">
+                        <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#e8f8f9] text-xs font-semibold text-[#0f8f98]">
+                          {entry.initials}
                         </div>
-                      </td>
-                      <td className="px-3 py-3.5">
-                        <span
-                          className={`inline-flex rounded-full border px-2 py-0.5 text-[10px] font-medium ${WAITING_ROOM_STATUS_STYLES[entry.status]}`}
+                        <div>
+                          <p className="font-medium text-slate-900">{appointment.patientName}</p>
+                          <p className="text-[11px] text-slate-500">
+                            {appointment.doctorName} · {formatTime(appointment.startAt)}
+                          </p>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-3 py-3.5">
+                      <span
+                        className={`inline-flex rounded-full border px-2 py-0.5 text-[10px] font-medium ${WAITING_ROOM_STATUS_STYLES[entry.status]}`}
+                      >
+                        {WAITING_ROOM_STATUS_LABELS[entry.status]}
+                      </span>
+                      {appointment.arrivalNotifiedAt ? (
+                        <p className="mt-1 text-[10px] text-slate-400">
+                          Avisado {formatTime(appointment.arrivalNotifiedAt)}
+                        </p>
+                      ) : null}
+                    </td>
+                    <td className="px-3 py-3.5 text-slate-700">{getWaitingTimeLabel(entry)}</td>
+                    <td className="px-3 py-3.5">
+                      <div className="flex justify-end gap-1.5">
+                        <button
+                          onClick={() => setPayingEntryId(appointment.id)}
+                          disabled={busy}
+                          className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-[11px] font-semibold text-[#0f8f98] transition hover:border-[#19b3bc] hover:bg-[#e8f8f9] disabled:opacity-50"
                         >
-                          {WAITING_ROOM_STATUS_LABELS[entry.status]}
-                        </span>
-                        {entry.notifiedAt ? (
-                          <p className="mt-1 text-[10px] text-slate-400">Avisado {formatTime(entry.notifiedAt)}</p>
-                        ) : null}
-                      </td>
-                      <td className="px-3 py-3.5 text-slate-700">{getWaitingTimeLabel(entry)}</td>
-                      <td className="px-3 py-3.5">
-                        <div className="flex justify-end gap-1.5">
-                          <button
-                            onClick={() => notifyDoctor(entry.id)}
-                            className="rounded-lg bg-slate-900 px-3 py-1.5 text-[11px] font-semibold text-white transition hover:bg-slate-800"
-                          >
-                            {entry.notifiedAt ? "Reenviar" : "Notificar"}
-                          </button>
-                          <button
-                            onClick={() => markPatientAsDelayed(entry.id)}
-                            className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-[11px] font-semibold text-slate-700 transition hover:border-amber-200 hover:bg-amber-50 hover:text-amber-700"
-                          >
-                            Demorar
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                          <Wallet size={12} />
+                          {appointment.payment ? "Editar cobro" : "Cobrar"}
+                        </button>
+                        <button
+                          onClick={() => notifyDoctor(entry)}
+                          disabled={busy}
+                          className="rounded-lg bg-[#19b3bc] px-3 py-1.5 text-[11px] font-semibold text-white transition hover:bg-[#159ea7] disabled:opacity-50"
+                        >
+                          {appointment.arrivalNotifiedAt ? "Reenviar" : "Notificar"}
+                        </button>
+                        <button
+                          onClick={() => markPatientAsDelayed(entry)}
+                          disabled={busy}
+                          className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-[11px] font-semibold text-slate-700 transition hover:border-amber-200 hover:bg-amber-50 hover:text-amber-700 disabled:opacity-50"
+                        >
+                          Demorar
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                  );
+                })}
+              </tbody>
+            </table>
           </div>
         </div>
-      </section>
+      </div>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard
           label="Citas de hoy"
           value={kpis.todayAppointments}
           icon={CalendarDays}
-          iconColor="bg-blue-50 text-blue-600"
+          iconColor="bg-cyan-50 text-cyan-700"
           delay={0}
         />
         <StatCard
           label="Completadas"
           value={kpis.todayCompleted}
           icon={CheckCircle2}
-          iconColor="bg-emerald-50 text-emerald-600"
+          iconColor="bg-[#e8f8f9] text-[#0f8f98]"
           delay={60}
         />
         <StatCard
@@ -523,7 +679,7 @@ export default function SecretaryDashboard() {
           label="Tratamientos hoy"
           value={kpis.todayTreatmentCount}
           icon={Pill}
-          iconColor="bg-violet-50 text-violet-600"
+          iconColor="bg-teal-50 text-teal-700"
           delay={180}
         />
       </div>
@@ -558,7 +714,7 @@ export default function SecretaryDashboard() {
                       </div>
                       <div className="h-1.5 rounded-full bg-slate-100">
                         <div
-                          className="h-1.5 rounded-full bg-gradient-to-r from-teal-400 to-sky-300 transition-all duration-500"
+                          className="h-1.5 rounded-full bg-gradient-to-r from-[#19b3bc] to-cyan-300 transition-all duration-500"
                           style={{ width: `${percentage}%` }}
                         />
                       </div>
@@ -591,8 +747,8 @@ export default function SecretaryDashboard() {
                 />
                 <defs>
                   <linearGradient id="secAttendGrad" x1="0" y1="0" x2="1" y2="1">
-                    <stop offset="0%" stopColor="#2dd4bf" />
-                    <stop offset="100%" stopColor="#38bdf8" />
+                    <stop offset="0%" stopColor="#19b3bc" />
+                    <stop offset="100%" stopColor="#7adbe1" />
                   </linearGradient>
                 </defs>
               </svg>
@@ -602,7 +758,7 @@ export default function SecretaryDashboard() {
             </div>
             <div className="space-y-2 text-sm">
               <div className="flex items-center gap-2">
-                <span className="h-2.5 w-2.5 rounded-full bg-emerald-400" />
+                <span className="h-2.5 w-2.5 rounded-full bg-[#0f8f98]" />
                 <span className="text-slate-600">Completadas: {kpis.todayCompleted}</span>
               </div>
               <div className="flex items-center gap-2">
@@ -614,7 +770,7 @@ export default function SecretaryDashboard() {
                 <span className="text-slate-600">Canceladas: {kpis.todayCancelled}</span>
               </div>
               <div className="flex items-center gap-2">
-                <span className="h-2.5 w-2.5 rounded-full bg-blue-400" />
+                <span className="h-2.5 w-2.5 rounded-full bg-cyan-400" />
                 <span className="text-slate-600">Pendientes: {kpis.todayScheduled}</span>
               </div>
             </div>
@@ -727,6 +883,20 @@ export default function SecretaryDashboard() {
           </div>
         )}
       </div>
+
+      {payingEntry ? (
+        <QuickPaymentModal
+          entry={payingEntry}
+          treatments={treatments}
+          saving={savingAppointmentId === payingEntry.appointment.id}
+          errorMessage={actionError}
+          onClose={() => {
+            setPayingEntryId(null);
+            clearActionError();
+          }}
+          onSubmit={(input) => void submitPayment(payingEntry.appointment.id, input)}
+        />
+      ) : null}
     </div>
   );
 }

@@ -12,7 +12,9 @@ type DashboardResponse<T> = {
 };
 
 async function loadDashboard<T>(url: string): Promise<T> {
-  const res = await fetch(url, { credentials: "include" });
+  // no-store: tras registrar un cobro el refetch debe traer el estado real,
+  // no la respuesta cacheada por Next.
+  const res = await fetch(url, { credentials: "include", cache: "no-store" });
   const data = (await res.json().catch(() => null)) as DashboardResponse<T> | null;
 
   if (!res.ok || !data?.ok || !data.data) {

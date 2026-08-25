@@ -8,25 +8,37 @@ import {
   CheckCheck,
   CircleAlert,
   CreditCard,
+  UserCheck,
 } from "lucide-react";
 import type { NotificationPanelItem, NotificationPanelTone } from "./internal-alerts.types";
 
 function resolveToneStyles(tone: NotificationPanelTone) {
   switch (tone) {
+    case "brand":
+      // Paleta de marca: se usa para avisos que exigen accion inmediata
+      // (paciente en sala). Es el unico tono que resalta la tarjeta completa.
+      return {
+        dot: "bg-[#19b3bc]",
+        icon: "bg-[#e8f8f9] text-[#0f8f98]",
+        container: "border border-[#19b3bc]/30 bg-[#e8f8f9]",
+      };
     case "info":
       return {
         dot: "bg-cyan-500",
         icon: "bg-amber-50 text-amber-500",
+        container: "bg-white/80",
       };
     case "warning":
       return {
         dot: "bg-rose-500",
         icon: "bg-rose-50 text-rose-500",
+        container: "bg-white/80",
       };
     default:
       return {
         dot: "bg-emerald-500",
         icon: "bg-emerald-50 text-emerald-500",
+        container: "bg-white/80",
       };
   }
 }
@@ -37,6 +49,8 @@ function resolveIcon(item: NotificationPanelItem) {
       return CalendarClock;
     case "Cobros":
       return CreditCard;
+    case "Sala de espera":
+      return UserCheck;
     case "Clínica":
       return CircleAlert;
     default:
@@ -97,7 +111,9 @@ export default function NotificationSidebarListItem({
 
   return (
     <article
-      className="notifications-sidebar-item group rounded-[18px] bg-white/80 px-2 py-2 transition-all duration-200 hover:bg-white hover:shadow-[0_12px_24px_-24px_rgba(15,23,42,0.28)]"
+      className={`notifications-sidebar-item group rounded-[18px] px-2 py-2 transition-all duration-200 hover:shadow-[0_12px_24px_-24px_rgba(15,23,42,0.28)] ${
+        item.isRead ? "bg-white/80 hover:bg-white" : `${styles.container} hover:brightness-[0.98]`
+      }`}
       style={style}
     >
       {item.href ? (
