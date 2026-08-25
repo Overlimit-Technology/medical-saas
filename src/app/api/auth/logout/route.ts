@@ -20,7 +20,9 @@ export async function POST(req: Request) {
     expires: new Date(0),
   });
 
-  // Redirect back to home (use current request origin, not hardcoded localhost)
+  // Redirect back to home (use current request origin, not hardcoded localhost).
+  // 303 See Other: obliga al navegador a seguir el redirect con GET. El 307 por
+  // defecto conserva el metodo y reenvia POST a "/", que devuelve 405.
   const url = new URL("/", req.url);
-  return NextResponse.redirect(url);
+  return NextResponse.redirect(url, 303);
 }

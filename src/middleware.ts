@@ -98,6 +98,11 @@ function isValidClinicPayload(
 const PROTECTED_PREFIXES = [
   "/super-admin",
   "/dashboard",
+  "/clinic-dashboard",
+  "/configuracion",
+  "/seguimiento",
+  "/liquidaciones",
+  "/vacaciones",
   "/agenda",
   "/chat",
   "/chat-meta",
@@ -138,7 +143,9 @@ function canAccess(
 function roleHomePath(role: unknown, isSuperAdmin: boolean) {
   switch (role) {
     case "ADMIN":
-      return isSuperAdmin ? "/super-admin" : "/dashboard/admin";
+      // /dashboard/admin es la consola de super admin. El admin de clinica va a
+      // /clinic-dashboard (mismo mapeo que /api/clinics/select).
+      return isSuperAdmin ? "/super-admin" : "/clinic-dashboard";
     case "SECRETARY":
       return "/dashboard/secretary";
     default:
@@ -431,6 +438,11 @@ export const config = {
     "/select-clinic",
     "/super-admin/:path*",
     "/dashboard/:path*",
+    "/clinic-dashboard/:path*",
+    "/configuracion/:path*",
+    "/seguimiento/:path*",
+    "/liquidaciones/:path*",
+    "/vacaciones/:path*",
     "/agenda/:path*",
     "/chat/:path*",
     "/chat-meta/:path*",

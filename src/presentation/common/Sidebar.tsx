@@ -39,7 +39,13 @@ type NavItem = {
 };
 
 const NAV_ITEMS: NavItem[] = [
-  { href: "/dashboard", label: "Vista General", icon: LayoutGrid, group: "escritorios" },
+  {
+    href: "/dashboard",
+    label: "Vista General",
+    icon: LayoutGrid,
+    group: "escritorios",
+    matchPrefixes: ["/dashboard", "/clinic-dashboard"],
+  },
   { href: "/agenda", label: "Agenda", icon: CalendarDays, group: "escritorios", permission: "AGENDA" },
   {
     href: "/crm",
