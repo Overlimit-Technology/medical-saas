@@ -39,3 +39,7 @@ next-env.d.ts
 /src/generated/prisma
 
 /.claude/
+
+# cachés locales de herramientas (npm/prisma/next) creadas al correr en Windows
+/.appdata-local/
+/.appdata-roaming/
