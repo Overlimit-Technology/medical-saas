@@ -370,20 +370,23 @@ export default function AppointmentDetailModal({
 
         <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:justify-between">
           <div className="flex flex-wrap gap-3">
+            {/* Unica puerta de entrada a la atencion: la consola recorre ficha,
+                signos vitales, diagnostico, control y cobro en un solo flujo. */}
             <a
-              href={`/appointments/${appointment.id}`}
-              className="rounded-full border border-blue-200 px-4 py-2.5 text-center text-sm font-semibold text-blue-700 transition-colors hover:border-blue-300 hover:bg-blue-50"
+              href={`/consultation/${appointment.id}`}
+              className="group inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-[#19b3bc] to-[#0f8f98] px-5 py-2.5 text-center text-sm font-semibold text-white shadow-lg shadow-[#19b3bc]/25 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-xl hover:shadow-[#19b3bc]/30"
             >
-              Iniciar Cita
-            </a>
-            {(isDoctor || canEdit) && (
-              <a
-                href={`/clinical-visits?appointmentId=${appointment.id}&patientId=${appointment.patient.id}`}
-                className="rounded-full border border-emerald-200 px-4 py-2.5 text-center text-sm font-semibold text-emerald-700 transition-colors hover:border-emerald-300 hover:bg-emerald-50"
+              <svg
+                width="15"
+                height="15"
+                viewBox="0 0 24 24"
+                fill="currentColor"
+                className="transition-transform duration-200 group-hover:scale-110"
               >
-                Iniciar consulta
-              </a>
-            )}
+                <polygon points="6 3 20 12 6 21" />
+              </svg>
+              {isDoctor ? "Iniciar cita" : "Ver consulta"}
+            </a>
           </div>
           <div className="flex gap-3">
             {canEdit && appointment.status === "CANCELLED" && (

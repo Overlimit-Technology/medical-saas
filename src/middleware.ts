@@ -119,6 +119,7 @@ const PROTECTED_PREFIXES = [
   "/boxes",
   "/appointments",
   "/clinical-visits",
+  "/consultation",
   "/form-templates",
 ];
 
@@ -414,6 +415,18 @@ export async function middleware(req: NextRequest) {
       return NextResponse.redirect(url);
     }
 
+    // La consola de consulta la abre el profesional que atiende, pero admin y
+    // secretaria pueden entrar en modo lectura: el permiso replica al de la API.
+    if (
+      pathname.startsWith("/consultation") &&
+      !canAccess(sessionPayload?.role, isSuperAdmin, permissions, ["ADMIN"], "AGENDA") &&
+      !canAccess(sessionPayload?.role, isSuperAdmin, permissions, ["ADMIN"], "CLINICAL_VISITS")
+    ) {
+      const url = req.nextUrl.clone();
+      url.pathname = roleHome;
+      return NextResponse.redirect(url);
+    }
+
     if (
       pathname.startsWith("/form-templates") &&
       sessionPayload?.role !== "ADMIN" &&
@@ -458,6 +471,7 @@ export const config = {
     "/boxes/:path*",
     "/appointments/:path*",
     "/clinical-visits/:path*",
+    "/consultation/:path*",
     "/form-templates/:path*",
   ],
 };

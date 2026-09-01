@@ -136,3 +136,143 @@ body::-webkit-scrollbar-thumb:hover,
     transform: translateY(0);
   }
 }
+
+/* ------------------------------------------------------------------ */
+/* Consola de consulta clinica ("Iniciar cita").                       */
+/* Las etapas entran y salen, el avance late y los remates confirman.  */
+/* ------------------------------------------------------------------ */
+
+@layer utilities {
+  .animate-stage-in {
+    animation: stage-in 320ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+  .animate-rise-in {
+    animation: rise-in 420ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+  .animate-pop-in {
+    animation: pop-in 320ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
+  }
+  .animate-slide-down {
+    animation: slide-down 260ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+  .animate-pulse-ring::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    border: 2px solid currentColor;
+    animation: pulse-ring 2000ms cubic-bezier(0.4, 0, 0.6, 1) infinite;
+    pointer-events: none;
+  }
+  .animate-sheen {
+    background-image: linear-gradient(
+      100deg,
+      transparent 20%,
+      rgba(255, 255, 255, 0.55) 50%,
+      transparent 80%
+    );
+    background-size: 220% 100%;
+    animation: sheen 1800ms linear infinite;
+  }
+  .animate-breathe {
+    animation: breathe 2600ms ease-in-out infinite;
+  }
+}
+
+@keyframes stage-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(14px) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes pop-in {
+  from {
+    opacity: 0;
+    transform: scale(0.6);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes slide-down {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+    max-height: 0;
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+    max-height: 1400px;
+  }
+}
+
+@keyframes pulse-ring {
+  0% {
+    transform: scale(1);
+    opacity: 0.65;
+  }
+  70% {
+    transform: scale(1.22);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(1.22);
+    opacity: 0;
+  }
+}
+
+@keyframes sheen {
+  from {
+    background-position: 180% 0;
+  }
+  to {
+    background-position: -80% 0;
+  }
+}
+
+@keyframes breathe {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.45;
+  }
+}
+
+/* Respeta a quien pidio menos movimiento: la informacion no depende de la animacion. */
+@media (prefers-reduced-motion: reduce) {
+  .animate-stage-in,
+  .animate-rise-in,
+  .animate-pop-in,
+  .animate-slide-down,
+  .animate-sheen,
+  .animate-breathe,
+  .animate-fade-in,
+  .animate-modal-in,
+  .animate-card-in {
+    animation: none !important;
+  }
+  .animate-pulse-ring::after {
+    animation: none !important;
+  }
+}
