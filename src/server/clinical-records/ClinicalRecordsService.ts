@@ -25,7 +25,7 @@ export class ClinicalRecordsService {
         doctor: {
           select: {
             id: true,
-            profile: { select: { firstName: true, lastName: true } },
+            profile: { select: { firstName: true, lastName: true, signatureUrl: true } },
           },
         },
         values: {
@@ -48,7 +48,7 @@ export class ClinicalRecordsService {
         doctor: {
           select: {
             id: true,
-            profile: { select: { firstName: true, lastName: true } },
+            profile: { select: { firstName: true, lastName: true, signatureUrl: true } },
           },
         },
         values: {
@@ -74,7 +74,7 @@ export class ClinicalRecordsService {
         doctor: {
           select: {
             id: true,
-            profile: { select: { firstName: true, lastName: true } },
+            profile: { select: { firstName: true, lastName: true, signatureUrl: true } },
           },
         },
         values: {

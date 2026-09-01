@@ -12,6 +12,7 @@ import {
 import type { FormTemplate } from "@/domain/form-templates/entities/FormTemplate";
 import { GetFormTemplatesUseCase } from "@/domain/form-templates/usecases/FormTemplatesUseCases";
 import { useClinicBranding } from "@/presentation/common/useClinicBranding";
+import { useMySignature } from "@/presentation/common/useMySignature";
 
 export type { ClinicalRecord };
 export type TemplateOption = FormTemplate;
@@ -24,6 +25,7 @@ function getTemplateFieldKey(field: FormTemplate["fields"][number]) {
 
 export function useClinicalRecordsViewModel(patientId: string, appointmentId?: string | null) {
   const { logoUrl: clinicLogo } = useClinicBranding();
+  const { signatureUrl: mySignature } = useMySignature();
   const [records, setRecords] = useState<ClinicalRecord[]>([]);
   const [templates, setTemplates] = useState<TemplateOption[]>([]);
   const [loading, setLoading] = useState(true);
@@ -184,6 +186,10 @@ export function useClinicalRecordsViewModel(patientId: string, appointmentId?: s
       editingRecord,
       values,
       clinicLogo,
+      // Al editar mandamos la firma del autor original; al crear, la del usuario en sesion.
+      doctorSignatureUrl: editingRecord
+        ? (editingRecord.doctor.profile?.signatureUrl ?? null)
+        : mySignature,
     },
     actions: {
       openCreateForm,

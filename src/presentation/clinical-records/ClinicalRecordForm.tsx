@@ -27,6 +27,7 @@ type Props = {
   doctorName: string;
   clinicLogo?: string | null;
   includeLogo?: boolean;
+  doctorSignatureUrl?: string | null;
   onFieldChange: (fieldId: string, value: string) => void;
   onSubmit: (e: React.FormEvent) => void;
   onCancel: () => void;
@@ -43,6 +44,7 @@ export default function ClinicalRecordForm({
   doctorName,
   clinicLogo,
   includeLogo = true,
+  doctorSignatureUrl,
   onFieldChange,
   onSubmit,
   onCancel,
@@ -112,6 +114,7 @@ export default function ClinicalRecordForm({
               doctorName={doctorName}
               clinicLogo={clinicLogo}
               includeLogo={includeLogo}
+              doctorSignatureUrl={doctorSignatureUrl}
             />
           </div>
         )}

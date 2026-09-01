@@ -21,6 +21,7 @@ type Props = {
   doctorName: string;
   clinicLogo?: string | null;
   includeLogo?: boolean;
+  doctorSignatureUrl?: string | null;
 };
 
 function formatValue(value: string, fieldType: string): string {
@@ -29,12 +30,29 @@ function formatValue(value: string, fieldType: string): string {
   return value;
 }
 
-function SignaturePlaceholder({ label, name }: { label: string; name?: string }) {
+function SignaturePlaceholder({
+  label,
+  name,
+  signatureUrl,
+}: {
+  label: string;
+  name?: string;
+  signatureUrl?: string | null;
+}) {
   return (
     <div className="flex flex-col items-center gap-1 pt-2">
-      <div className="flex h-12 w-40 items-center justify-center rounded-lg border-2 border-dashed border-slate-300 bg-slate-50">
-        <span className="text-[10px] text-slate-400">{label}</span>
-      </div>
+      {signatureUrl ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={signatureUrl}
+          alt={label}
+          className="h-12 w-40 border-b border-slate-300 object-contain"
+        />
+      ) : (
+        <div className="flex h-12 w-40 items-center justify-center rounded-lg border-2 border-dashed border-slate-300 bg-slate-50">
+          <span className="text-[10px] text-slate-400">{label}</span>
+        </div>
+      )}
       {name && <p className="text-[10px] text-slate-500">{name}</p>}
       <p className="text-[9px] text-slate-400">Nombre: ___________________________</p>
       <p className="text-[9px] text-slate-400">Fecha: ____________________________</p>
@@ -50,6 +68,7 @@ export default function RecordPreview({
   doctorName,
   clinicLogo,
   includeLogo = true,
+  doctorSignatureUrl,
 }: Props) {
   const sortedFields = [...fields].sort((a, b) => a.position - b.position);
   const regularFields = sortedFields.filter((f) => f.fieldType !== "SIGNATURE");
@@ -133,18 +152,16 @@ export default function RecordPreview({
                       key={getFieldKey(field)}
                       label={field.label || (field.options === "doctor" ? "Firma del Profesional" : "Firma del Paciente")}
                       name={field.options === "doctor" ? doctorName : undefined}
+                      signatureUrl={field.options === "doctor" ? doctorSignatureUrl : null}
                     />
                   ))}
                 </div>
               ) : (
-                <div className="flex flex-col items-center gap-1 pt-2">
-                  <div className="flex h-12 w-40 items-center justify-center rounded-lg border-2 border-dashed border-slate-300 bg-slate-50">
-                    <span className="text-[10px] text-slate-400">
-                      Firma del Doctor
-                    </span>
-                  </div>
-                  <p className="text-[10px] text-slate-500">{doctorName}</p>
-                </div>
+                <SignaturePlaceholder
+                  label="Firma del Doctor"
+                  name={doctorName}
+                  signatureUrl={doctorSignatureUrl}
+                />
               )}
 
               <p className="text-center text-[8px] text-slate-300">

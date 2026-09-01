@@ -4,8 +4,8 @@ import { useProfileViewModel, getInitials } from "./ProfileViewModel";
 
 export default function Profile() {
   const { state, actions } = useProfileViewModel();
-  const { form, clinicLabel, loading, saving, uploading, error, success, fullName } = state;
-  const { setForm, submit, handleFileUpload } = actions;
+  const { form, clinicLabel, loading, saving, uploading, signatureUploading, error, success, fullName } = state;
+  const { setForm, submit, handleFileUpload, handleSignatureUpload, handleSignatureRemove } = actions;
 
   return (
     <div className="space-y-6">
@@ -111,10 +111,58 @@ export default function Profile() {
               ) : null}
             </div>
 
+            <div className="grid gap-3">
+              <span className="text-sm text-slate-600">Firma digitalizada</span>
+              <p className="-mt-2 text-xs text-slate-400">
+                Se estampa automaticamente en los campos de firma del profesional de cada
+                plantilla. Usa PNG con fondo transparente para mejor resultado.
+              </p>
+
+              {form.signatureUrl ? (
+                <div className="flex items-center justify-between gap-4 rounded-2xl border border-slate-200 bg-white px-4 py-3">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={form.signatureUrl}
+                    alt="Firma del profesional"
+                    className="h-14 max-w-[200px] object-contain"
+                  />
+                  <button
+                    type="button"
+                    disabled={signatureUploading}
+                    onClick={() => void handleSignatureRemove()}
+                    className="text-xs text-rose-400 transition hover:underline disabled:opacity-50"
+                  >
+                    Quitar firma
+                  </button>
+                </div>
+              ) : (
+                <div className="flex h-16 items-center justify-center rounded-2xl border-2 border-dashed border-slate-300 bg-slate-50">
+                  <span className="text-xs text-slate-400">Sin firma cargada</span>
+                </div>
+              )}
+
+              <label className="flex cursor-pointer items-center justify-between rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-4 py-3 text-sm text-slate-600 transition hover:border-slate-400 hover:bg-slate-100">
+                <span>
+                  {signatureUploading
+                    ? "Subiendo firma..."
+                    : form.signatureUrl
+                      ? "Cambiar firma"
+                      : "Seleccionar firma"}
+                </span>
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleSignatureUpload}
+                  disabled={signatureUploading}
+                  className="hidden"
+                />
+              </label>
+            </div>
+
             <div className="flex items-center justify-between rounded-2xl border border-slate-100 bg-slate-50 px-4 py-3">
               <button
                 type="submit"
-                disabled={loading || saving || uploading}
+                disabled={loading || saving || uploading || signatureUploading}
                 className="rounded-2xl bg-[#19b3bc] px-5 py-3 text-sm font-medium text-white transition-colors hover:bg-[#159ea7] disabled:cursor-not-allowed disabled:bg-[#19b3bc]/45"
               >
                 {saving ? "Guardando..." : "Guardar"}

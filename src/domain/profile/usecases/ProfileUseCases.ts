@@ -24,3 +24,19 @@ export class UploadProfileImageUseCase {
     return this.repo.uploadProfileImage(file);
   }
 }
+
+export class UploadSignatureUseCase {
+  constructor(private readonly repo: ProfileRepository) {}
+
+  async execute(file: File): Promise<string> {
+    return this.repo.uploadSignature(file);
+  }
+}
+
+export class RemoveSignatureUseCase {
+  constructor(private readonly repo: ProfileRepository) {}
+
+  async execute(): Promise<void> {
+    return this.repo.removeSignature();
+  }
+}

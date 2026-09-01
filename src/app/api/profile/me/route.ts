@@ -25,6 +25,7 @@ function mapProfile(item: {
     firstName: string;
     lastName: string;
     phone: string | null;
+    signatureUrl: string | null;
     teamCategoryId: string | null;
     teamCategory: { id: string; name: string } | null;
   } | null;
@@ -39,6 +40,7 @@ function mapProfile(item: {
     firstName: item.profile?.firstName ?? "",
     lastName: item.profile?.lastName ?? "",
     phone: item.profile?.phone ?? "",
+    signatureUrl: item.profile?.signatureUrl ?? null,
     teamCategoryId: item.profile?.teamCategoryId ?? null,
     teamCategoryName: item.profile?.teamCategory?.name ?? null,
   };
@@ -61,6 +63,7 @@ export async function GET() {
             firstName: true,
             lastName: true,
             phone: true,
+            signatureUrl: true,
             teamCategoryId: true,
             teamCategory: { select: { id: true, name: true } },
           },
@@ -130,6 +133,7 @@ export async function PUT(req: Request) {
             firstName: true,
             lastName: true,
             phone: true,
+            signatureUrl: true,
             teamCategoryId: true,
             teamCategory: { select: { id: true, name: true } },
           },

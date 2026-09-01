@@ -8,6 +8,7 @@ export type UserProfile = {
   firstName: string;
   lastName: string;
   phone: string;
+  signatureUrl: string | null;
   clinicLabel: string | null;
   teamCategoryId: string | null;
   teamCategoryName: string | null;

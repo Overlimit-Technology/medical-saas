@@ -2,6 +2,7 @@
 
 import { DeleteIconButton } from "@/presentation/common/DeleteIconButton";
 import { useClinicBranding } from "@/presentation/common/useClinicBranding";
+import { useMySignature } from "@/presentation/common/useMySignature";
 import {
   useFormTemplatesViewModel,
   FIELD_TYPE_LABELS,
@@ -137,6 +138,7 @@ function SingleTemplateView({
 export default function FormTemplates() {
   const { state, actions } = useFormTemplatesViewModel();
   const { logoUrl: clinicLogo } = useClinicBranding();
+  const { signatureUrl: mySignature } = useMySignature();
 
   if (state.roleLoading) {
     return (
@@ -536,6 +538,7 @@ export default function FormTemplates() {
                     fields={state.form.fields}
                     clinicLogo={clinicLogo}
                     includeLogo={state.form.includeLogo}
+                    doctorSignatureUrl={mySignature}
                   />
                 </div>
               )}

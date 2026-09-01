@@ -4,4 +4,6 @@ export interface ProfileRepository {
   getMyProfile(): Promise<UserProfile>;
   updateMyProfile(input: UpdateProfileInput): Promise<UserProfile>;
   uploadProfileImage(file: File): Promise<string>;
+  uploadSignature(file: File): Promise<string>;
+  removeSignature(): Promise<void>;
 }

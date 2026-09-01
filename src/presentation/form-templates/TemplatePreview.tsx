@@ -8,6 +8,7 @@ type Props = {
   fields: TemplateField[];
   clinicLogo?: string | null;
   includeLogo?: boolean;
+  doctorSignatureUrl?: string | null;
 };
 
 function getSampleValue(fieldType: string, options?: string | null): string {
@@ -36,12 +37,29 @@ function getSampleValue(fieldType: string, options?: string | null): string {
   }
 }
 
-function SignaturePlaceholder({ label, name }: { label: string; name?: string }) {
+function SignaturePlaceholder({
+  label,
+  name,
+  signatureUrl,
+}: {
+  label: string;
+  name?: string;
+  signatureUrl?: string | null;
+}) {
   return (
     <div className="flex flex-col items-center gap-1 pt-2">
-      <div className="flex h-12 w-40 items-center justify-center rounded-lg border-2 border-dashed border-slate-300 bg-slate-50">
-        <span className="text-[10px] text-slate-400">{label}</span>
-      </div>
+      {signatureUrl ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={signatureUrl}
+          alt={label}
+          className="h-12 w-40 border-b border-slate-300 object-contain"
+        />
+      ) : (
+        <div className="flex h-12 w-40 items-center justify-center rounded-lg border-2 border-dashed border-slate-300 bg-slate-50">
+          <span className="text-[10px] text-slate-400">{label}</span>
+        </div>
+      )}
       {name && <p className="text-[10px] text-slate-500">{name}</p>}
       <p className="text-[9px] text-slate-400">Nombre: ___________________________</p>
       <p className="text-[9px] text-slate-400">Fecha: ____________________________</p>
@@ -49,7 +67,13 @@ function SignaturePlaceholder({ label, name }: { label: string; name?: string })
   );
 }
 
-export default function TemplatePreview({ templateName, fields, clinicLogo, includeLogo = true }: Props) {
+export default function TemplatePreview({
+  templateName,
+  fields,
+  clinicLogo,
+  includeLogo = true,
+  doctorSignatureUrl,
+}: Props) {
   const sortedFields = [...fields].sort((a, b) => a.position - b.position);
   const regularFields = sortedFields.filter((f) => f.fieldType !== "SIGNATURE");
   const signatureFields = sortedFields.filter((f) => f.fieldType === "SIGNATURE");
@@ -129,16 +153,16 @@ export default function TemplatePreview({ templateName, fields, clinicLogo, incl
                     <SignaturePlaceholder
                       key={idx}
                       label={field.label || (field.options === "doctor" ? "Firma del Profesional" : "Firma del Paciente")}
+                      signatureUrl={field.options === "doctor" ? doctorSignatureUrl : null}
                     />
                   ))}
                 </div>
               ) : (
-                <div className="flex flex-col items-center gap-1 pt-2">
-                  <div className="flex h-12 w-40 items-center justify-center rounded-lg border-2 border-dashed border-slate-300 bg-slate-50">
-                    <span className="text-[10px] text-slate-400">Firma del Doctor</span>
-                  </div>
-                  <p className="text-[10px] text-slate-500">Dra. María López Fuentes</p>
-                </div>
+                <SignaturePlaceholder
+                  label="Firma del Doctor"
+                  name="Dra. María López Fuentes"
+                  signatureUrl={doctorSignatureUrl}
+                />
               )}
 
               <p className="text-center text-[8px] text-slate-300">

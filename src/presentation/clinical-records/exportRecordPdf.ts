@@ -4,6 +4,7 @@ type FieldValue = {
   label: string;
   value: string;
   fieldType: string;
+  options?: string | null;
 };
 
 type ExportData = {
@@ -12,6 +13,7 @@ type ExportData = {
   doctorName: string;
   date: string;
   clinicLogo?: string | null;
+  doctorSignatureUrl?: string | null;
   fields: FieldValue[];
 };
 
@@ -21,11 +23,11 @@ function formatValue(value: string, fieldType: string): string {
 }
 
 /**
- * jsPDF solo dibuja data URLs, no URLs remotas. El logo vive en Cloudinary,
- * asi que lo descargamos y convertimos antes de insertarlo. Si falla (red, CORS),
- * devolvemos null y el PDF se genera sin logo en vez de romperse.
+ * jsPDF solo dibuja data URLs, no URLs remotas. El logo y las firmas viven en
+ * Cloudinary, asi que los descargamos y convertimos antes de insertarlos. Si falla
+ * (red, CORS), devolvemos null y el PDF se genera sin la imagen en vez de romperse.
  */
-async function resolveLogoDataUrl(src: string): Promise<string | null> {
+async function resolveImageDataUrl(src: string): Promise<string | null> {
   if (src.startsWith("data:")) return src;
   try {
     const res = await fetch(src, { mode: "cors" });
@@ -52,7 +54,7 @@ export async function exportRecordPdf(data: ExportData) {
 
   // Logo
   if (data.clinicLogo) {
-    const logoDataUrl = await resolveLogoDataUrl(data.clinicLogo);
+    const logoDataUrl = await resolveImageDataUrl(data.clinicLogo);
     if (logoDataUrl) {
       try {
         // Respetamos la proporcion original en vez de deformar a una caja fija.
@@ -97,8 +99,12 @@ export async function exportRecordPdf(data: ExportData) {
   doc.line(marginLeft, y, pageWidth - marginRight, y);
   y += 10;
 
+  // Los campos de firma no son texto: se dibujan como bloque al final.
+  const regularFields = data.fields.filter((f) => f.fieldType !== "SIGNATURE");
+  const signatureFields = data.fields.filter((f) => f.fieldType === "SIGNATURE");
+
   // Fields
-  for (const field of data.fields) {
+  for (const field of regularFields) {
     // Check page overflow
     if (y > 270) {
       doc.addPage();
@@ -120,6 +126,65 @@ export async function exportRecordPdf(data: ExportData) {
     const lines = doc.splitTextToSize(displayValue, contentWidth);
     doc.text(lines, marginLeft, y);
     y += lines.length * 5 + 6;
+  }
+
+  // Bloque de firmas
+  const blocks = signatureFields.length
+    ? signatureFields.map((f) => ({
+        label: f.label || (f.options === "doctor" ? "Firma del Profesional" : "Firma del Paciente"),
+        isDoctor: f.options === "doctor",
+      }))
+    : [{ label: "Firma del Profesional", isDoctor: true }];
+
+  const signatureDataUrl = data.doctorSignatureUrl
+    ? await resolveImageDataUrl(data.doctorSignatureUrl)
+    : null;
+
+  const BLOCK_H = 34;
+  if (y > 270 - BLOCK_H) {
+    doc.addPage();
+    y = 20;
+  }
+  y = Math.max(y + 6, 240);
+
+  const slotW = contentWidth / blocks.length;
+  for (let i = 0; i < blocks.length; i++) {
+    const block = blocks[i];
+    const centerX = marginLeft + slotW * i + slotW / 2;
+    const lineW = Math.min(slotW - 8, 60);
+    const lineY = y + 16;
+
+    // Solo el profesional lleva firma estampada; el paciente firma a mano.
+    if (block.isDoctor && signatureDataUrl) {
+      try {
+        const props = doc.getImageProperties(signatureDataUrl);
+        const scale = Math.min(lineW / props.width, 14 / props.height);
+        const w = props.width * scale;
+        const h = props.height * scale;
+        doc.addImage(signatureDataUrl, "PNG", centerX - w / 2, lineY - h - 1, w, h);
+      } catch {
+        // Firma ilegible: queda la linea en blanco.
+      }
+    }
+
+    doc.setDrawColor(120, 120, 120);
+    doc.setLineWidth(0.3);
+    doc.line(centerX - lineW / 2, lineY, centerX + lineW / 2, lineY);
+
+    doc.setFontSize(9);
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(80, 80, 80);
+    doc.text(block.label, centerX, lineY + 5, { align: "center" });
+
+    if (block.isDoctor) {
+      doc.setFontSize(8);
+      doc.setTextColor(130, 130, 130);
+      doc.text(data.doctorName, centerX, lineY + 10, { align: "center" });
+    } else {
+      doc.setFontSize(8);
+      doc.setTextColor(130, 130, 130);
+      doc.text("Nombre: ______________________", centerX, lineY + 10, { align: "center" });
+    }
   }
 
   // Footer

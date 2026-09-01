@@ -13,6 +13,7 @@ type ProfilePayload = {
     firstName: string;
     lastName: string;
     phone: string;
+    signatureUrl: string | null;
     teamCategoryId: string | null;
     teamCategoryName: string | null;
   };
@@ -23,6 +24,12 @@ type ProfilePayload = {
 type UploadPayload = {
   ok: boolean;
   imageUrl?: string;
+  error?: string;
+};
+
+type SignaturePayload = {
+  ok: boolean;
+  signatureUrl?: string;
   error?: string;
 };
 
@@ -41,6 +48,7 @@ function mapProfile(data: ProfilePayload): UserProfile {
     firstName: data.item.firstName,
     lastName: data.item.lastName,
     phone: data.item.phone ?? "",
+    signatureUrl: data.item.signatureUrl ?? null,
     clinicLabel: data.clinicLabel ?? null,
     teamCategoryId: data.item.teamCategoryId ?? null,
     teamCategoryName: data.item.teamCategoryName ?? null,
@@ -94,5 +102,35 @@ export class ProfileRepositoryHttp implements ProfileRepository {
     }
 
     return data.imageUrl;
+  }
+
+  async uploadSignature(file: File): Promise<string> {
+    const formData = new FormData();
+    formData.append("file", file);
+
+    const res = await fetch("/api/profile/signature", {
+      method: "POST",
+      credentials: "include",
+      body: formData,
+    });
+    const data = (await res.json().catch(() => null)) as SignaturePayload | null;
+
+    if (!res.ok || !data?.ok || !data.signatureUrl) {
+      throw new Error(data?.error ?? "No se pudo subir la firma.");
+    }
+
+    return data.signatureUrl;
+  }
+
+  async removeSignature(): Promise<void> {
+    const res = await fetch("/api/profile/signature", {
+      method: "DELETE",
+      credentials: "include",
+    });
+    const data = (await res.json().catch(() => null)) as SignaturePayload | null;
+
+    if (!res.ok || !data?.ok) {
+      throw new Error(data?.error ?? "No se pudo quitar la firma.");
+    }
   }
 }

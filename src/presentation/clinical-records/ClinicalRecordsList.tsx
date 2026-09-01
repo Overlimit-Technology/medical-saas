@@ -30,10 +30,12 @@ export default function ClinicalRecordsList({ records, patientName, clinicLogo, 
       doctorName,
       date: new Date(record.createdAt).toLocaleString("es-CL"),
       clinicLogo: record.template.includeLogo === false ? null : (clinicLogo ?? null),
+      doctorSignatureUrl: record.doctor.profile?.signatureUrl ?? null,
       fields: sortedValues.map((v) => ({
         label: v.field.label,
         value: v.value,
         fieldType: v.field.fieldType,
+        options: v.field.options,
       })),
     });
   };

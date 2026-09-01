@@ -56,6 +56,7 @@ function ClinicalRecordsSection({
           doctorName={doctorName}
           clinicLogo={state.clinicLogo}
           includeLogo={state.selectedTemplate.includeLogo !== false}
+          doctorSignatureUrl={state.doctorSignatureUrl}
           onFieldChange={actions.setFieldValue}
           onSubmit={actions.handleSubmit}
           onCancel={actions.closeForm}

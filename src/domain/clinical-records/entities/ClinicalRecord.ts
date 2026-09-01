@@ -21,7 +21,7 @@ export type ClinicalRecord = {
   template: { id: string; name: string; includeLogo?: boolean };
   doctor: {
     id: string;
-    profile?: { firstName: string; lastName: string } | null;
+    profile?: { firstName: string; lastName: string; signatureUrl?: string | null } | null;
   };
   values: ClinicalRecordValue[];
 };

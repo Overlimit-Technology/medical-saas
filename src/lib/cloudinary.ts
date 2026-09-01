@@ -80,6 +80,25 @@ export async function uploadClinicLogo(fileBuffer: Buffer, clinicId: string, mim
   return result.secure_url;
 }
 
+export async function uploadDoctorSignature(fileBuffer: Buffer, userId: string, mimeType: string) {
+  ensureCloudinaryConfig();
+
+  const safeMimeType = mimeType?.trim() || "image/png";
+  const dataUri = `data:${safeMimeType};base64,${fileBuffer.toString("base64")}`;
+
+  const result = await cloudinary.uploader.upload(dataUri, {
+    folder: "medigest/signatures",
+    public_id: `signature-${userId}`,
+    overwrite: true,
+    invalidate: true,
+    resource_type: "image",
+    // PNG conserva la transparencia: una firma con fondo blanco taparia la linea del PDF.
+    format: "png",
+  });
+
+  return result.secure_url;
+}
+
 export async function uploadImagingAsset(fileBuffer: Buffer, userId: string, mimeType: string) {
   ensureCloudinaryConfig();
 

@@ -4,8 +4,10 @@ import { useEffect, useMemo, useState } from "react";
 import { ProfileRepositoryHttp } from "@/data/profile/ProfileRepository";
 import {
   GetMyProfileUseCase,
+  RemoveSignatureUseCase,
   UpdateMyProfileUseCase,
   UploadProfileImageUseCase,
+  UploadSignatureUseCase,
 } from "@/domain/profile/usecases/ProfileUseCases";
 
 export function getInitials(firstName: string, lastName: string, email: string) {
@@ -18,12 +20,20 @@ export function getInitials(firstName: string, lastName: string, email: string) 
 }
 
 export function useProfileViewModel() {
-  const { getMyProfileUseCase, updateMyProfileUseCase, uploadProfileImageUseCase } = useMemo(() => {
+  const {
+    getMyProfileUseCase,
+    updateMyProfileUseCase,
+    uploadProfileImageUseCase,
+    uploadSignatureUseCase,
+    removeSignatureUseCase,
+  } = useMemo(() => {
     const repo = new ProfileRepositoryHttp();
     return {
       getMyProfileUseCase: new GetMyProfileUseCase(repo),
       updateMyProfileUseCase: new UpdateMyProfileUseCase(repo),
       uploadProfileImageUseCase: new UploadProfileImageUseCase(repo),
+      uploadSignatureUseCase: new UploadSignatureUseCase(repo),
+      removeSignatureUseCase: new RemoveSignatureUseCase(repo),
     };
   }, []);
   const [form, setForm] = useState({
@@ -31,6 +41,7 @@ export function useProfileViewModel() {
     lastName: "",
     phone: "",
     image: "",
+    signatureUrl: "",
     email: "",
     role: "",
     teamCategoryId: "" as string,
@@ -39,6 +50,7 @@ export function useProfileViewModel() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [signatureUploading, setSignatureUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
@@ -54,6 +66,7 @@ export function useProfileViewModel() {
           lastName: profile.lastName,
           phone: profile.phone ?? "",
           image: profile.image ?? "",
+          signatureUrl: profile.signatureUrl ?? "",
           email: profile.email,
           role: profile.role,
           teamCategoryId: profile.teamCategoryId ?? "",
@@ -129,10 +142,45 @@ export function useProfileViewModel() {
     }
   };
 
+  // La firma se persiste sola en su propia ruta; no depende de "Guardar perfil".
+  const handleSignatureUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    setSignatureUploading(true);
+    setError(null);
+
+    try {
+      const signatureUrl = await uploadSignatureUseCase.execute(file);
+      setForm((current) => ({ ...current, signatureUrl }));
+      setSuccess("Firma actualizada.");
+    } catch (error) {
+      setError(error instanceof Error ? error.message : "No se pudo subir la firma.");
+    } finally {
+      setSignatureUploading(false);
+      event.target.value = "";
+    }
+  };
+
+  const handleSignatureRemove = async () => {
+    setSignatureUploading(true);
+    setError(null);
+
+    try {
+      await removeSignatureUseCase.execute();
+      setForm((current) => ({ ...current, signatureUrl: "" }));
+      setSuccess("Firma eliminada.");
+    } catch (error) {
+      setError(error instanceof Error ? error.message : "No se pudo quitar la firma.");
+    } finally {
+      setSignatureUploading(false);
+    }
+  };
+
   const fullName = `${form.firstName} ${form.lastName}`.trim() || "Mi perfil";
 
   return {
-    state: { form, clinicLabel, loading, saving, uploading, error, success, fullName },
-    actions: { setForm, submit, handleFileUpload },
+    state: { form, clinicLabel, loading, saving, uploading, signatureUploading, error, success, fullName },
+    actions: { setForm, submit, handleFileUpload, handleSignatureUpload, handleSignatureRemove },
   };
 }
