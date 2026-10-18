@@ -35,6 +35,7 @@ type MetaMessage = {
   senderLabel: string;
   text: string;
   status: string;
+  errorMessage?: string | null;
   createdAt: string;
 };
 
@@ -65,6 +66,8 @@ export default function CrmInbox() {
   const [messagesLoading, setMessagesLoading] = useState(false);
   const [draft, setDraft] = useState("");
   const [sending, setSending] = useState(false);
+  const [suggesting, setSuggesting] = useState(false);
+  const [suggestionNote, setSuggestionNote] = useState<string | null>(null);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [summary, setSummary] = useState({ total: 0, unread: 0 });
   const [error, setError] = useState<string | null>(null);
@@ -155,6 +158,7 @@ export default function CrmInbox() {
       if (data.ok && data.item) {
         setMessages((prev) => [...prev, data.item]);
         setDraft("");
+        setSuggestionNote(null);
       } else {
         setError(data.error ?? "Error al enviar");
       }
@@ -162,6 +166,36 @@ export default function CrmInbox() {
       setError("Error al enviar");
     } finally {
       setSending(false);
+    }
+  }
+
+  async function handleSuggest() {
+    if (!active) return;
+    setSuggesting(true);
+    setSuggestionNote(null);
+    setError(null);
+    try {
+      const response = await fetch("/api/ai/suggest-reply", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ conversationId: active.id }),
+      });
+      const data = await response.json();
+      if (data.ok && data.suggestion) {
+        setDraft(data.suggestion.reply);
+        setSuggestionNote(
+          data.suggestion.needsHuman
+            ? `Sugerida por IA. Requiere revision humana${data.suggestion.reason ? `: ${data.suggestion.reason}` : "."}`
+            : "Sugerida por IA. Revisa antes de enviar."
+        );
+      } else {
+        setError(data.error ?? "No se pudo sugerir una respuesta");
+      }
+    } catch {
+      setError("No se pudo sugerir una respuesta");
+    } finally {
+      setSuggesting(false);
     }
   }
 
@@ -269,6 +303,11 @@ export default function CrmInbox() {
                         <div className={`max-w-[72%] rounded-2xl px-3 py-2 ${own ? "bg-slate-800 text-white" : "border border-slate-200 bg-white text-slate-700"}`}>
                           <p className="text-sm leading-6">{message.text}</p>
                           <p className={`mt-1 text-right text-[10px] ${own ? "text-slate-300" : "text-slate-400"}`}>{formatTime(message.createdAt)}</p>
+                          {own && message.status === "FAILED" ? (
+                            <p className="mt-1 text-right text-[10px] text-rose-300" title={message.errorMessage ?? undefined}>
+                              No enviado{message.errorMessage ? `: ${message.errorMessage}` : ""}
+                            </p>
+                          ) : null}
                         </div>
                       </div>
                     </div>
@@ -280,6 +319,7 @@ export default function CrmInbox() {
 
             <div className="border-t border-slate-200 bg-white px-4 py-3">
               {error ? <p className="mb-2 text-xs text-rose-500">{error}</p> : null}
+              {suggestionNote ? <p className="mb-2 text-xs text-amber-600">{suggestionNote}</p> : null}
               <div className="flex items-end gap-2.5">
                 <textarea
                   value={draft}
@@ -294,6 +334,9 @@ export default function CrmInbox() {
                     }
                   }}
                 />
+                <button type="button" onClick={() => void handleSuggest()} disabled={suggesting || sending || messages.length === 0} className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-600 transition hover:border-[#19b3bc] hover:text-[#0f9ea8] disabled:opacity-50">
+                  {suggesting ? "Pensando..." : "Sugerir con IA"}
+                </button>
                 <button type="button" onClick={() => void handleSend()} disabled={sending || !draft.trim()} className="rounded-xl bg-[#19b3bc] px-4 py-2 text-sm font-medium text-white transition hover:bg-[#159ea7] disabled:bg-slate-300">
                   {sending ? "..." : "Enviar"}
                 </button>

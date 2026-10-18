@@ -84,6 +84,8 @@ export class LeadsCrmService {
     tags: unknown; scrapedData: unknown;
     archived: boolean; converted: boolean; convertedPatientId: string | null;
     followUpDate: Date | null; assignedDoctorId: string | null;
+    aiScore?: number | null; aiTemperature?: string | null; aiSummary?: string | null;
+    aiNextAction?: string | null; aiScoredAt?: Date | null;
     createdAt: Date; updatedAt: Date;
     notes: { id: string; text: string; createdAt: Date }[];
     messages: { id: string; text: string; direction: string; channel: string; createdAt: Date; attachmentUrl: string | null; attachmentName: string | null }[];
@@ -108,6 +110,11 @@ export class LeadsCrmService {
       convertedPatientId: r.convertedPatientId,
       followUpDate: r.followUpDate?.toISOString() ?? null,
       assignedDoctorId: r.assignedDoctorId,
+      aiScore: r.aiScore ?? null,
+      aiTemperature: (r.aiTemperature ?? null) as "HOT" | "WARM" | "COLD" | null,
+      aiSummary: r.aiSummary ?? null,
+      aiNextAction: r.aiNextAction ?? null,
+      aiScoredAt: r.aiScoredAt?.toISOString() ?? null,
       notes: r.notes.map((n) => ({ id: n.id, text: n.text, createdAt: n.createdAt.toISOString() })),
       messages: r.messages.map((m) => ({
         id: m.id, text: m.text, direction: m.direction, channel: m.channel,

@@ -97,6 +97,16 @@ export default function KanbanCard({ lead, columnColor, onClick, onDragStart, on
 
         {lead.company && <p className="mt-1 text-xs text-slate-400 leading-tight">{lead.company}</p>}
         {lead.mainNote && <p className="mt-1.5 line-clamp-2 text-xs text-slate-500 leading-relaxed">{lead.mainNote}</p>}
+        {lead.aiScore != null && lead.aiTemperature ? (
+          <span
+            title={lead.aiSummary ?? "Analisis IA"}
+            className={`mt-2 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold ${
+              lead.aiTemperature === "HOT" ? "bg-rose-50 text-rose-600" : lead.aiTemperature === "WARM" ? "bg-amber-50 text-amber-700" : "bg-sky-50 text-sky-700"
+            }`}
+          >
+            IA {lead.aiScore} · {lead.aiTemperature === "HOT" ? "Caliente" : lead.aiTemperature === "WARM" ? "Tibio" : "Frio"}
+          </span>
+        ) : null}
 
         {/* Tags */}
         {lead.tags.length > 0 && (

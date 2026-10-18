@@ -61,6 +61,11 @@ export type Lead = {
   createdAt: string;
   updatedAt: string;
   scrapedData: Record<string, string>;
+  aiScore?: number | null;
+  aiTemperature?: "HOT" | "WARM" | "COLD" | null;
+  aiSummary?: string | null;
+  aiNextAction?: string | null;
+  aiScoredAt?: string | null;
 };
 
 export type DoctorOption = {

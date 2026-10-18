@@ -5,6 +5,7 @@ import type { Lead, DoctorOption } from "@/domain/leads/entities/Lead";
 import { CHANNEL_LABELS, PRIORITY_LABELS, PRIORITY_COLORS } from "@/domain/leads/entities/Lead";
 import type { PipelineColumn } from "@/domain/leads/entities/Pipeline";
 import LeadChat from "./LeadChat";
+import LeadAiInsight from "./LeadAiInsight";
 
 type Props = {
   lead: Lead;
@@ -147,6 +148,8 @@ export default function LeadDetailPanel({ lead, columns, doctors, onClose, onEdi
                 </div>
               </div>
             )}
+
+            <LeadAiInsight lead={lead} />
 
             {/* Main note */}
             {lead.mainNote && (

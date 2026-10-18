@@ -8,6 +8,8 @@ const patchSchema = z.object({
   city: z.string().optional(),
   address: z.string().optional(),
   phone: z.string().optional(),
+  legalName: z.string().trim().max(160).optional(),
+  taxId: z.string().trim().max(20).optional(),
   logoUrl: z
     .string()
     .refine((v) => v === "" || /^https?:\/\//.test(v), {
@@ -28,6 +30,8 @@ export async function GET() {
         city: true,
         address: true,
         phone: true,
+        legalName: true,
+        taxId: true,
         logo: true,
         settings: { select: { logoBase64: true } },
       },
@@ -39,6 +43,8 @@ export async function GET() {
       city: clinic?.city ?? "",
       address: clinic?.address ?? "",
       phone: clinic?.phone ?? "",
+      legalName: clinic?.legalName ?? "",
+      taxId: clinic?.taxId ?? "",
       // `logo` es la URL de Cloudinary; `logoBase64` es el formato antiguo (fallback).
       logoUrl: clinic?.logo ?? clinic?.settings?.logoBase64 ?? null,
       isAdmin: session.role === "ADMIN",
@@ -63,13 +69,15 @@ export async function PATCH(req: Request) {
       );
     }
 
-    const { name, city, address, phone, logoUrl } = parsed.data;
+    const { name, city, address, phone, legalName, taxId, logoUrl } = parsed.data;
 
     const clinicUpdate: Record<string, unknown> = {};
     if (name !== undefined) clinicUpdate.name = name;
     if (city !== undefined) clinicUpdate.city = city;
     if (address !== undefined) clinicUpdate.address = address;
     if (phone !== undefined) clinicUpdate.phone = phone;
+    if (legalName !== undefined) clinicUpdate.legalName = legalName || null;
+    if (taxId !== undefined) clinicUpdate.taxId = taxId || null;
     if (logoUrl !== undefined) clinicUpdate.logo = logoUrl || null;
 
     if (Object.keys(clinicUpdate).length > 0) {

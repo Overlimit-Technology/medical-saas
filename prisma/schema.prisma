@@ -175,6 +175,7 @@ model User {
   assignedLeads           CrmLead[]              @relation("LeadAssignedDoctor")
   cashMovementsCreated    CashMovement[]         @relation("CashMovementCreatedBy")
   treatmentPlansCreated   TreatmentPlan[]        @relation("TreatmentPlanCreatedBy")
+  professionalInvoices ProfessionalInvoice[] @relation("ProfessionalInvoiceDoctor")
 }
 
 model UserProfile {
@@ -277,6 +278,9 @@ model Clinic {
   address      String?
   phone        String?
   email        String?
+  // Datos del receptor de las boletas de honorarios (razon social y RUT de la empresa).
+  legalName    String?
+  taxId        String?
   logo         String?
   openingTime  String?  @default("08:00")
   closingTime  String?  @default("20:00")
@@ -301,6 +305,7 @@ model Clinic {
   treatmentPlans  TreatmentPlan[]
   patientImaging  PatientImaging[]
   teamCategories  TeamCategory[]
+  professionalInvoices ProfessionalInvoice[]
 }
 
 model ClinicSettings {
@@ -313,6 +318,10 @@ model ClinicSettings {
   whatsappPhoneNumberId              String?
   whatsappBusinessAccountId          String?
   whatsappAccessToken                String?
+  // Reserva online publica: /reservar/{bookingKey}
+  bookingKey                         String?  @unique
+  bookingEnabled                     Boolean  @default(false)
+  bookingSlotMinutes                 Int      @default(30)
   instagramUrl                       String?
   facebookUrl                        String?
   tiktokUrl                          String?
@@ -407,6 +416,8 @@ model DoctorProfile {
   specialty     String?
   bio           String?
   isActive      Boolean  @default(true)
+  // Fecha hasta la que el profesional autorizo a la clinica a emitir su boleta en el SII.
+  siiDelegationUntil DateTime?
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
@@ -785,6 +796,12 @@ model CrmLead {
   convertedPatientId String?
   followUpDate       DateTime?
   assignedDoctorId   String?
+  // Analisis de IA (prototipo): puntaje 0-100, temperatura y siguiente paso sugerido.
+  aiScore            Int?
+  aiTemperature      String?
+  aiSummary          String?
+  aiNextAction       String?
+  aiScoredAt         DateTime?
   createdAt          DateTime  @default(now())
   updatedAt          DateTime  @updatedAt
 
@@ -892,4 +909,43 @@ model TeamCategory {
   members UserProfile[]
 
   @@unique([clinicId, name])
+}
+
+enum ProfessionalInvoiceStatus {
+  PENDING
+  ISSUED
+  PAID
+  CANCELLED
+}
+
+// Boleta de honorarios mensual de un profesional hacia la clinica.
+// Los montos se congelan al cerrar el mes. La emision real ocurre en sii.cl.
+model ProfessionalInvoice {
+  id                    String                    @id @default(cuid())
+  clinicId              String
+  doctorId              String
+  month                 String
+  sessionCount          Int                       @default(0)
+  grossAmount           Decimal                   @db.Decimal(12, 2)
+  clinicPercentage      Decimal                   @db.Decimal(5, 2)
+  clinicRetentionAmount Decimal                   @db.Decimal(12, 2)
+  baseAmount            Decimal                   @db.Decimal(12, 2)
+  siiPercentage         Decimal                   @db.Decimal(5, 2)
+  siiRetentionAmount    Decimal                   @db.Decimal(12, 2)
+  netAmount             Decimal                   @db.Decimal(12, 2)
+  status                ProfessionalInvoiceStatus @default(PENDING)
+  invoiceNumber         String?
+  issuedAt              DateTime?
+  issuedByUserId        String?
+  paidAt                DateTime?
+  notifiedAt            DateTime?
+  createdAt             DateTime                  @default(now())
+  updatedAt             DateTime                  @updatedAt
+
+  clinic Clinic @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+  doctor User   @relation("ProfessionalInvoiceDoctor", fields: [doctorId], references: [id], onDelete: Cascade)
+
+  @@unique([clinicId, doctorId, month])
+  @@index([clinicId, month])
+  @@index([doctorId, status])
 }

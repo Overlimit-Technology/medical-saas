@@ -13,6 +13,7 @@ import {
   Users,
 } from "lucide-react";
 import { formatCurrency } from "@/presentation/dashboard/shared";
+import InvoiceBoard from "./InvoiceBoard";
 import { useLiquidacionesViewModel } from "./LiquidacionesViewModel";
 
 function SummaryMetric({
@@ -157,7 +158,7 @@ export default function Liquidaciones() {
                 className="inline-flex h-10 items-center justify-center gap-2 rounded-xl bg-[#0f9ea8] px-4 text-[13px] font-semibold text-white transition hover:bg-[#0b8e97] disabled:cursor-not-allowed disabled:bg-[#19b3bc]/45 whitespace-nowrap"
               >
                 <Mail className="h-4 w-4" />
-                {state.sendingEmails ? "Enviando..." : "Enviar boletas al correo"}
+                {state.sendingEmails ? "Enviando..." : "Cerrar mes y avisar a profesionales"}
               </button>
             </div>
           </div>
@@ -365,6 +366,8 @@ export default function Liquidaciones() {
           </table>
         </div>
       </section>
+
+      <InvoiceBoard month={state.month} refreshToken={state.sendingEmails ? 1 : 0} />
     </div>
   );
 }

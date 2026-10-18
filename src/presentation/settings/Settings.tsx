@@ -15,6 +15,7 @@ import { ProfileRepositoryHttp } from "@/data/profile/ProfileRepository";
 import { GetMyProfileUseCase } from "@/domain/profile/usecases/ProfileUseCases";
 import ProfileTab from "./tabs/ProfileTab";
 import CrmTab from "./tabs/CrmTab";
+import BookingTab from "./tabs/BookingTab";
 import EmailTab from "./tabs/EmailTab";
 import dynamic from "next/dynamic";
 
@@ -28,7 +29,7 @@ const MyLiquidacionesTab = dynamic(
 );
 
 type AdminView = "landing" | "perfil" | "comunicaciones";
-type ComunicacionesTab = "contactabilidad" | "crm";
+type ComunicacionesTab = "contactabilidad" | "crm" | "reserva";
 type DoctorTab = "perfil" | "vacaciones" | "fichas" | "liquidaciones";
 
 export default function Settings() {
@@ -103,10 +104,17 @@ function AdminSettings() {
             icon={KanbanSquare}
             label="CRM"
           />
+          <TabButton
+            active={comTab === "reserva"}
+            onClick={() => setComTab("reserva")}
+            icon={CalendarDays}
+            label="Reserva online"
+          />
         </div>
 
         {comTab === "contactabilidad" && <EmailTab />}
         {comTab === "crm" && <CrmTab />}
+        {comTab === "reserva" && <BookingTab />}
       </div>
     );
   }

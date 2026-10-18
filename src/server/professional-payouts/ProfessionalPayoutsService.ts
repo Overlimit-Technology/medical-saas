@@ -9,6 +9,7 @@ import { deriveProfessionalPayoutAmounts } from "@/lib/professional-payouts/calc
 import { ClinicSettingsService } from "@/server/clinic-settings/ClinicSettingsService";
 import { resolveSingleClinicLabel } from "@/server/clinics/clinicDisplay";
 import { sendEmail } from "@/server/notifications/email";
+import { ProfessionalInvoicesService } from "@/server/professional-payouts/ProfessionalInvoicesService";
 import { resolveEmailTemplate } from "@/server/notifications/emailTemplates";
 
 function toNumber(value: { toString(): string } | number) {
@@ -254,6 +255,21 @@ export class ProfessionalPayoutsService {
       resolveSingleClinicLabel(input.clinicId),
     ]);
 
+    // Cierra el mes: congela montos y deja una boleta pendiente por profesional.
+    await ProfessionalInvoicesService.closeMonth({
+      clinicId: input.clinicId,
+      month: input.month,
+      rows: professionals.map((professional) => ({
+        doctorId: professional.doctorId,
+        sessionCount: professional.sessionCount,
+        grossAmount: professional.grossAmount,
+      })),
+      clinicPercentage: settings.clinicPercentage,
+      siiPercentage: settings.siiPercentage,
+    });
+
+    const invoiceLink = `${input.origin}/mis-boletas?month=${encodeURIComponent(input.month)}`;
+    const notifiedDoctorIds: string[] = [];
     const monthLabel = formatMonthLabel(input.month);
     let sentCount = 0;
     let failedCount = 0;
@@ -328,6 +344,9 @@ export class ProfessionalPayoutsService {
               </tr>
             </tbody>
           </table>
+          <p style="margin: 20px 0;">
+            <a href="${invoiceLink}" style="background: #0f9ea8; color: #ffffff; padding: 10px 16px; border-radius: 8px; text-decoration: none; font-weight: bold;">Generar mi boleta</a>
+          </p>
           <p>Si necesitas revisar el detalle, por favor contacta a la clinica.</p>
         </div>
       `;
@@ -346,7 +365,14 @@ export class ProfessionalPayoutsService {
       }
 
       sentCount += 1;
+      notifiedDoctorIds.push(professional.doctorId);
     }
+
+    await ProfessionalInvoicesService.markNotified(
+      input.clinicId,
+      input.month,
+      notifiedDoctorIds
+    );
 
     return {
       sentCount,

@@ -332,6 +332,35 @@ export class MetaChatService {
     };
   }
 
+  /**
+   * Ultimos mensajes de una conversacion en formato simple para la IA.
+   * No marca la conversacion como leida ni expone el nombre del contacto.
+   */
+  static async getRecentTurnsForAi(
+    clinicId: string,
+    userId: string,
+    conversationId: string,
+    limit = 12
+  ): Promise<Array<{ from: "CONTACT" | "CLINIC"; text: string }>> {
+    await ensureMetaAccess(clinicId, userId);
+    const conversation = await findConversationById(clinicId, conversationId);
+    const messages = await getMetaMessagesCollection();
+
+    const rows = await messages
+      .find({ clinicId, conversationId: conversation._id })
+      .sort({ createdAt: -1 })
+      .limit(limit)
+      .toArray();
+
+    return rows
+      .reverse()
+      .filter((row) => row.text?.trim())
+      .map((row) => ({
+        from: row.direction === "INBOUND" ? ("CONTACT" as const) : ("CLINIC" as const),
+        text: row.text,
+      }));
+  }
+
   static async sendMessage(input: {
     clinicId: string;
     userId: string;

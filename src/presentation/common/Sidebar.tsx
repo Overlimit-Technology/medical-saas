@@ -20,6 +20,8 @@ import {
   Building2,
   UserCog,
   Settings,
+  Sparkles,
+  Receipt,
 } from "lucide-react";
 
 import { hasPermission, type UserPermission } from "@/lib/permissions";
@@ -70,6 +72,20 @@ const NAV_ITEMS: NavItem[] = [
     group: "paginas",
     permission: "CLINICAL_VISITS",
     doctorOnlyWithPermission: true,
+  },
+  {
+    href: "/asistente-ia",
+    label: "Asistente IA",
+    icon: Sparkles,
+    group: "paginas",
+    roles: ["DOCTOR"],
+  },
+  {
+    href: "/mis-boletas",
+    label: "Mi boleta",
+    icon: Receipt,
+    group: "paginas",
+    roles: ["DOCTOR"],
   },
   {
     href: "/notifications",
