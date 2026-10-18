@@ -65,6 +65,13 @@ export async function requireClinicSession(): Promise<SessionContext> {
   throw new Error("Clinica no seleccionada.");
 }
 
+/**
+ * Autoriza una accion.
+ * - Pasa si el rol esta en `allowed`.
+ * - Si no, pasa solo si el usuario tiene concedido (explicitamente) alguno de los permisos indicados.
+ * - Un rol sin permisos concedidos nunca pasa por el solo hecho de estar autenticado.
+ * Para acciones delicadas (usuarios, borrados) usa solo la lista de roles, sin permiso.
+ */
 export function requireRole(
   subject: string | { role: string; isSuperAdmin?: boolean; permissions?: string[] },
   allowed: string[],
@@ -75,14 +82,11 @@ export function requireRole(
   const permissions = typeof subject === "string" ? [] : subject.permissions;
   const permissionList = Array.isArray(permission) ? permission : permission ? [permission] : [];
 
-  if (permissionList.length > 0) {
-    if (!permissionList.some((item) => hasPermission(role, permissions, item, isSuperAdmin))) {
-      throw new Error("Acceso denegado.");
-    }
+  if (allowed.includes(role)) return;
+
+  if (permissionList.some((item) => hasPermission(role, permissions, item, isSuperAdmin))) {
     return;
   }
 
-  if (!allowed.includes(role)) {
-    throw new Error("Acceso denegado.");
-  }
+  throw new Error("Acceso denegado.");
 }

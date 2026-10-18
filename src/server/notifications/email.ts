@@ -1,3 +1,5 @@
+import { deliverEmail } from "./mailer";
+
 type SendEmailInput = {
   origin: string;
   to: string;
@@ -37,29 +39,20 @@ function normalizeEmailError(detail: string) {
   return "No se pudo enviar el correo.";
 }
 
+/**
+ * Envia un correo directamente desde el servidor (sin pasar por una ruta HTTP).
+ * `origin` se conserva por compatibilidad con quienes ya lo pasan, pero ya no se usa.
+ */
 export async function sendEmail(input: SendEmailInput): Promise<SendEmailResult> {
   try {
-    const res = await fetch(new URL("/api/email/send", input.origin), {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        to: input.to,
-        subject: input.subject,
-        text: input.text,
-        html: input.html,
-      }),
+    const info = await deliverEmail({
+      to: input.to,
+      subject: input.subject,
+      text: input.text,
+      html: input.html,
     });
 
-    const data = await res.json().catch(() => null);
-    if (!res.ok) {
-      const detail = data?.error ?? data?.message ?? "No se pudo enviar el correo.";
-      return { ok: false, error: normalizeEmailError(String(detail)) };
-    }
-
-    return {
-      ok: true,
-      messageId: typeof data?.messageId === "string" ? data.messageId : undefined,
-    };
+    return { ok: true, messageId: info.messageId };
   } catch (error) {
     return {
       ok: false,

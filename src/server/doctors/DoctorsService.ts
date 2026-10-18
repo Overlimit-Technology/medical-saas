@@ -108,7 +108,51 @@ export class DoctorsService {
     });
   }
 
-  static async update(userId: string, clinicId: string, input: Partial<DoctorInput>) {
+  /** Sedes activas en las que el usuario tiene membresia (las que puede administrar). */
+  static async manageableClinicIds(userId: string) {
+    const rows = await prisma.clinicMembership.findMany({
+      where: { userId, status: "ACTIVE", clinic: { isActive: true } },
+      select: { clinicId: true },
+    });
+    return rows.map((row) => row.clinicId);
+  }
+
+  /** Falla si algun id de sede no esta entre las que el solicitante administra. */
+  static async assertClinicsManageable(requesterUserId: string, clinicIds: string[]) {
+    const allowed = new Set(await this.manageableClinicIds(requesterUserId));
+    if (clinicIds.length === 0 || clinicIds.some((id) => !allowed.has(id))) {
+      throw new Error("No tienes acceso a una de las sedes seleccionadas.");
+    }
+  }
+
+  /** Solo se puede actuar sobre un DOCTOR activo de la sede del solicitante. */
+  private static async assertDoctorInClinic(userId: string, clinicId: string) {
+    const doctor = await prisma.user.findFirst({
+      where: {
+        id: userId,
+        role: "DOCTOR",
+        clinicMemberships: { some: { clinicId, status: "ACTIVE" } },
+      },
+      select: { id: true },
+    });
+    if (!doctor) {
+      throw new Error("Doctor no encontrado.");
+    }
+  }
+
+  static async update(
+    userId: string,
+    clinicId: string,
+    input: Partial<DoctorInput>,
+    requesterUserId: string
+  ) {
+    await this.assertDoctorInClinic(userId, clinicId);
+    const manageable = await this.manageableClinicIds(requesterUserId);
+
+    if (input.clinicIds) {
+      await this.assertClinicsManageable(requesterUserId, input.clinicIds);
+    }
+
     if (input.rut) {
       const rutNormalized = normalizeId(input.rut);
       const exists = await prisma.doctorProfile.findFirst({
@@ -149,9 +193,7 @@ export class DoctorsService {
     }
 
     if (input.clinicIds) {
-      await this.syncClinics(userId, input.clinicIds);
-    } else {
-      await this.ensureClinic(userId, clinicId);
+      await this.syncClinics(userId, input.clinicIds, manageable);
     }
 
     return prisma.user.findUnique({
@@ -161,6 +203,20 @@ export class DoctorsService {
   }
 
   static async remove(userId: string, clinicId: string) {
+    await this.assertDoctorInClinic(userId, clinicId);
+
+    // Si atiende en otras sedes, solo se le retira de esta: su cuenta global no se toca.
+    const otherMemberships = await prisma.clinicMembership.count({
+      where: { userId, status: "ACTIVE", clinicId: { not: clinicId } },
+    });
+    if (otherMemberships > 0) {
+      await prisma.clinicMembership.updateMany({
+        where: { userId, clinicId },
+        data: { status: "INACTIVE" },
+      });
+      return { softDeleted: true, scope: "clinic" as const };
+    }
+
     const softDeleteDoctor = async () => {
       await prisma.doctorProfile.update({
         where: { userId },
@@ -202,21 +258,14 @@ export class DoctorsService {
     return { softDeleted: false };
   }
 
-  private static async ensureClinic(userId: string, clinicId: string) {
-    await prisma.clinicMembership.upsert({
-      where: { userId_clinicId: { userId, clinicId } },
-      update: { status: "ACTIVE" },
-      create: { userId, clinicId, status: "ACTIVE" },
-    });
-  }
-
-  private static async syncClinics(userId: string, clinicIds: string[]) {
+  private static async syncClinics(userId: string, clinicIds: string[], manageableClinicIds: string[]) {
     const uniqueIds = Array.from(new Set(clinicIds));
 
+    // Solo se desactivan membresias en sedes que el solicitante administra; las demas no se tocan.
     await prisma.clinicMembership.updateMany({
       where: {
         userId,
-        clinicId: { notIn: uniqueIds },
+        clinicId: { in: manageableClinicIds, notIn: uniqueIds },
       },
       data: { status: "INACTIVE" },
     });

@@ -102,7 +102,9 @@ export async function POST(req: Request) {
 
     const generatedPassword = generatePassword();
 
-    const clinicIds = parsed.data.clinicIds ?? [session.clinicId];
+    const clinicIds = Array.from(new Set(parsed.data.clinicIds ?? [session.clinicId]));
+    // Solo se puede dar de alta un doctor en sedes que el solicitante administra.
+    await DoctorsService.assertClinicsManageable(session.userId, clinicIds);
     const clinicLabels = await resolveClinicLabels(clinicIds);
 
     const item = await DoctorsService.create({

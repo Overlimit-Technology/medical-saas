@@ -25,11 +25,33 @@ export async function DELETE(_req: Request, { params }: { params: { id: string }
           some: { clinicId: session.clinicId, status: "ACTIVE" },
         },
       },
-      select: { id: true, role: true },
+      select: {
+        id: true,
+        role: true,
+        clinicMemberships: { where: { status: "ACTIVE" }, select: { clinicId: true } },
+      },
     });
 
     if (!target) {
       return NextResponse.json({ ok: false, error: "Usuario no encontrado." }, { status: 404 });
+    }
+
+    // Solo un administrador puede eliminar a otro administrador.
+    if (target.role === "ADMIN" && session.role !== "ADMIN") {
+      return NextResponse.json(
+        { ok: false, error: "Solo un administrador puede eliminar a otro administrador." },
+        { status: 403 }
+      );
+    }
+
+    // Si pertenece a otras sedes, solo se le quita el acceso a esta: nunca se borra su cuenta global.
+    const otherClinics = target.clinicMemberships.filter((m) => m.clinicId !== session.clinicId);
+    if (otherClinics.length > 0) {
+      await prisma.clinicMembership.updateMany({
+        where: { userId: target.id, clinicId: session.clinicId },
+        data: { status: "INACTIVE" },
+      });
+      return NextResponse.json({ ok: true, softDeleted: true, scope: "clinic" });
     }
 
     if (target.role === "DOCTOR") {

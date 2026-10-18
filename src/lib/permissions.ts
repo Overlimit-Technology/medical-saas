@@ -17,16 +17,17 @@ export function isUserPermission(value: string): value is UserPermission {
   return USER_PERMISSIONS.some((permission) => permission.key === value);
 }
 
+/**
+ * Un ADMIN tiene todos los permisos de modulo de su sede. Los demas roles solo tienen los
+ * permisos que un administrador les concedio de forma explicita (lista `permissions`).
+ */
 export function hasPermission(
   role: string | null | undefined,
   permissions: readonly string[] | null | undefined,
   permission: UserPermission,
-  _isSuperAdmin = false
+  isSuperAdmin = false
 ) {
-  void _isSuperAdmin;
-  if (role === "ADMIN" || role === "DOCTOR" || role === "SECRETARY") {
-    return true;
-  }
+  if (isSuperAdmin === true || role === "ADMIN") return true;
   return Boolean(permissions?.includes(permission));
 }
 

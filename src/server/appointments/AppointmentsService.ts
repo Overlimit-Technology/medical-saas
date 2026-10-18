@@ -9,7 +9,8 @@ const PAYMENT_STATUSES = new Set<PaymentStatus>(Object.values(PaymentStatus));
 
 const appointmentInclude = {
   patient: true,
-  doctor: { include: { profile: true } },
+  // Solo los datos publicos del doctor: nunca permisos, rol ni credenciales.
+  doctor: { select: { id: true, email: true, profile: true } },
   box: true,
   treatmentPlan: {
     select: {
@@ -413,6 +414,17 @@ export class AppointmentsService {
     });
     if (!current) {
       throw new Error("Solo se pueden eliminar citas canceladas.");
+    }
+
+    // Borrar la cita arrastraria su ficha clinica (cascada): si hay atencion registrada, no se permite.
+    const clinicalData = await Promise.all([
+      prisma.clinicalRecord.count({ where: { appointmentId: id } }),
+      prisma.clinicalVisit.count({ where: { appointmentId: id } }),
+    ]);
+    if (clinicalData.some((count) => count > 0)) {
+      throw new Error(
+        "La cita tiene ficha clinica o atencion registrada y no se puede eliminar. Dejala como cancelada."
+      );
     }
 
     await prisma.appointment.delete({ where: { id } });

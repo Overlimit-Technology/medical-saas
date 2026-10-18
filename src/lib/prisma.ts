@@ -13,8 +13,18 @@ import { Pool } from "pg";
 dotenv.config({ path: ".env.local" });
 dotenv.config();
 
+function createPrismaClient(adapter: PrismaPg) {
+  return new PrismaClient({
+    adapter,
+    // Seguridad: passwordHash nunca se devuelve por defecto (ni con include ni por relaciones).
+    // Solo el login y el cambio de contrasena lo leen, con select explicito.
+    omit: { user: { passwordHash: true } },
+    // log: ["query", "error", "warn"], // opcional para debug
+  });
+}
+
 const globalForPrisma = globalThis as unknown as {
-  prisma: PrismaClient | undefined;
+  prisma: ReturnType<typeof createPrismaClient> | undefined;
   pgPool: Pool | undefined;
 };
 
@@ -41,12 +51,7 @@ if (process.env.NODE_ENV !== "production") {
 // Adapter que Prisma usa para hablar con Postgres a través de pg
 const adapter = new PrismaPg(pool);
 
-export const prisma =
-  globalForPrisma.prisma ??
-  new PrismaClient({
-    adapter,
-    // log: ["query", "error", "warn"], // opcional para debug
-  });
+export const prisma = globalForPrisma.prisma ?? createPrismaClient(adapter);
 
 if (process.env.NODE_ENV !== "production") {
   globalForPrisma.prisma = prisma;

@@ -52,7 +52,7 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
       return NextResponse.json({ ok: false, error: "Invalid payload" }, { status: 400 });
     }
 
-    const item = await DoctorsService.update(params.id, session.clinicId, parsed.data);
+    const item = await DoctorsService.update(params.id, session.clinicId, parsed.data, session.userId);
     return NextResponse.json({ ok: true, item });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Failed to update doctor";

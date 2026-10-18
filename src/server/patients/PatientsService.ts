@@ -19,7 +19,6 @@ export type PatientInput = {
 };
 
 const BLOCKING_APPOINTMENT_STATUSES = ["SCHEDULED", "CONFIRMED"] as const;
-const NON_BLOCKING_APPOINTMENT_STATUSES = ["CANCELLED", "COMPLETED", "NO_SHOW"] as const;
 
 export class PatientsService {
   static async list(params: {
@@ -199,20 +198,26 @@ export class PatientsService {
       throw new Error("No se puede eliminar el paciente porque tiene citas de hoy o futuras.");
     }
 
-    const deletedAppointments = await prisma.appointment.deleteMany({
-      where: {
-        patientId: id,
-        clinicId,
-        OR: [
-          { startAt: { lt: startOfToday } },
-          { status: { in: [...NON_BLOCKING_APPOINTMENT_STATUSES] } },
-        ],
-      },
-    });
+    // La ficha clinica es un registro legal: nunca se borra el historial de un paciente.
+    // Si tiene cualquier atencion, ficha, observacion, tratamiento o imagen registrada, solo se desactiva.
+    const history = await Promise.all([
+      prisma.appointment.count({ where: { patientId: id, clinicId } }),
+      prisma.clinicalRecord.count({ where: { patientId: id } }),
+      prisma.clinicalVisit.count({ where: { patientId: id } }),
+      prisma.observation.count({ where: { patientId: id } }),
+      prisma.patientTreatment.count({ where: { patientId: id } }),
+      prisma.treatmentPlan.count({ where: { patientId: id } }),
+      prisma.patientImaging.count({ where: { patientId: id } }),
+    ]);
+
+    if (history.some((count) => count > 0)) {
+      await prisma.patient.update({ where: { id }, data: { isActive: false } });
+      return { softDeleted: true, deletedAppointments: 0 };
+    }
 
     try {
       await prisma.patient.delete({ where: { id } });
-      return { softDeleted: false, deletedAppointments: deletedAppointments.count };
+      return { softDeleted: false, deletedAppointments: 0 };
     } catch (error) {
       if (
         error instanceof Prisma.PrismaClientKnownRequestError &&
@@ -222,7 +227,7 @@ export class PatientsService {
           where: { id },
           data: { isActive: false },
         });
-        return { softDeleted: true, deletedAppointments: deletedAppointments.count };
+        return { softDeleted: true, deletedAppointments: 0 };
       }
       throw error;
     }

@@ -50,7 +50,7 @@ type ServiceScope = {
 type ResolvedAppointment = Prisma.AppointmentGetPayload<{
   include: {
     patient: true;
-    doctor: { include: { profile: true } };
+    doctor: { select: { id: true; email: true; profile: true } };
     box: true;
     treatmentPlan: { select: { id: true; name: true; _count: { select: { appointments: true } } } };
     paymentHistory: {
@@ -61,7 +61,8 @@ type ResolvedAppointment = Prisma.AppointmentGetPayload<{
 
 const appointmentInclude = {
   patient: true,
-  doctor: { include: { profile: true } },
+  // Solo datos publicos del doctor: nunca permisos, rol ni credenciales.
+  doctor: { select: { id: true, email: true, profile: true } },
   box: true,
   treatmentPlan: {
     select: { id: true, name: true, _count: { select: { appointments: true } } },

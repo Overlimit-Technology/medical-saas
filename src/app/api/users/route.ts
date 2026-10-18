@@ -145,6 +145,20 @@ export async function POST(req: Request) {
       );
     }
 
+    // Anti-escalacion: solo un ADMIN crea administradores y solo un super admin crea super admins.
+    if (parsed.data.role === "ADMIN" && session.role !== "ADMIN") {
+      return NextResponse.json(
+        { ok: false, error: "Solo un administrador puede crear otros administradores." },
+        { status: 403 }
+      );
+    }
+    if (parsed.data.isSuperAdmin === true && session.isSuperAdmin !== true) {
+      return NextResponse.json(
+        { ok: false, error: "Solo un super admin puede crear otro super admin." },
+        { status: 403 }
+      );
+    }
+
     const selectedClinics = parsed.data.clinicIds?.length
       ? parsed.data.clinicIds
       : parsed.data.clinicId
@@ -156,7 +170,11 @@ export async function POST(req: Request) {
     );
     const clinicLabels = await resolveClinicLabels(clinicIds);
     await ensureRutAvailable(parsed.data.rut);
-    const permissions = normalizePermissions(parsed.data.permissions);
+    const requestedPermissions = normalizePermissions(parsed.data.permissions);
+    const permissions =
+      session.role === "ADMIN"
+        ? requestedPermissions
+        : requestedPermissions.filter((permission) => session.permissions.includes(permission));
 
     const generatedPassword = generatePassword();
     let item: { id: string; email: string };
@@ -181,7 +199,8 @@ export async function POST(req: Request) {
           passwordHash,
           mustChangePassword: true,
           role: parsed.data.role,
-          isSuperAdmin: parsed.data.role === "ADMIN" && parsed.data.isSuperAdmin === true,
+          isSuperAdmin:
+            parsed.data.role === "ADMIN" && parsed.data.isSuperAdmin === true && session.isSuperAdmin === true,
           permissions,
           status: "ACTIVE",
           profile: {
