@@ -5,9 +5,15 @@ import { usePathname } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import type { LucideIcon } from "lucide-react";
 import {
+  BarChart3,
   BookOpen,
   Building2,
+  FileText,
+  FlaskConical,
   Grid2x2,
+  Home,
+  Megaphone,
+  Plug,
   LogOut,
   Puzzle,
   Settings,
@@ -22,8 +28,9 @@ type NavItem = {
   icon: LucideIcon;
 };
 
+// Clínicas: administración de la plataforma (el Overview vive en /super-admin/resumen; /super-admin es el Inicio)
 const ITEMS: NavItem[] = [
-  { href: "/super-admin", label: "Overview", icon: Grid2x2 },
+  { href: "/super-admin/resumen", label: "Overview", icon: Grid2x2 },
   { href: "/super-admin/clinicas", label: "Clinicas", icon: Building2 },
   { href: "/super-admin/usuarios", label: "Usuarios", icon: Users },
   { href: "/super-admin/roles", label: "Roles y Permisos", icon: Shield },
@@ -31,6 +38,18 @@ const ITEMS: NavItem[] = [
   { href: "/super-admin/trials", label: "Trials", icon: Timer },
   { href: "/super-admin/recursos", label: "Recursos", icon: BookOpen },
 ];
+
+// Marketing del sitio web zensya.cl
+const MARKETING: NavItem[] = [
+  { href: "/super-admin/marketing", label: "Resumen del sitio", icon: BarChart3 },
+  { href: "/super-admin/marketing/paginas", label: "Paginas", icon: FileText },
+  { href: "/super-admin/marketing/tests", label: "Tests A/B", icon: FlaskConical },
+  { href: "/super-admin/marketing/campanas", label: "Campanas y VSL", icon: Megaphone },
+  { href: "/super-admin/marketing/pixeles", label: "Pixeles", icon: Plug },
+];
+
+// Rutas que solo se marcan activas si coinciden exacto (tienen subsecciones propias en el menú)
+const EXACTAS = new Set(["/super-admin", "/super-admin/marketing"]);
 
 type MeResponse = {
   ok: boolean;
@@ -70,10 +89,27 @@ export default function SuperAdminSidebar() {
 
   const initials = useMemo(() => getInitials(name), [name]);
   const isItemActive = (href: string) => {
-    if (href === "/super-admin") return pathname === href;
+    if (EXACTAS.has(href)) return pathname === href;
     return pathname === href || pathname.startsWith(`${href}/`);
   };
   const settingsActive = isItemActive("/super-admin/configuracion");
+
+  const renderItem = (item: NavItem) => {
+    const active = isItemActive(item.href);
+    const Icon = item.icon;
+    return (
+      <Link
+        key={item.href}
+        href={item.href}
+        className={`flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-sm font-medium transition ${
+          active ? "bg-[#153d72] text-white" : "text-[#a8bfdc] hover:bg-[#0f2c54] hover:text-white"
+        }`}
+      >
+        <Icon className="h-4 w-4 shrink-0" strokeWidth={2} />
+        <span>{item.label}</span>
+      </Link>
+    );
+  };
 
   return (
     <aside className="flex h-screen w-[232px] shrink-0 flex-col border-r border-[#122c55] bg-[#071a34] px-3 py-3 text-white">
@@ -84,29 +120,19 @@ export default function SuperAdminSidebar() {
         </span>
       </div>
 
-      <div className="border-t border-[#12315d] pt-4">
-        <p className="px-2 text-[11px] font-semibold uppercase tracking-[0.1em] text-[#5a759d]">Plataforma</p>
-        <nav className="mt-3 space-y-1">
-          {ITEMS.map((item) => {
-            const active = isItemActive(item.href);
-            const Icon = item.icon;
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={`flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-sm font-medium transition ${
-                  active ? "bg-[#153d72] text-white" : "text-[#a8bfdc] hover:bg-[#0f2c54] hover:text-white"
-                }`}
-              >
-                <Icon className="h-4 w-4 shrink-0" strokeWidth={2} />
-                <span>{item.label}</span>
-              </Link>
-            );
-          })}
-        </nav>
+      <div className="border-t border-[#12315d] pt-3">
+        <nav className="space-y-1">{renderItem({ href: "/super-admin", label: "Inicio", icon: Home })}</nav>
       </div>
 
-      <div className="mt-auto space-y-1 border-t border-[#12315d] pt-3">
+      <div className="min-h-0 flex-1 overflow-y-auto pt-4">
+        <p className="px-2 text-[11px] font-semibold uppercase tracking-[0.1em] text-[#5a759d]">Clinicas</p>
+        <nav className="mt-3 space-y-1">{ITEMS.map(renderItem)}</nav>
+
+        <p className="mt-5 px-2 text-[11px] font-semibold uppercase tracking-[0.1em] text-[#5a759d]">Marketing</p>
+        <nav className="mt-3 space-y-1 pb-3">{MARKETING.map(renderItem)}</nav>
+      </div>
+
+      <div className="space-y-1 border-t border-[#12315d] pt-3">
         <Link
           href="/super-admin/configuracion"
           className={`flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-sm font-medium transition ${

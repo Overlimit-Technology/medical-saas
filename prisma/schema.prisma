@@ -949,3 +949,78 @@ model ProfessionalInvoice {
   @@index([clinicId, month])
   @@index([doctorId, status])
 }
+
+// ── Marketing del sitio web (zensya.cl) ─────────────────────────────────────
+// Se administra en /super-admin/marketing. El sitio envía visitas y conversiones a /api/marketing/*.
+
+// Configuración única (id = 1): pixeles de publicidad y si se pide permiso antes de medir
+model MarketingConfig {
+  id             Int      @id @default(1)
+  metaPixelId    String   @default("")
+  ga4Id          String   @default("")
+  googleAdsId    String   @default("")
+  googleAdsLabel String   @default("")
+  requireConsent Boolean  @default(true)
+  updatedAt      DateTime @default(now()) @updatedAt
+}
+
+// Test A/B. type: "contenido" (cambia textos) | "url" (manda tráfico a otra página).
+// status: borrador | activo | pausado | terminado. variants: [{ clave, nombre, peso, cambios: [{ elemento, texto }], url }]
+model MarketingExperiment {
+  id        String    @id @default(cuid())
+  name      String
+  page      String    @default("/")
+  type      String    @default("contenido")
+  status    String    @default("borrador")
+  goal      String    @default("cualquiera")
+  variants  Json      @default("[]")
+  winner    String?
+  startedAt DateTime?
+  endedAt   DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  @@index([status])
+}
+
+// Landing de campaña / VSL publicada en zensya.cl/l/<slug>
+model MarketingLanding {
+  id         String   @id @default(cuid())
+  slug       String   @unique
+  title      String
+  subtitle   String   @default("")
+  videoUrl   String   @default("")
+  bullets    Json     @default("[]")
+  ctaText    String   @default("Quiero probar Zensya")
+  ctaAction  String   @default("whatsapp")
+  ctaLink    String   @default("")
+  ctaMessage String   @default("")
+  note       String   @default("7 días de prueba gratuita · Sin tarjeta de crédito")
+  published  Boolean  @default(false)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
+// Evento de medición del sitio. type: visita | conversion | ab_exposicion | video
+model MarketingEvent {
+  id           BigInt   @id @default(autoincrement())
+  createdAt    DateTime @default(now())
+  visitorId    String
+  sessionId    String?
+  type         String
+  path         String
+  label        String?
+  experimentId String?
+  variant      String?
+  utmSource    String?
+  utmMedium    String?
+  utmCampaign  String?
+  referrer     String?
+  device       String?
+  extra        Json?
+
+  @@index([createdAt])
+  @@index([path, createdAt])
+  @@index([experimentId, variant])
+  @@index([visitorId, createdAt])
+}
