@@ -19,6 +19,8 @@ export type User = {
   doctorProfile?: {
     rut: string;
     specialty?: string | null;
+    professionId?: string | null;
+    profession?: { id: string; name: string } | null;
     bio?: string | null;
   } | null;
 };
@@ -36,6 +38,8 @@ export type CreateUserInput = {
   lastName: string;
   rut: string;
   specialty?: string;
+  professionId?: string;
+  professionName?: string;
   clinicIds?: string[];
   permissions?: UserPermission[];
 };
@@ -46,6 +50,8 @@ export type UpdateUserDetailInput = {
   phone: string | null;
   rut: string;
   specialty: string | null;
+  professionId?: string | null;
+  professionName?: string | null;
 };
 
 export type DeleteUserResult = {

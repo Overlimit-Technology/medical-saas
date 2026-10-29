@@ -115,7 +115,7 @@ export class BookingService {
         id: true,
         email: true,
         profile: { select: { firstName: true, lastName: true } },
-        doctorProfile: { select: { specialty: true } },
+        doctorProfile: { select: { specialty: true, profession: { select: { name: true } } } },
       },
     });
 
@@ -126,7 +126,10 @@ export class BookingService {
           id: doctor.id,
           // Nunca se expone el correo en la pagina publica.
           name: name || "Profesional",
-          specialty: doctor.doctorProfile?.specialty?.trim() || "Atencion general",
+          specialty:
+            [doctor.doctorProfile?.profession?.name, doctor.doctorProfile?.specialty?.trim()]
+              .filter((part, index, all) => part && all.indexOf(part) === index)
+              .join(" · ") || "Atencion general",
         };
       })
       .sort((a, b) => a.name.localeCompare(b.name, "es"));

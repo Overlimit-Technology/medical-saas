@@ -305,6 +305,7 @@ model Clinic {
   treatmentPlans  TreatmentPlan[]
   patientImaging  PatientImaging[]
   teamCategories  TeamCategory[]
+  professions     Profession[]
   professionalInvoices ProfessionalInvoice[]
 }
 
@@ -418,6 +419,8 @@ model DoctorProfile {
   rut           String
   rutNormalized String   @unique
   specialty     String?
+  // Profesion (catalogo global o propia de la sede). `specialty` queda como detalle libre.
+  professionId  String?
   bio           String?
   isActive      Boolean  @default(true)
   // Fecha hasta la que el profesional autorizo a la clinica a emitir su boleta en el SII.
@@ -425,7 +428,28 @@ model DoctorProfile {
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user       User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  profession Profession? @relation(fields: [professionId], references: [id], onDelete: SetNull)
+
+  @@index([professionId])
+}
+
+// Profesion de quien atiende (medico, psicologo, kinesiologo...).
+// clinicId null = catalogo global; con valor = profesion agregada por esa sede ("Otra").
+model Profession {
+  id        String   @id @default(cuid())
+  clinicId  String?
+  name      String
+  slug      String
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  clinic  Clinic?          @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+  doctors DoctorProfile[]
+
+  @@unique([clinicId, slug])
+  @@index([clinicId, isActive])
 }
 
 model Box {

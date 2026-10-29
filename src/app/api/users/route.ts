@@ -20,6 +20,8 @@ const userCreateSchema = z.object({
   lastName: z.string().min(1),
   rut: z.string().min(1),
   specialty: z.string().optional().nullable(),
+  professionId: z.string().min(1).optional().nullable(),
+  professionName: z.string().trim().max(60).optional().nullable(),
   permissions: z.array(z.string()).optional(),
   clinicId: z.string().optional(),
   clinicIds: z.array(z.string().min(1)).optional(),
@@ -117,7 +119,7 @@ export async function GET() {
       },
       include: {
         profile: true,
-        doctorProfile: true,
+        doctorProfile: { include: { profession: { select: { id: true, name: true } } } },
       },
       orderBy: { createdAt: "desc" },
     });
@@ -188,6 +190,8 @@ export async function POST(req: Request) {
         phone: null,
         rut: parsed.data.rut,
         specialty: parsed.data.specialty ?? null,
+        professionId: parsed.data.professionId ?? null,
+        professionName: parsed.data.professionName ?? null,
         permissions,
         clinicIds,
       });

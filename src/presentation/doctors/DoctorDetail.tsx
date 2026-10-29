@@ -1,6 +1,7 @@
 "use client";
 
 import { useDoctorDetailViewModel } from "./DoctorDetailViewModel";
+import { ProfessionSelect } from "./ProfessionSelect";
 
 function ReadOnlyField({ label, value }: { label: string; value: string }) {
   return (
@@ -119,7 +120,7 @@ export default function DoctorDetail({ userId }: { userId: string }) {
           <div className="flex items-center gap-3">
             <h2 className="text-lg font-semibold text-slate-900">Detalles del usuario</h2>
             <span className={`inline-flex rounded-full px-2 py-0.5 text-[11px] font-medium ${isDoctor ? "bg-blue-50 text-blue-600" : "bg-violet-50 text-violet-600"}`}>
-              {isDoctor ? "Doctor" : "Secretaria"}
+              {isDoctor ? doctor.doctorProfile?.profession?.name ?? "Profesional" : "Secretaria"}
             </span>
           </div>
           <div className="flex items-center gap-2">
@@ -189,14 +190,32 @@ export default function DoctorDetail({ userId }: { userId: string }) {
             onChange={(value) => handleFieldChange("rut", value)}
           />
           {isDoctor ? (
+            <div>
+              <p className="mb-1 text-[11px] font-medium uppercase tracking-wider text-slate-400">Profesión</p>
+              {editing ? (
+                <ProfessionSelect
+                  value={{ professionId: form.professionId, professionName: form.professionName }}
+                  onChange={(next) => {
+                    handleFieldChange("professionId", next.professionId);
+                    handleFieldChange("professionName", next.professionName);
+                  }}
+                />
+              ) : (
+                <p className="text-sm text-slate-700">{doctor.doctorProfile?.profession?.name ?? "Sin definir"}</p>
+              )}
+            </div>
+          ) : (
+            <ReadOnlyField label="Rol" value="Secretaria" />
+          )}
+        </div>
+        <div className="mt-3 grid grid-cols-2 gap-3">
+          {isDoctor ? (
             <Field
               label="Especialidad"
               value={editing ? form.specialty : doctor.doctorProfile?.specialty ?? ""}
               onChange={(value) => handleFieldChange("specialty", value)}
             />
-          ) : (
-            <ReadOnlyField label="Rol" value="Secretaria" />
-          )}
+          ) : null}
         </div>
       </div>
 

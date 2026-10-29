@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { normalizeId } from "@/lib/normalize";
 import { hashPassword } from "@/lib/password";
 import { Prisma } from "@prisma/client";
+import { ProfessionsService } from "@/server/professions/ProfessionsService";
 
 export type DoctorInput = {
   email: string;
@@ -11,6 +12,9 @@ export type DoctorInput = {
   phone?: string | null;
   rut: string;
   specialty?: string | null;
+  professionId?: string | null;
+  /** "Otra": nombre de una profesion nueva, propia de la sede. */
+  professionName?: string | null;
   permissions?: string[];
   clinicIds: string[];
 };
@@ -32,7 +36,7 @@ export class DoctorsService {
       },
       include: {
         profile: true,
-        doctorProfile: true,
+        doctorProfile: { include: { profession: { select: { id: true, name: true } } } },
       },
       orderBy: { createdAt: "desc" },
     });
@@ -53,7 +57,7 @@ export class DoctorsService {
       },
       include: {
         profile: true,
-        doctorProfile: true,
+        doctorProfile: { include: { profession: { select: { id: true, name: true } } } },
       },
     });
 
@@ -70,6 +74,7 @@ export class DoctorsService {
       throw new Error("El RUN ya está registrado.");
     }
 
+    const profession = await ProfessionsService.resolve(input.clinicIds, input);
     const passwordHash = await hashPassword(input.password);
 
     return prisma.user.create({
@@ -92,6 +97,7 @@ export class DoctorsService {
             rut: input.rut,
             rutNormalized,
             specialty: input.specialty ?? null,
+            professionId: profession?.id ?? null,
           },
         },
         clinicMemberships: {
@@ -103,7 +109,7 @@ export class DoctorsService {
       },
       include: {
         profile: true,
-        doctorProfile: true,
+        doctorProfile: { include: { profession: { select: { id: true, name: true } } } },
       },
     });
   }
@@ -153,6 +159,19 @@ export class DoctorsService {
       await this.assertClinicsManageable(requesterUserId, input.clinicIds);
     }
 
+    const professionChange =
+      input.professionId !== undefined || input.professionName?.trim()
+        ? await ProfessionsService.resolve(
+            input.clinicIds?.length ? input.clinicIds : [clinicId],
+            input
+          )
+        : undefined;
+    if (input.professionId === null && !input.professionName?.trim()) {
+      await prisma.doctorProfile.update({ where: { userId }, data: { professionId: null } });
+    } else if (professionChange) {
+      await prisma.doctorProfile.update({ where: { userId }, data: { professionId: professionChange.id } });
+    }
+
     if (input.rut) {
       const rutNormalized = normalizeId(input.rut);
       const exists = await prisma.doctorProfile.findFirst({
@@ -198,7 +217,7 @@ export class DoctorsService {
 
     return prisma.user.findUnique({
       where: { id: userId },
-      include: { profile: true, doctorProfile: true },
+      include: { profile: true, doctorProfile: { include: { profession: { select: { id: true, name: true } } } } },
     });
   }
 
