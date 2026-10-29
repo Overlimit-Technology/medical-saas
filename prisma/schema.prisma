@@ -285,6 +285,13 @@ model Clinic {
   openingTime  String?  @default("08:00")
   closingTime  String?  @default("20:00")
   isActive     Boolean  @default(true)
+  // Datos comerciales (los usa el panel de facturacion del super admin).
+  billingStatus         ClinicBillingStatus @default(TRIAL)
+  planName              String?
+  monthlyPrice          Decimal?            @db.Decimal(12, 2)
+  trialEndsAt           DateTime?
+  subscriptionStartedAt DateTime?
+  canceledAt            DateTime?
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
@@ -948,4 +955,23 @@ model ProfessionalInvoice {
   @@unique([clinicId, doctorId, month])
   @@index([clinicId, month])
   @@index([doctorId, status])
+}
+
+enum ClinicBillingStatus {
+  TRIAL
+  ACTIVE
+  PAST_DUE
+  CANCELED
+}
+
+// Costos mensuales de operar la plataforma (infraestructura, IA, correo...). Solo lo ve el super admin.
+model PlatformCost {
+  id          String   @id @default(cuid())
+  month       String   // "YYYY-MM"
+  category    String
+  description String?
+  amount      Decimal  @db.Decimal(12, 2)
+  createdAt   DateTime @default(now())
+
+  @@index([month])
 }

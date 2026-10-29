@@ -14,6 +14,7 @@ import {
   Shield,
   Timer,
   Users,
+  Wallet,
 } from "lucide-react";
 
 type NavItem = {
@@ -30,6 +31,7 @@ const ITEMS: NavItem[] = [
   { href: "/super-admin/modulos", label: "Acceso a Modulos", icon: Puzzle },
   { href: "/super-admin/trials", label: "Trials", icon: Timer },
   { href: "/super-admin/recursos", label: "Recursos", icon: BookOpen },
+  { href: "/super-admin/facturacion", label: "Facturacion", icon: Wallet },
 ];
 
 type MeResponse = {
