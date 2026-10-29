@@ -10,6 +10,8 @@ const doctorUpdateSchema = z.object({
   phone: z.string().optional().nullable(),
   rut: z.string().min(1).optional(),
   specialty: z.string().optional().nullable(),
+  professionId: z.string().min(1).optional().nullable(),
+  professionName: z.string().trim().max(60).optional().nullable(),
   clinicIds: z.array(z.string()).optional(),
 });
 
@@ -28,7 +30,7 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
           some: { clinicId: session.clinicId, status: "ACTIVE" },
         },
       },
-      include: { profile: true, doctorProfile: true },
+      include: { profile: true, doctorProfile: { include: { profession: { select: { id: true, name: true } } } } },
     });
 
     if (!item) {

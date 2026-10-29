@@ -16,6 +16,8 @@ const doctorCreateSchema = z.object({
   phone: z.string().optional().nullable(),
   rut: z.string().min(1),
   specialty: z.string().optional().nullable(),
+  professionId: z.string().min(1).optional().nullable(),
+  professionName: z.string().trim().max(60).optional().nullable(),
   clinicIds: z.array(z.string()).optional(),
 });
 
@@ -63,14 +65,14 @@ function getDoctorCreationErrorMessage(error: unknown) {
       return "El RUN ya está registrado.";
     }
 
-    return "Ya existe un doctor con esos datos.";
+    return "Ya existe un profesional con esos datos.";
   }
 
   if (error instanceof Error) {
     return error.message;
   }
 
-  return "No se pudo crear el doctor.";
+  return "No se pudo crear el profesional.";
 }
 
 export async function GET() {
@@ -85,7 +87,7 @@ export async function GET() {
     const items = await DoctorsService.list(session.clinicId);
     return NextResponse.json({ ok: true, items });
   } catch {
-    return NextResponse.json({ ok: false, error: "No se pudieron cargar los doctores." }, { status: 400 });
+    return NextResponse.json({ ok: false, error: "No se pudieron cargar los profesionales." }, { status: 400 });
   }
 }
 
@@ -97,7 +99,7 @@ export async function POST(req: Request) {
     const body = await req.json();
     const parsed = doctorCreateSchema.safeParse(body);
     if (!parsed.success) {
-      return NextResponse.json({ ok: false, error: "Los datos del doctor no son válidos." }, { status: 400 });
+      return NextResponse.json({ ok: false, error: "Los datos del profesional no son válidos." }, { status: 400 });
     }
 
     const generatedPassword = generatePassword();
@@ -115,6 +117,8 @@ export async function POST(req: Request) {
       phone: parsed.data.phone,
       rut: parsed.data.rut,
       specialty: parsed.data.specialty,
+      professionId: parsed.data.professionId,
+      professionName: parsed.data.professionName,
       clinicIds,
     });
 

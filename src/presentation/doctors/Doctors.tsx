@@ -1,12 +1,13 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import { ProfessionSelect } from "./ProfessionSelect";
 import { DeleteIconButton } from "@/presentation/common/DeleteIconButton";
 import { useDoctorsViewModel, formatRelativeDate } from "./DoctorsViewModel";
 
 const ROLE_LABELS: Record<string, string> = {
   ADMIN: "Admin",
-  DOCTOR: "Doctor",
+  DOCTOR: "Profesional",
   SECRETARY: "Secretaria",
 };
 
@@ -172,7 +173,7 @@ export default function Doctors() {
                   className="w-full rounded-xl border border-slate-200 bg-slate-50/40 px-3 py-2.5 text-sm transition-colors focus:border-blue-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-100"
                 >
                   <option value="ADMIN">Admin</option>
-                  <option value="DOCTOR">Doctor</option>
+                  <option value="DOCTOR">Profesional</option>
                   <option value="SECRETARY">Secretaria</option>
                 </select>
               </div>
@@ -241,7 +242,15 @@ export default function Doctors() {
 
               {state.form.role === "DOCTOR" && (
                 <div>
-                  <label className="mb-1 block text-[11px] font-medium uppercase tracking-wider text-slate-400">Especialidad</label>
+                  <label className="mb-1 block text-[11px] font-medium uppercase tracking-wider text-slate-400">Profesión</label>
+                  <ProfessionSelect
+                    value={{ professionId: state.form.professionId, professionName: state.form.professionName }}
+                    onChange={(next) => {
+                      actions.handleFieldChange("professionId", next.professionId);
+                      actions.handleFieldChange("professionName", next.professionName);
+                    }}
+                  />
+                  <label className="mb-1 mt-3 block text-[11px] font-medium uppercase tracking-wider text-slate-400">Especialidad</label>
                   <input
                     value={state.form.specialty}
                     onChange={(e) => actions.handleFieldChange("specialty", e.target.value)}

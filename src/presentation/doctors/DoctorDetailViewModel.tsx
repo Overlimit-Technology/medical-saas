@@ -16,6 +16,8 @@ export type EditForm = {
   phone: string;
   rut: string;
   specialty: string;
+  professionId: string;
+  professionName: string;
 };
 
 export function useDoctorDetailViewModel(userId: string) {
@@ -39,6 +41,8 @@ export function useDoctorDetailViewModel(userId: string) {
     phone: "",
     rut: "",
     specialty: "",
+    professionId: "",
+    professionName: "",
   });
   const [apiError, setApiError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
@@ -53,6 +57,8 @@ export function useDoctorDetailViewModel(userId: string) {
       phone: item.profile?.phone ?? "",
       rut: item.doctorProfile?.rut ?? item.profile?.rut ?? "",
       specialty: item.doctorProfile?.specialty ?? "",
+      professionId: item.doctorProfile?.professionId ?? "",
+      professionName: "",
     });
   }, []);
 
@@ -105,6 +111,13 @@ export function useDoctorDetailViewModel(userId: string) {
         phone: form.phone.trim() || null,
         rut: form.rut.trim(),
         specialty: form.specialty.trim() || null,
+        ...(doctor?.role === "DOCTOR"
+          ? form.professionId
+            ? { professionId: form.professionId }
+            : form.professionName.trim()
+              ? { professionName: form.professionName.trim() }
+              : { professionId: null }
+          : {}),
       };
 
       await updateUserDetailUseCase.execute(userId, payload);

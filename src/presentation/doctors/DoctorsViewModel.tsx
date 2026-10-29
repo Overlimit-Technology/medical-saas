@@ -20,6 +20,8 @@ export type FormState = {
   lastName: string;
   rut: string;
   specialty: string;
+  professionId: string;
+  professionName: string;
   clinicIds: string[];
   permissions: UserPermission[];
 };
@@ -34,6 +36,8 @@ const EMPTY_FORM: FormState = {
   lastName: "",
   rut: "",
   specialty: "",
+  professionId: "",
+  professionName: "",
   clinicIds: [],
   permissions: [],
 };
@@ -145,15 +149,15 @@ export function useDoctorsViewModel() {
   };
 
   const handleFieldChange = (key: keyof FormState, value: string) => {
-    const next: FormState =
+    setForm((current) =>
       key === "role"
         ? {
-            ...form,
+            ...current,
             role: value as UserRole,
-            isSuperAdmin: value === "ADMIN" ? form.isSuperAdmin : false,
+            isSuperAdmin: value === "ADMIN" ? current.isSuperAdmin : false,
           }
-        : { ...form, [key]: value } as FormState;
-    setForm(next);
+        : ({ ...current, [key]: value } as FormState)
+    );
     if (errors[key]) {
       const nextErrors = { ...errors };
       delete nextErrors[key];
@@ -209,6 +213,9 @@ export function useDoctorsViewModel() {
       lastName: form.lastName.trim(),
       rut: form.rut.trim(),
       specialty: form.role === "DOCTOR" && form.specialty.trim() ? form.specialty.trim() : undefined,
+      professionId: form.role === "DOCTOR" && form.professionId ? form.professionId : undefined,
+      professionName:
+        form.role === "DOCTOR" && !form.professionId && form.professionName.trim() ? form.professionName.trim() : undefined,
       clinicIds: form.clinicIds.length > 0 ? form.clinicIds : undefined,
       permissions: form.permissions,
     };
