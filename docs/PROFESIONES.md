@@ -6,7 +6,7 @@ Cada profesional (rol DOCTOR en la base) tiene ahora una **profesion** (medico, 
 
 - `Profession`: `clinicId` nulo = catalogo global; con valor = profesion propia de esa sede (opcion "Otra"). Unico por `(clinicId, slug)` y, para el catalogo global, por `slug`.
 - `DoctorProfile.professionId` (opcional, `ON DELETE SET NULL`).
-- Migracion `20261029120000_add_professions`: aditiva. Crea la tabla, siembra 13 profesiones globales y hace backfill: enlaza la profesion cuando `specialty` coincide (sin tildes ni genero) con una del catalogo. Lo que no calza queda sin profesion y conserva su `specialty`.
+- Migracion `20261029130000_add_professions`: aditiva. Crea la tabla, siembra 13 profesiones globales y hace backfill: enlaza la profesion cuando `specialty` coincide (sin tildes ni genero) con una del catalogo. Lo que no calza queda sin profesion y conserva su `specialty`.
 - El slug ignora tildes y el sufijo de genero (`Psicologo/a` = `Psicologo`), asi "Otra" no duplica el catalogo.
 
 ## API
