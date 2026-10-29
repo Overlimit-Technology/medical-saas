@@ -17,7 +17,9 @@
     "seed:test": "node scripts/seed-test-data.mjs",
     "seed:test:accounts": "node scripts/seed-test-data.mjs --accounts-only",
     "test:billing": "tsx --test tests/billingMetrics.test.ts",
-    "test:billing:api": "node --test tests/billingApi.test.mjs"
+    "test:billing:api": "node --test tests/billingApi.test.mjs",
+    "test:dashboard": "tsx --test tests/dashboardCalc.test.ts",
+    "test:dashboard:api": "node --test tests/dashboardApi.test.mjs"
   },
   "dependencies": {
     "@prisma/adapter-pg": "^7.1.0",

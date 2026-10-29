@@ -24,7 +24,7 @@ type NavItem = {
 };
 
 const ITEMS: NavItem[] = [
-  { href: "/super-admin", label: "Overview", icon: Grid2x2 },
+  { href: "/super-admin", label: "Dashboard", icon: Grid2x2 },
   { href: "/super-admin/clinicas", label: "Clinicas", icon: Building2 },
   { href: "/super-admin/usuarios", label: "Usuarios", icon: Users },
   { href: "/super-admin/roles", label: "Roles y Permisos", icon: Shield },

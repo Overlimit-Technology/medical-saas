@@ -31,6 +31,17 @@ export async function requireClinicSession(): Promise<SessionContext> {
   const clinicCookie = cookies().get("mg_clinic")?.value;
   const clinic = await readMgClinic(clinicCookie);
   if (clinic && clinic.userId === session.userId) {
+    // Una sede suspendida o cancelada por el super admin deja de operar aunque la cookie siga vigente.
+    // El super admin no se bloquea: necesita poder reactivarla.
+    if (session.isSuperAdmin !== true) {
+      const current = await prisma.clinic.findUnique({
+        where: { id: clinic.clinicId },
+        select: { isActive: true },
+      });
+      if (!current || !current.isActive) {
+        throw new Error("La sede esta suspendida. Contacta a soporte.");
+      }
+    }
     return {
       userId: session.userId,
       role: session.role,
