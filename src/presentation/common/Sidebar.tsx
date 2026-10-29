@@ -26,6 +26,7 @@ import {
 
 import { hasPermission, type UserPermission } from "@/lib/permissions";
 import { useSidebarViewModel } from "./SidebarViewModel";
+import SharedSessionSwitcher from "./SharedSessionSwitcher";
 
 type Role = "ADMIN" | "SECRETARY" | "DOCTOR";
 
@@ -296,6 +297,8 @@ export default function Sidebar() {
             )}
           </button>
         )}
+
+        <SharedSessionSwitcher collapsed={collapsed} />
 
         <form action="/api/auth/logout" method="post">
           <button

@@ -10,6 +10,7 @@ import {
   CalendarDays,
   FileText,
   Coins,
+  ShieldCheck,
 } from "lucide-react";
 import { ProfileRepositoryHttp } from "@/data/profile/ProfileRepository";
 import { GetMyProfileUseCase } from "@/domain/profile/usecases/ProfileUseCases";
@@ -17,6 +18,7 @@ import ProfileTab from "./tabs/ProfileTab";
 import CrmTab from "./tabs/CrmTab";
 import BookingTab from "./tabs/BookingTab";
 import EmailTab from "./tabs/EmailTab";
+import SharedSessionsTab from "./tabs/SharedSessionsTab";
 import dynamic from "next/dynamic";
 
 const VacationSettings = dynamic(
@@ -28,7 +30,7 @@ const MyLiquidacionesTab = dynamic(
   { ssr: false },
 );
 
-type AdminView = "landing" | "perfil" | "comunicaciones";
+type AdminView = "landing" | "perfil" | "comunicaciones" | "seguridad";
 type ComunicacionesTab = "contactabilidad" | "crm" | "reserva";
 type DoctorTab = "perfil" | "vacaciones" | "fichas" | "liquidaciones";
 
@@ -82,6 +84,15 @@ function AdminSettings() {
       <div className="space-y-6">
         <SubViewHeader title="Mi Perfil" onBack={() => setView("landing")} />
         <ProfileTab />
+      </div>
+    );
+  }
+
+  if (view === "seguridad") {
+    return (
+      <div className="space-y-6">
+        <SubViewHeader title="Seguridad de acceso" onBack={() => setView("landing")} />
+        <SharedSessionsTab />
       </div>
     );
   }
@@ -148,6 +159,13 @@ function AdminSettings() {
           description="Emails, WhatsApp, redes y agentes IA"
           color="bg-violet-500"
           onClick={() => setView("comunicaciones")}
+        />
+        <ModuleCard
+          icon={ShieldCheck}
+          title="Seguridad de acceso"
+          description="Sesiones multiples en equipos compartidos"
+          color="bg-amber-500"
+          onClick={() => setView("seguridad")}
         />
       </div>
     </div>

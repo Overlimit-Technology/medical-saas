@@ -322,6 +322,10 @@ model ClinicSettings {
   bookingKey                         String?  @unique
   bookingEnabled                     Boolean  @default(false)
   bookingSlotMinutes                 Int      @default(30)
+  // Sesiones multiples en equipos compartidos (opt-in)
+  sharedSessionsEnabled              Boolean  @default(false)
+  sharedIdleLockMinutes              Int      @default(10)
+  sharedMaxHoursWithoutPassword      Int      @default(8)
   instagramUrl                       String?
   facebookUrl                        String?
   tiktokUrl                          String?

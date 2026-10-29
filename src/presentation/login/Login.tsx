@@ -12,6 +12,7 @@ import {
   UsersRound,
 } from "lucide-react";
 import { useLoginViewModel } from "./LoginViewModel";
+import SharedDeviceLock, { type LockedProfile } from "./SharedDeviceLock";
 
 const rightPanelHighlights = [
   {
@@ -35,6 +36,25 @@ const rightPanelHighlights = [
 export default function Login() {
   const { state, actions } = useLoginViewModel();
   const [showPassword, setShowPassword] = React.useState(false);
+  // Equipo compartido bloqueado: se muestra la pantalla de bloqueo en vez del login.
+  const [lockedProfiles, setLockedProfiles] = React.useState<LockedProfile[]>([]);
+  const [useNormalLogin, setUseNormalLogin] = React.useState(false);
+
+  React.useEffect(() => {
+    let cancelled = false;
+    fetch("/api/auth/device", { credentials: "include", cache: "no-store" })
+      .then((res) => res.json())
+      .then((json) => {
+        if (cancelled || !json?.locked || !Array.isArray(json.profiles)) return;
+        setLockedProfiles(json.profiles as LockedProfile[]);
+      })
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const showLock = lockedProfiles.length > 0 && !useNormalLogin;
 
   return (
     <div className="min-h-screen bg-[#eef5f7] md:h-screen md:overflow-hidden">
@@ -57,12 +77,17 @@ export default function Login() {
                 </p>
               </div>
 
-              {state.formError && (
+              {showLock && (
+                <SharedDeviceLock profiles={lockedProfiles} onUseNormalLogin={() => setUseNormalLogin(true)} />
+              )}
+
+              {!showLock && state.formError && (
                 <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
                   {state.formError}
                 </div>
               )}
 
+              {!showLock && (
               <form
                 className="space-y-5"
                 onSubmit={(e) => {
@@ -144,6 +169,7 @@ export default function Login() {
                   {state.loading ? "Ingresando..." : "Iniciar sesión"}
                 </button>
               </form>
+              )}
             </div>
           </div>
         </section>
