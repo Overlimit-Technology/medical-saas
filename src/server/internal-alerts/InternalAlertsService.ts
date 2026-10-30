@@ -219,18 +219,17 @@ export class InternalAlertsService {
     const actorLabel = actorRole === "ADMIN" ? "Administrador" : "Secretaria";
     const deliverableRecipients = recipientResolution.recipients.filter((recipient) => recipient.canReceive);
 
-    const tpl = await resolveEmailTemplate(input.clinicId, "INTERNAL_ALERT", {
-      eventType: formatEventTypeLabel(eventType),
-      message,
-      actorLabel,
-      clinicName: clinicLabel,
-    });
-
     const deliveryResults = await Promise.all(
       deliverableRecipients.map(async (recipient) => {
         const recipientName = buildRecipientName(recipient.firstName, recipient.lastName, recipient.email);
-        const finalSubject = tpl.subject.replaceAll("{{recipientName}}", recipientName);
-        const finalBody = tpl.body.replaceAll("{{recipientName}}", recipientName);
+        // Se resuelve por destinatario para que su nombre pase por el escape de HTML de la plantilla.
+        const tpl = await resolveEmailTemplate(input.clinicId, "INTERNAL_ALERT", {
+          recipientName,
+          eventType: formatEventTypeLabel(eventType),
+          message,
+          actorLabel,
+          clinicName: clinicLabel,
+        });
 
         if (!tpl.enabled) {
           return { userId: recipient.userId, ok: true };
@@ -239,8 +238,8 @@ export class InternalAlertsService {
         const result = await sendEmail({
           origin: input.origin,
           to: recipient.email,
-          subject: finalSubject,
-          html: finalBody,
+          subject: tpl.subject,
+          html: tpl.body,
         });
 
         if (!result.ok) {

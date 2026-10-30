@@ -1,33 +1,44 @@
+import { createElement } from "react";
 import { prisma } from "@/lib/prisma";
 import {
   DEFAULT_TEMPLATES,
   type EmailTemplateType,
 } from "@/domain/clinic-settings/entities/EmailTemplate";
+import { renderEmail } from "@/emails/render";
+import { TemplateEmail } from "@/emails/TemplateEmail";
+import { buildTemplateContent, type TemplateContent } from "@/emails/templateContent";
 
 type ResolvedTemplate = {
   subject: string;
+  /** Documento HTML completo (layout comun + cuerpo de la plantilla), listo para enviar. */
   body: string;
-  /** true when body is already HTML (WYSIWYG), false for plain text defaults */
+  /** Version de texto plano del mismo correo. */
+  text: string;
+  /** Siempre true: `body` es HTML. Se conserva por compatibilidad con quienes ya lo leen. */
   isHtml: boolean;
   enabled: boolean;
+  /** true si la clinica guardo su propia plantilla para este evento. */
+  customized: boolean;
+  /** Contenido ya interpolado (variables escapadas), por si el llamador necesita otro layout. */
+  content: TemplateContent;
 };
 
-function textToHtml(text: string): string {
-  return text
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/\n/g, "<br/>");
-}
+type ResolveOptions = {
+  /** Marca de la clinica en el encabezado; por defecto, la variable `clinicName`. */
+  clinicName?: string;
+  /** Boton opcional del correo (URL http/https). */
+  cta?: { url: string; label: string };
+};
 
 /**
- * Resolves an email template for a given clinic and event type.
- * Returns the custom template if one exists, otherwise the default.
+ * Resuelve la plantilla de un evento para una clinica (la personalizada o la de por defecto),
+ * interpola las variables con escape de HTML y la renderiza dentro del layout comun de React Email.
  */
 export async function resolveEmailTemplate(
   clinicId: string,
   eventType: EmailTemplateType,
   variables: Record<string, string>,
+  options: ResolveOptions = {},
 ): Promise<ResolvedTemplate> {
   const defaults = DEFAULT_TEMPLATES[eventType];
 
@@ -39,7 +50,7 @@ export async function resolveEmailTemplate(
   let subject = defaults.subject;
   let body = defaults.body;
   let enabled = true;
-  let isHtml = false;
+  let customized = false;
 
   if (settings) {
     const template = await prisma.emailTemplate.findUnique({
@@ -56,22 +67,27 @@ export async function resolveEmailTemplate(
       subject = template.subject;
       body = template.body;
       enabled = template.enabled;
-      isHtml = body.includes("<") && body.includes(">");
+      customized = true;
     }
   }
 
-  // Interpolate variables
-  for (const [key, value] of Object.entries(variables)) {
-    const placeholder = `{{${key}}}`;
-    subject = subject.replaceAll(placeholder, value);
-    body = body.replaceAll(placeholder, value);
-  }
+  const content = buildTemplateContent(subject, body, variables);
+  const rendered = await renderEmail(
+    createElement(TemplateEmail, {
+      eventType,
+      content,
+      clinicName: options.clinicName ?? variables.clinicName,
+      cta: options.cta,
+    }),
+  );
 
-  // Convert plain-text default templates to HTML for consistency
-  if (!isHtml) {
-    body = textToHtml(body);
-    isHtml = true;
-  }
-
-  return { subject, body, isHtml, enabled };
+  return {
+    subject: content.subject,
+    body: rendered.html,
+    text: rendered.text,
+    isHtml: true,
+    enabled,
+    customized,
+    content,
+  };
 }

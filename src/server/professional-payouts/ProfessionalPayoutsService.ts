@@ -1,4 +1,7 @@
+import { createElement } from "react";
 import { prisma } from "@/lib/prisma";
+import { ProfessionalPayoutEmail } from "@/emails/ProfessionalPayoutEmail";
+import { renderEmail } from "@/emails/render";
 import type {
   ProfessionalPayoutEmailDispatchResult,
   ProfessionalPayoutMonthResponse,
@@ -305,57 +308,32 @@ export class ProfessionalPayoutsService {
         continue;
       }
 
-      const html = `
-        <div style="font-family: Arial, sans-serif; color: #0f172a; line-height: 1.5;">
-          <p>Hola ${professional.name},</p>
-          <p>Te compartimos tu resumen de liquidacion correspondiente a <strong>${monthLabel}</strong>.</p>
-          <p style="margin: 0 0 16px;">Sede: <strong>${clinicLabel}</strong></p>
-          <table style="width: 100%; border-collapse: collapse; margin: 16px 0;">
-            <tbody>
-              <tr>
-                <td style="padding: 10px 12px; border: 1px solid #e2e8f0;">Total recaudado</td>
-                <td style="padding: 10px 12px; border: 1px solid #e2e8f0; text-align: right;"><strong>${formatCurrency(
-                  professional.grossAmount
-                )}</strong></td>
-              </tr>
-              <tr>
-                <td style="padding: 10px 12px; border: 1px solid #e2e8f0;">Clinica (${formatPercentage(
-                  settings.clinicPercentage
-                )})</td>
-                <td style="padding: 10px 12px; border: 1px solid #e2e8f0; text-align: right;">${formatCurrency(
-                  derived.clinicRetentionAmount
-                )}</td>
-              </tr>
-              <tr>
-                <td style="padding: 10px 12px; border: 1px solid #e2e8f0;">SII (${formatPercentage(
-                  settings.siiPercentage
-                )})</td>
-                <td style="padding: 10px 12px; border: 1px solid #e2e8f0; text-align: right;">${formatCurrency(
-                  derived.siiRetentionAmount
-                )}</td>
-              </tr>
-              <tr>
-                <td style="padding: 10px 12px; border: 1px solid #cbd5e1; background: #f8fafc;">Total estimado a pagar (${formatPercentage(
-                  derived.netPercentage
-                )})</td>
-                <td style="padding: 10px 12px; border: 1px solid #cbd5e1; background: #f8fafc; text-align: right; color: #0f9ea8;"><strong>${formatCurrency(
-                  derived.netAmount
-                )}</strong></td>
-              </tr>
-            </tbody>
-          </table>
-          <p style="margin: 20px 0;">
-            <a href="${invoiceLink}" style="background: #0f9ea8; color: #ffffff; padding: 10px 16px; border-radius: 8px; text-decoration: none; font-weight: bold;">Generar mi boleta</a>
-          </p>
-          <p>Si necesitas revisar el detalle, por favor contacta a la clinica.</p>
-        </div>
-      `;
+      // Plantilla propia de la clinica si la editaron; si no, el correo con tabla de montos y boton de boleta.
+      const html = tpl.customized
+        ? tpl.body
+        : (
+            await renderEmail(
+              createElement(ProfessionalPayoutEmail, {
+                professionalName: professional.name,
+                monthLabel,
+                clinicName: clinicLabel,
+                grossAmount: formatCurrency(professional.grossAmount),
+                clinicLabel: `Clinica (${formatPercentage(settings.clinicPercentage)})`,
+                clinicRetention: formatCurrency(derived.clinicRetentionAmount),
+                siiLabel: `SII (${formatPercentage(settings.siiPercentage)})`,
+                siiRetention: formatCurrency(derived.siiRetentionAmount),
+                netLabel: `Total estimado a pagar (${formatPercentage(derived.netPercentage)})`,
+                netAmount: formatCurrency(derived.netAmount),
+                invoiceUrl: invoiceLink,
+              }),
+            )
+          ).html;
 
       const result = await sendEmail({
         origin: input.origin,
         to: recipientEmail,
         subject: tpl.subject,
-        html: html || tpl.body,
+        html,
       });
 
       if (!result.ok) {
