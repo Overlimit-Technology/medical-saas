@@ -1,6 +1,10 @@
 export const clp = (value: number) =>
   new Intl.NumberFormat("es-CL", { style: "currency", currency: "CLP", maximumFractionDigits: 0 }).format(value);
 
+// Monto corto para los ejes de las graficas ($750 mil, $1,2 M).
+export const clpShort = (value: number) =>
+  `$${new Intl.NumberFormat("es-CL", { notation: "compact", maximumFractionDigits: 1 }).format(value)}`;
+
 export const pct = (value: number | null, digits = 1) => (value === null ? "-" : `${(value * 100).toFixed(digits)}%`);
 
 export const signedPct = (value: number | null) =>

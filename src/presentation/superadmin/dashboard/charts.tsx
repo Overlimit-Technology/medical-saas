@@ -11,12 +11,14 @@ const W = 640;
 const H = 240;
 const PAD = { l: 52, r: 14, t: 14, b: 28 };
 
-function niceMax(max: number) {
-  if (max <= 0) return 1;
-  const exp = Math.pow(10, Math.floor(Math.log10(max)));
-  const f = max / exp;
-  const nice = f <= 1 ? 1 : f <= 2 ? 2 : f <= 5 ? 5 : 10;
-  return nice * exp;
+// Eje con paso "redondo" (1, 2, 2.5, 5 x 10^n) y 3 a 6 marcas.
+function niceScale(max: number) {
+  if (max <= 0) return { max: 1, ticks: 4 };
+  const raw = max / 4;
+  const mag = Math.pow(10, Math.floor(Math.log10(raw)));
+  const step = [1, 2, 2.5, 5, 10].map((f) => f * mag).find((v) => v >= raw) ?? 10 * mag;
+  const ticks = Math.max(1, Math.ceil(max / step - 1e-9));
+  return { max: step * ticks, ticks };
 }
 
 const compact = (v: number) =>
@@ -140,7 +142,7 @@ export function LineChart({
   const ref = useRef<HTMLDivElement>(null);
 
   const visible = series.filter((s) => !hidden.has(s.key));
-  const max = niceMax(Math.max(0, ...points.flatMap((p) => visible.map((s) => p.values[s.key] ?? 0))));
+  const { max, ticks } = niceScale(Math.max(0, ...points.flatMap((p) => visible.map((s) => p.values[s.key] ?? 0))));
   const n = points.length;
   const x = (i: number) => PAD.l + (n <= 1 ? (W - PAD.l - PAD.r) / 2 : ((W - PAD.l - PAD.r) * i) / (n - 1));
   const y = (v: number) => H - PAD.b - ((H - PAD.t - PAD.b) * v) / max;
@@ -159,7 +161,7 @@ export function LineChart({
       <Legend series={series} hidden={hidden} onToggle={toggle} />
       <div ref={ref} className="relative" onMouseMove={onMove} onMouseLeave={() => setHover(null)}>
         <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label={ariaLabel} className="w-full">
-          <Axes max={max} format={yFormat} />
+          <Axes max={max} ticks={ticks} format={yFormat} />
           {visible.map((s) => {
             const segs: string[] = [];
             let pen = false;
@@ -213,7 +215,7 @@ export function BarChart({
   const [hover, setHover] = useState<number | null>(null);
 
   const visible = series.filter((s) => !hidden.has(s.key));
-  const max = niceMax(Math.max(0, ...points.flatMap((p) => visible.map((s) => p.values[s.key] ?? 0))));
+  const { max, ticks } = niceScale(Math.max(0, ...points.flatMap((p) => visible.map((s) => p.values[s.key] ?? 0))));
   const n = Math.max(1, points.length);
   const slot = (W - PAD.l - PAD.r) / n;
   const groupW = Math.min(slot * 0.8, 22 * Math.max(1, visible.length));
@@ -226,7 +228,7 @@ export function BarChart({
       <Legend series={series} hidden={hidden} onToggle={toggle} />
       <div className="relative" onMouseLeave={() => setHover(null)}>
         <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label={ariaLabel} className="w-full">
-          <Axes max={max} format={yFormat} />
+          <Axes max={max} ticks={ticks} format={yFormat} />
           {points.map((p, i) => {
             const cx = PAD.l + i * slot + slot / 2;
             return (

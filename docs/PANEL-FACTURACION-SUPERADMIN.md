@@ -12,7 +12,8 @@ Migracion `20261029120000_add_billing_metrics`:
   hasta que se complete su informacion comercial.
 - `PlatformCost` (opcional): costos mensuales de operar la plataforma (`month` "YYYY-MM", `category`, `amount`).
 
-No hay pantalla para editar estos datos todavia; se cargan por SQL o seed.
+Desde el dashboard inicial (`/super-admin`, ver `docs/DASHBOARD-SUPERADMIN.md`) ya se pueden crear sedes y editar plan, precio,
+estado comercial y costos de plataforma, con registro en `AuditLog`. El seed tambien los carga.
 
 ## Definiciones
 
@@ -28,7 +29,7 @@ UI en `src/presentation/superadmin/SuperAdminBilling.tsx` (SVG y CSS, sin librer
 ## Datos de prueba y cifras esperadas
 
 `npm run seed:test` carga `prisma/test-seed-billing.sql` (ids `seed_billing_*` para sedes y costos nuevos; ademas
-asigna datos comerciales a las 3 sedes del seed). Cifras esperadas, calculadas a mano:
+asigna datos comerciales a las 3 sedes del seed). Cifras esperadas de ese seed, calculadas a mano (si ademas se carga `test-seed-dashboard.sql` los totales de la plataforma suben; ver `docs/DASHBOARD-SUPERADMIN.md`):
 
 | Metrica | Valor |
 |---|---|

@@ -27,7 +27,7 @@ import ClinicsTable from "./dashboard/ClinicsTable";
 import CostsModal from "./dashboard/CostsModal";
 import CreateClinicModal from "./dashboard/CreateClinicModal";
 import { BarChart, DonutChart, LineChart } from "./dashboard/charts";
-import { STATUS_COLOR, STATUS_LABEL, api, clp, dateLabel, monthLabel, num, pct, signedPct, statusTone } from "./dashboard/format";
+import { STATUS_COLOR, STATUS_LABEL, api, clp, clpShort, dateLabel, monthLabel, num, pct, signedPct, statusTone } from "./dashboard/format";
 import { btnGhost, btnPrimary, inputClass } from "./dashboard/ui";
 
 type Filters = { months: 3 | 6 | 12; plan: string; status: string; city: string; q: string };
@@ -356,7 +356,7 @@ export default function SuperAdminDashboard() {
             <Card title="Ingresos, costos y margen" subtitle="MRR al cierre de cada mes">
               <LineChart
                 ariaLabel="MRR, costos y margen por mes"
-                yFormat={(v) => clp(v)}
+                yFormat={clpShort}
                 points={mrrPoints}
                 series={[
                   { key: "mrr", label: "MRR", color: "#0e88ab", format: clp },
@@ -372,7 +372,7 @@ export default function SuperAdminDashboard() {
             <Card title="Altas y bajas por mes" subtitle="Sedes que empiezan a pagar y sedes canceladas">
               <BarChart
                 ariaLabel="Altas y bajas de sedes por mes"
-                yFormat={(v) => String(Math.round(v))}
+                yFormat={(v) => (Number.isInteger(v) ? String(v) : "")}
                 points={flowPoints}
                 series={[
                   { key: "added", label: "Altas", color: "#10b981" },

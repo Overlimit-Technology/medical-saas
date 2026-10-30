@@ -114,26 +114,33 @@ export function ConfirmDialog({
 
 export type MenuItem = { label: string; onClick: () => void; danger?: boolean; hidden?: boolean };
 
-// Menu de acciones por fila (se cierra al hacer clic fuera o con Escape).
+// Menu de acciones por fila. Se posiciona con "fixed" para que no lo recorte el scroll horizontal de la tabla,
+// y se cierra al hacer clic fuera, con Escape o al desplazar la pagina.
 export function RowMenu({ items, label }: { items: MenuItem[]; label: string }) {
-  const [open, setOpen] = useState(false);
+  const [pos, setPos] = useState<{ top?: number; bottom?: number; right: number } | null>(null);
   const ref = useRef<HTMLDivElement>(null);
+  const open = pos !== null;
 
   useEffect(() => {
     if (!open) return;
-    const close = (e: MouseEvent) => !ref.current?.contains(e.target as Node) && setOpen(false);
-    const esc = (e: KeyboardEvent) => e.key === "Escape" && setOpen(false);
+    const close = (e: MouseEvent) => !ref.current?.contains(e.target as Node) && setPos(null);
+    const esc = (e: KeyboardEvent) => e.key === "Escape" && setPos(null);
+    const hide = () => setPos(null);
     document.addEventListener("mousedown", close);
     document.addEventListener("keydown", esc);
+    window.addEventListener("scroll", hide, true);
+    window.addEventListener("resize", hide);
     return () => {
       document.removeEventListener("mousedown", close);
       document.removeEventListener("keydown", esc);
+      window.removeEventListener("scroll", hide, true);
+      window.removeEventListener("resize", hide);
     };
   }, [open]);
 
   const visible = items.filter((i) => !i.hidden);
   return (
-    <div ref={ref} className="relative inline-block text-left">
+    <div ref={ref} className="inline-block text-left">
       <button
         type="button"
         aria-label={label}
@@ -141,14 +148,19 @@ export function RowMenu({ items, label }: { items: MenuItem[]; label: string }) 
         aria-expanded={open}
         onClick={(e) => {
           e.stopPropagation();
-          setOpen((v) => !v);
+          if (open) return setPos(null);
+          const r = e.currentTarget.getBoundingClientRect();
+          const right = window.innerWidth - r.right;
+          // Si abajo no cabe, el menu se abre hacia arriba.
+          const needed = visible.length * 38 + 12;
+          setPos(window.innerHeight - r.bottom < needed ? { bottom: window.innerHeight - r.top + 4, right } : { top: r.bottom + 4, right });
         }}
         className="rounded-lg p-1.5 text-slate-500 hover:bg-slate-100"
       >
         <MoreVertical className="h-4 w-4" />
       </button>
-      {open && (
-        <div role="menu" className="absolute right-0 z-30 mt-1 w-52 rounded-lg border border-slate-200 bg-white py-1 shadow-lg">
+      {pos && (
+        <div role="menu" style={{ position: "fixed", ...pos }} className="z-50 w-56 rounded-lg border border-slate-200 bg-white py-1 shadow-lg">
           {visible.map((item) => (
             <button
               key={item.label}
@@ -156,7 +168,7 @@ export function RowMenu({ items, label }: { items: MenuItem[]; label: string }) 
               role="menuitem"
               onClick={(e) => {
                 e.stopPropagation();
-                setOpen(false);
+                setPos(null);
                 item.onClick();
               }}
               className={`block w-full px-3 py-2 text-left text-sm hover:bg-slate-50 ${item.danger ? "text-rose-600" : "text-slate-700"}`}

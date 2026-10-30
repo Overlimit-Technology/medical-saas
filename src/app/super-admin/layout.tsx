@@ -4,10 +4,10 @@ import SuperAdminSidebar from "@/presentation/superadmin/SuperAdminSidebar";
 
 export default function SuperAdminLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="flex h-screen overflow-hidden bg-slate-100 text-slate-900">
+    <div className="flex min-h-screen flex-col bg-slate-100 text-slate-900 md:h-screen md:flex-row md:overflow-hidden">
       <PresenceTracker />
       <SuperAdminSidebar />
-      <main className="min-h-0 min-w-0 flex-1 overflow-y-auto overflow-x-hidden px-6 py-6">
+      <main className="min-h-0 min-w-0 flex-1 overflow-x-hidden px-4 py-4 md:overflow-y-auto md:px-6 md:py-6">
         {children}
       </main>
       {/* <NotificationsSidebar /> */}

@@ -34,17 +34,24 @@ for (const email of ["admin.sede.test@medigest.test", "doctor.general.seed@medig
   });
 }
 
-test("super admin: 200 con las cifras del seed", async () => {
+// Las cifras exactas de test-seed-billing.sql (MRR 260.000, etc.) cambian al cargar tambien
+// test-seed-dashboard.sql, que agrega mas sedes. Aqui se comprueba la coherencia interna y las sedes del seed de facturacion.
+test("super admin: 200 con cifras coherentes y las sedes del seed de facturacion", async () => {
   const res = await get(await login("admin.seed@medigest.test"));
   assert.equal(res.status, 200);
   const { data } = await res.json();
-  assert.equal(data.mrr, 260000);
-  assert.equal(data.arr, 3120000);
-  assert.equal(data.payingClinics, 4);
-  assert.equal(data.arpa, 65000);
-  assert.equal(data.pastDueClinics, 1);
-  assert.equal(data.currentMonth.churnRate, 0);
-  assert.equal(data.months[4].churnRate, 0.25);
-  assert.equal(data.currentMonth.costs, 45000);
-  assert.equal(data.currentMonth.margin, 215000);
+  const paying = data.clinics.filter((c) => c.paying);
+  assert.equal(data.mrr, paying.reduce((s, c) => s + c.monthlyPrice, 0));
+  assert.equal(data.arr, data.mrr * 12);
+  assert.equal(data.payingClinics, paying.length);
+  assert.equal(data.arpa, Math.round(data.mrr / paying.length));
+  assert.equal(data.currentMonth.mrr, data.mrr);
+  assert.equal(data.currentMonth.margin, data.currentMonth.mrr - data.currentMonth.costs);
+
+  const byId = Object.fromEntries(data.clinics.map((c) => [c.id, c]));
+  assert.equal(byId.seed_cm_clinic_centro.monthlyPrice, 90000);
+  assert.equal(byId.seed_cm_clinic_norte.status, "PAST_DUE");
+  assert.equal(byId.seed_cm_clinic_laboratorio.status, "CANCELED");
+  assert.equal(byId.seed_billing_clinic_c.status, "TRIAL");
+  assert.ok(data.pastDueClinics >= 1 && data.canceledClinics >= 1 && data.trialsExpiringSoon >= 1);
 });
