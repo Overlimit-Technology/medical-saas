@@ -43,3 +43,7 @@ next-env.d.ts
 # cachés locales de herramientas (npm/prisma/next) creadas al correr en Windows
 /.appdata-local/
 /.appdata-roaming/
+
+# correos de prueba (MAIL_DRY_RUN) y previsualizaciones generadas
+/.email-outbox/
+/.email-preview/

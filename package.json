@@ -16,6 +16,8 @@
     "db:clinic-seed": "tsx prisma/clinic-seed.ts",
     "seed:test": "node scripts/seed-test-data.mjs",
     "seed:test:accounts": "node scripts/seed-test-data.mjs --accounts-only",
+    "test:emails": "tsx --test tests/emails.test.tsx",
+    "emails:preview": "tsx scripts/emails-preview.tsx",
     "test:billing": "tsx --test tests/billingMetrics.test.ts",
     "test:billing:api": "node --test tests/billingApi.test.mjs",
     "test:dashboard": "tsx --test tests/dashboardCalc.test.ts",
@@ -24,6 +26,8 @@
   "dependencies": {
     "@prisma/adapter-pg": "^7.1.0",
     "@prisma/client": "^7.1.0",
+    "@react-email/components": "^1.0.12",
+    "@react-email/render": "^2.1.0",
     "@tiptap/extension-color": "^3.22.5",
     "@tiptap/extension-image": "^3.22.5",
     "@tiptap/extension-link": "^3.22.5",
