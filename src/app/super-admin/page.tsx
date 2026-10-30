@@ -1,7 +1,8 @@
 import { redirect } from "next/navigation";
-import SuperAdminOverview from "@/presentation/superadmin/SuperAdminOverview";
+import SuperAdminDashboard from "@/presentation/superadmin/SuperAdminDashboard";
 import { requireAuthSession } from "@/server/auth/requireSession";
-import { getSuperAdminPlatformData } from "@/server/super-admin/platformData";
+
+export const dynamic = "force-dynamic";
 
 export default async function SuperAdminOverviewPage() {
   const session = await requireAuthSession();
@@ -9,6 +10,5 @@ export default async function SuperAdminOverviewPage() {
     redirect("/dashboard");
   }
 
-  const data = await getSuperAdminPlatformData();
-  return <SuperAdminOverview data={data} />;
+  return <SuperAdminDashboard />;
 }

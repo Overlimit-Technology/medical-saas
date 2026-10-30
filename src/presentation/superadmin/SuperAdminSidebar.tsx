@@ -14,6 +14,7 @@ import {
   Shield,
   Timer,
   Users,
+  Wallet,
 } from "lucide-react";
 
 type NavItem = {
@@ -23,13 +24,14 @@ type NavItem = {
 };
 
 const ITEMS: NavItem[] = [
-  { href: "/super-admin", label: "Overview", icon: Grid2x2 },
+  { href: "/super-admin", label: "Dashboard", icon: Grid2x2 },
   { href: "/super-admin/clinicas", label: "Clinicas", icon: Building2 },
   { href: "/super-admin/usuarios", label: "Usuarios", icon: Users },
   { href: "/super-admin/roles", label: "Roles y Permisos", icon: Shield },
   { href: "/super-admin/modulos", label: "Acceso a Modulos", icon: Puzzle },
   { href: "/super-admin/trials", label: "Trials", icon: Timer },
   { href: "/super-admin/recursos", label: "Recursos", icon: BookOpen },
+  { href: "/super-admin/facturacion", label: "Facturacion", icon: Wallet },
 ];
 
 type MeResponse = {
@@ -76,7 +78,7 @@ export default function SuperAdminSidebar() {
   const settingsActive = isItemActive("/super-admin/configuracion");
 
   return (
-    <aside className="flex h-screen w-[232px] shrink-0 flex-col border-r border-[#122c55] bg-[#071a34] px-3 py-3 text-white">
+    <aside className="flex w-full shrink-0 flex-col md:h-screen md:w-[232px] border-r border-[#122c55] bg-[#071a34] px-3 py-3 text-white">
       <div className="flex items-center gap-2.5 px-1.5 pb-3">
         <img src="/images/branding/Zensya.png" alt="Zensya" className="h-6 w-auto object-contain" />
         <span className="rounded-full bg-[#d8f6ff] px-2.5 py-0.5 text-[11px] font-semibold text-[#0b3a54]">
@@ -86,7 +88,7 @@ export default function SuperAdminSidebar() {
 
       <div className="border-t border-[#12315d] pt-4">
         <p className="px-2 text-[11px] font-semibold uppercase tracking-[0.1em] text-[#5a759d]">Plataforma</p>
-        <nav className="mt-3 space-y-1">
+        <nav className="mt-3 flex gap-1 overflow-x-auto md:block md:space-y-1 md:overflow-visible">
           {ITEMS.map((item) => {
             const active = isItemActive(item.href);
             const Icon = item.icon;
@@ -106,7 +108,7 @@ export default function SuperAdminSidebar() {
         </nav>
       </div>
 
-      <div className="mt-auto space-y-1 border-t border-[#12315d] pt-3">
+      <div className="mt-3 space-y-1 border-t border-[#12315d] pt-3 md:mt-auto">
         <Link
           href="/super-admin/configuracion"
           className={`flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-sm font-medium transition ${
@@ -127,7 +129,7 @@ export default function SuperAdminSidebar() {
           </button>
         </form>
 
-        <div className="mt-2 flex items-center gap-2.5 rounded-lg px-2 py-2">
+        <div className="mt-2 hidden items-center gap-2.5 rounded-lg px-2 py-2 md:flex">
           <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#0b86b8] text-xs font-bold text-white">
             {initials}
           </div>

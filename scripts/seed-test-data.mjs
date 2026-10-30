@@ -50,7 +50,7 @@ async function main() {
 
   const files = accountsOnly
     ? ["test-seed-env-accounts.sql"]
-    : ["test-seed-current-month.sql", "test-seed-env-accounts.sql"];
+    : ["test-seed-current-month.sql", "test-seed-env-accounts.sql", "test-seed-billing.sql", "test-seed-dashboard.sql"];
 
   for (const file of files) {
     const sql = fs.readFileSync(path.join(prismaDir, file), "utf8");
