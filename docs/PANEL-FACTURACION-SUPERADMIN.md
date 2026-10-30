@@ -5,7 +5,7 @@ la ruta responde 401 sin sesion y 403 a cualquier otro rol; la pagina redirige a
 
 ## Datos
 
-Migracion `20261029120000_add_billing_metrics`:
+Migracion `20261030120000_add_billing_metrics`:
 
 - `Clinic`: `billingStatus` (TRIAL, ACTIVE, PAST_DUE, CANCELED; por defecto TRIAL), `planName`, `monthlyPrice` (CLP),
   `trialEndsAt`, `subscriptionStartedAt`, `canceledAt`. Las sedes existentes quedan en TRIAL sin precio, es decir, MRR 0
