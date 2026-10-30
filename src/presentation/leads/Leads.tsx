@@ -8,8 +8,11 @@ import LeadForm from "./components/LeadForm";
 import LeadFilters from "./components/LeadFilters";
 import ColumnEditor from "./components/ColumnEditor";
 import ChannelFilter from "./components/ChannelFilter";
+import { useConfirm, useToast } from "@/presentation/common/dialogs";
 
 export default function Leads() {
+  const confirmDialog = useConfirm();
+  const toast = useToast();
   const { state, actions } = useLeadsViewModel();
 
   if (!state.loaded) {
@@ -152,9 +155,9 @@ export default function Leads() {
             onDelete={() => { actions.deleteLead(state.selectedLead!.id); actions.setSelectedLeadId(null); }}
             onArchive={() => { actions.archiveLead(state.selectedLead!.id); actions.setSelectedLeadId(null); }}
             onConvert={async () => {
-              if (!confirm("Convertir este lead en paciente? Se creara un nuevo registro de paciente.")) return;
+              if (!(await confirmDialog({ title: "Convertir lead en paciente", message: "Se creara un nuevo registro de paciente.", confirmLabel: "Convertir" }))) return;
               const res = await actions.convertLead(state.selectedLead!.id);
-              if (res.ok) alert("Lead convertido a paciente exitosamente.");
+              if (res.ok) toast({ message: "Lead convertido a paciente exitosamente.", tone: "success" });
             }}
             onMoveLead={actions.moveLead}
             onAddNote={actions.addNote}

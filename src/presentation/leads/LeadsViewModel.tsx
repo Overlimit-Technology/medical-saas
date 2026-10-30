@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { Lead, LeadChannel, LeadPriority, LeadNote, LeadMessage, LeadActivity, DoctorOption } from "@/domain/leads/entities/Lead";
 import type { PipelineColumn } from "@/domain/leads/entities/Pipeline";
+import { useAlert } from "@/presentation/common/dialogs";
 
 export type ViewMode = "kanban" | "table";
 
@@ -51,6 +52,7 @@ async function api<T = unknown>(url: string, opts?: RequestInit): Promise<T> {
 }
 
 export function useLeadsViewModel() {
+  const alertDialog = useAlert();
   const [columns, setColumns] = useState<PipelineColumn[]>([]);
   const [leads, setLeads] = useState<Lead[]>([]);
   const [tags, setTags] = useState<string[]>([]);
@@ -360,9 +362,9 @@ export function useLeadsViewModel() {
         method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(seedData),
       });
       if (res.ok) await loadPipeline();
-      else alert("Error al importar datos.");
-    } catch { alert("Error al importar: formato de archivo invalido."); }
-  }, [loadPipeline]);
+      else await alertDialog({ title: "Error al importar", message: "No se pudieron importar los datos.", tone: "error" });
+    } catch { await alertDialog({ title: "Error al importar", message: "Formato de archivo invalido.", tone: "error" }); }
+  }, [loadPipeline, alertDialog]);
 
   // --- Open forms ---
   const openEditForm = useCallback((leadId: string) => { setEditingLeadId(leadId); setShowLeadForm(true); }, []);

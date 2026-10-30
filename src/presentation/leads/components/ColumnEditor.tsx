@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import type { PipelineColumn } from "@/domain/leads/entities/Pipeline";
+import { useAlert, useConfirm } from "@/presentation/common/dialogs";
 
 type Props = {
   columns: PipelineColumn[];
@@ -21,6 +22,8 @@ const PRESET_COLORS = [
 ];
 
 export default function ColumnEditor({ columns, onAdd, onUpdate, onDelete, onReorder, onClose }: Props) {
+  const confirmDialog = useConfirm();
+  const alertDialog = useAlert();
   const [newName, setNewName] = useState("");
   const [newColor, setNewColor] = useState("#818cf8");
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -123,9 +126,12 @@ export default function ColumnEditor({ columns, onAdd, onUpdate, onDelete, onReo
                   </button>
                   <button
                     type="button"
-                    onClick={() => {
-                      if (columns.length <= 1) return alert("Debe haber al menos una columna.");
-                      if (confirm(`Eliminar columna "${col.name}"? Los leads se moveran a la primera columna.`)) onDelete(col.id);
+                    onClick={async () => {
+                      if (columns.length <= 1) {
+                        await alertDialog({ title: "No se puede eliminar", message: "Debe haber al menos una columna." });
+                        return;
+                      }
+                      if (await confirmDialog({ title: `Eliminar columna "${col.name}"`, message: "Los leads se moveran a la primera columna.", confirmLabel: "Eliminar", tone: "danger" })) onDelete(col.id);
                     }}
                     className="text-[11px] text-[#9c9690] hover:text-rose-500"
                   >

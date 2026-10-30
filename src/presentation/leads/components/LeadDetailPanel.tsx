@@ -6,6 +6,7 @@ import { CHANNEL_LABELS, PRIORITY_LABELS, PRIORITY_COLORS } from "@/domain/leads
 import type { PipelineColumn } from "@/domain/leads/entities/Pipeline";
 import LeadChat from "./LeadChat";
 import LeadAiInsight from "./LeadAiInsight";
+import { useConfirm } from "@/presentation/common/dialogs";
 
 type Props = {
   lead: Lead;
@@ -30,6 +31,7 @@ function formatDate(iso: string) {
 }
 
 export default function LeadDetailPanel({ lead, columns, doctors, onClose, onEdit, onDelete, onArchive, onConvert, onMoveLead, onAddNote, onAddMessage }: Props) {
+  const confirmDialog = useConfirm();
   const [tab, setTab] = useState<Tab>("info");
   const [noteText, setNoteText] = useState("");
 
@@ -170,7 +172,7 @@ export default function LeadDetailPanel({ lead, columns, doctors, onClose, onEdi
               <button type="button" onClick={onArchive} className="rounded-lg border border-slate-200 px-3 py-1.5 text-[11px] font-medium text-slate-500 hover:bg-slate-50">
                 {lead.archived ? "Desarchivar" : "Archivar"}
               </button>
-              <button type="button" onClick={() => { if (confirm("Eliminar este lead permanentemente?")) onDelete(); }} className="rounded-lg border border-rose-200 px-3 py-1.5 text-[11px] font-medium text-rose-500 hover:bg-rose-50">Eliminar</button>
+              <button type="button" onClick={async () => { if (await confirmDialog({ title: "Eliminar este lead", message: "Se eliminara de forma permanente.", confirmLabel: "Eliminar", tone: "danger" })) onDelete(); }} className="rounded-lg border border-rose-200 px-3 py-1.5 text-[11px] font-medium text-rose-500 hover:bg-rose-50">Eliminar</button>
             </div>
           </div>
         )}

@@ -1,3 +1,21 @@
 {
-  "extends": ["next/core-web-vitals", "next/typescript"]
+  "extends": ["next/core-web-vitals", "next/typescript"],
+  "rules": {
+    "no-alert": "error",
+    "no-restricted-globals": [
+      "error",
+      { "name": "alert", "message": "Usa useAlert()/useToast() de @/presentation/common/dialogs (ver docs/UI-DIALOGOS.md)." },
+      { "name": "confirm", "message": "Usa useConfirm() de @/presentation/common/dialogs (ver docs/UI-DIALOGOS.md)." },
+      { "name": "prompt", "message": "Usa usePrompt() de @/presentation/common/dialogs (ver docs/UI-DIALOGOS.md)." }
+    ],
+    "no-restricted-properties": [
+      "error",
+      { "object": "window", "property": "alert", "message": "Alertas nativas prohibidas: usa los hooks de @/presentation/common/dialogs." },
+      { "object": "window", "property": "confirm", "message": "Alertas nativas prohibidas: usa useConfirm()." },
+      { "object": "window", "property": "prompt", "message": "Alertas nativas prohibidas: usa usePrompt()." },
+      { "object": "globalThis", "property": "alert", "message": "Alertas nativas prohibidas." },
+      { "object": "globalThis", "property": "confirm", "message": "Alertas nativas prohibidas." },
+      { "object": "globalThis", "property": "prompt", "message": "Alertas nativas prohibidas." }
+    ]
+  }
 }

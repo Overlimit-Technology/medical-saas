@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Lock, UserPlus } from "lucide-react";
 import { CredentialsForm } from "@/presentation/common/SharedSessionSwitcher";
+import { useConfirm } from "@/presentation/common/dialogs";
 
 export type LockedProfile = { userId: string; name: string; role: string };
 
@@ -27,6 +28,7 @@ export default function SharedDeviceLock({
   profiles: LockedProfile[];
   onUseNormalLogin: () => void;
 }) {
+  const confirmDialog = useConfirm();
   const [selected, setSelected] = useState<LockedProfile | "new" | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -44,7 +46,13 @@ export default function SharedDeviceLock({
   };
 
   const leaveSharedMode = async () => {
-    if (!window.confirm("Este equipo dejara de ser compartido y se olvidaran los perfiles guardados. Continuar?")) return;
+    const ok = await confirmDialog({
+      title: "Dejar de compartir este equipo",
+      message: "Este equipo dejara de ser compartido y se olvidaran los perfiles guardados.",
+      confirmLabel: "Continuar",
+      tone: "danger",
+    });
+    if (!ok) return;
     await fetch("/api/auth/device", { method: "DELETE", credentials: "include" });
     window.location.reload();
   };

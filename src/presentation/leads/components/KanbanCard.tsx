@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import type { Lead } from "@/domain/leads/entities/Lead";
 import { CHANNEL_LABELS, PRIORITY_COLORS } from "@/domain/leads/entities/Lead";
+import { useConfirm } from "@/presentation/common/dialogs";
 
 type Props = {
   lead: Lead;
@@ -41,6 +42,7 @@ const CHANNEL_ICONS: Record<string, string> = {
 };
 
 export default function KanbanCard({ lead, columnColor, onClick, onDragStart, onDragEnd, onArchive, onDelete }: Props) {
+  const confirmDialog = useConfirm();
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const budget = lead.estimatedBudget;
@@ -86,7 +88,7 @@ export default function KanbanCard({ lead, columnColor, onClick, onDragStart, on
                   <button type="button" onClick={() => { setMenuOpen(false); onArchive(); }} className="flex w-full items-center px-3 py-1.5 text-left text-[11px] text-slate-600 hover:bg-slate-50">
                     Archivar
                   </button>
-                  <button type="button" onClick={() => { setMenuOpen(false); if (confirm("Eliminar este lead?")) onDelete(); }} className="flex w-full items-center px-3 py-1.5 text-left text-[11px] text-rose-500 hover:bg-rose-50">
+                  <button type="button" onClick={async () => { setMenuOpen(false); if (await confirmDialog({ title: "Eliminar este lead", message: "Esta accion no se puede deshacer.", confirmLabel: "Eliminar", tone: "danger" })) onDelete(); }} className="flex w-full items-center px-3 py-1.5 text-left text-[11px] text-rose-500 hover:bg-rose-50">
                     Eliminar
                   </button>
                 </div>

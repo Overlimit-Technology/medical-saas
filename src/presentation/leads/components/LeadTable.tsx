@@ -4,6 +4,7 @@ import type { Lead, DoctorOption } from "@/domain/leads/entities/Lead";
 import { CHANNEL_LABELS, PRIORITY_COLORS } from "@/domain/leads/entities/Lead";
 import type { PipelineColumn } from "@/domain/leads/entities/Pipeline";
 import type { SortConfig } from "../LeadsViewModel";
+import { useConfirm } from "@/presentation/common/dialogs";
 
 type Props = {
   leads: Lead[];
@@ -22,6 +23,7 @@ function SortIcon({ active, dir }: { active: boolean; dir: "asc" | "desc" }) {
 }
 
 export default function LeadTable({ leads, columns, doctors, sort, onLeadClick, onArchive, onDelete, onSort }: Props) {
+  const confirmDialog = useConfirm();
   const colMap = Object.fromEntries(columns.map((c) => [c.id, c]));
   const docMap = Object.fromEntries(doctors.map((d) => [d.id, d]));
 
@@ -77,7 +79,7 @@ export default function LeadTable({ leads, columns, doctors, sort, onLeadClick, 
                     <button type="button" onClick={() => onArchive(lead.id)} className="rounded p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600" title="Archivar">
                       <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="20" height="5" x="2" y="3" rx="1"/><path d="M4 8v11a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8"/><path d="M10 12h4"/></svg>
                     </button>
-                    <button type="button" onClick={() => { if (confirm("Eliminar este lead?")) onDelete(lead.id); }} className="rounded p-1 text-slate-400 hover:bg-rose-50 hover:text-rose-500" title="Eliminar">
+                    <button type="button" onClick={async () => { if (await confirmDialog({ title: "Eliminar este lead", message: "Esta accion no se puede deshacer.", confirmLabel: "Eliminar", tone: "danger" })) onDelete(lead.id); }} className="rounded p-1 text-slate-400 hover:bg-rose-50 hover:text-rose-500" title="Eliminar">
                       <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
                     </button>
                   </div>

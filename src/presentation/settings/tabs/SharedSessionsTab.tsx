@@ -3,10 +3,12 @@
 import { useCallback, useEffect, useState } from "react";
 import { ShieldAlert } from "lucide-react";
 import { SHARED_ADMIN_WARNING } from "@/presentation/common/sharedSessionCopy";
+import { useConfirm } from "@/presentation/common/dialogs";
 
 type SharedConfig = { enabled: boolean; idleMinutes: number; maxHours: number };
 
 export default function SharedSessionsTab() {
+  const confirmDialog = useConfirm();
   const [config, setConfig] = useState<SharedConfig | null>(null);
   const [draft, setDraft] = useState<{ idleMinutes: number; maxHours: number }>({ idleMinutes: 10, maxHours: 8 });
   const [saving, setSaving] = useState(false);
@@ -56,9 +58,20 @@ export default function SharedSessionsTab() {
     }
   };
 
-  const toggle = (enabled: boolean) => {
-    if (enabled && !window.confirm(`${SHARED_ADMIN_WARNING}\n\nHabilitar sesiones multiples para esta sede?`)) return;
-    if (!enabled && !window.confirm("Se desactivara el modo compartido: los equipos dejaran de permitir cambios de sesion y sus perfiles guardados dejaran de funcionar. Continuar?")) return;
+  const toggle = async (enabled: boolean) => {
+    const ok = enabled
+      ? await confirmDialog({
+          title: "Habilitar sesiones multiples para esta sede",
+          message: SHARED_ADMIN_WARNING,
+          confirmLabel: "Habilitar",
+        })
+      : await confirmDialog({
+          title: "Desactivar el modo compartido",
+          message: "Los equipos dejaran de permitir cambios de sesion y sus perfiles guardados dejaran de funcionar.",
+          confirmLabel: "Desactivar",
+          tone: "danger",
+        });
+    if (!ok) return;
     void save({ enabled });
   };
 
