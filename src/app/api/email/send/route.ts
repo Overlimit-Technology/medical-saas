@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { requireClinicSession, requireRole } from "@/server/auth/requireSession";
+import { renderManualEmail } from "@/emails/render";
 import { deliverEmail } from "@/server/notifications/mailer";
 
 export const dynamic = "force-dynamic";
@@ -54,7 +55,9 @@ export async function POST(req: Request) {
       );
     }
 
-    const info = await deliverEmail(parsed.data);
+    // El mensaje del ADMIN se envuelve en el layout comun (HTML saneado + version de texto plano).
+    const rendered = await renderManualEmail(parsed.data);
+    const info = await deliverEmail({ to: parsed.data.to, subject: parsed.data.subject, html: rendered.html, text: rendered.text });
     return NextResponse.json({ ok: true, message: "Correo enviado exitosamente", messageId: info.messageId });
   } catch (error) {
     const message = error instanceof Error ? error.message : "No se pudo enviar el correo.";

@@ -36,7 +36,7 @@ async function sendWelcomeEmail(
     email: payload.email,
     password: payload.password,
     clinics,
-  });
+  }, { cta: { url: `${origin}/login`, label: "Iniciar sesion" } });
 
   if (!tpl.enabled) return;
 

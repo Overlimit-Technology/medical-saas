@@ -1,3 +1,5 @@
+import fs from "fs";
+import path from "path";
 import dns from "dns";
 import nodemailer from "nodemailer";
 
@@ -115,6 +117,20 @@ async function verifyAndSendMail(attempt: TransportAttempt, payload: EmailPayloa
 }
 
 /**
+ * Modo de prueba: con MAIL_DRY_RUN=1 no se envia nada; el correo renderizado se escribe en
+ * `.email-outbox/` (ignorado por git) y se informa por consola.
+ */
+async function writeDryRun(payload: EmailPayload): Promise<{ messageId: string }> {
+  const dir = path.join(process.cwd(), ".email-outbox");
+  await fs.promises.mkdir(dir, { recursive: true });
+  const id = `dry-run-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  if (payload.html) await fs.promises.writeFile(path.join(dir, `${id}.html`), payload.html, "utf8");
+  if (payload.text) await fs.promises.writeFile(path.join(dir, `${id}.txt`), payload.text, "utf8");
+  console.info(`[EMAIL] MAIL_DRY_RUN=1: correo NO enviado (a: ${payload.to}, asunto: ${payload.subject}). Guardado en .email-outbox/${id}`);
+  return { messageId: id };
+}
+
+/**
  * Envia un correo con la cuenta de Gmail de la plataforma.
  * Es solo para uso interno del servidor: ninguna ruta publica debe llamarlo con datos sin validar.
  */
@@ -122,6 +138,8 @@ export async function deliverEmail(payload: EmailPayload): Promise<{ messageId?:
   if (!payload.to || !payload.subject || (!payload.text && !payload.html)) {
     throw new Error("Se requieren: to, subject y (text o html)");
   }
+
+  if (process.env.MAIL_DRY_RUN === "1") return writeDryRun(payload);
 
   const { appPassword, gmailUser } = getGmailConfig();
   const smtpHost = await resolveSmtpHost();

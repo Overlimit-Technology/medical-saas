@@ -1,3 +1,4 @@
+import { toPlainText } from "@react-email/render";
 import { deliverEmail } from "./mailer";
 
 type SendEmailInput = {
@@ -48,7 +49,8 @@ export async function sendEmail(input: SendEmailInput): Promise<SendEmailResult>
     const info = await deliverEmail({
       to: input.to,
       subject: input.subject,
-      text: input.text,
+      // Si solo hay HTML, se agrega la version de texto plano (mejor entrega y accesibilidad).
+      text: input.text ?? (input.html ? toPlainText(input.html) : undefined),
       html: input.html,
     });
 
