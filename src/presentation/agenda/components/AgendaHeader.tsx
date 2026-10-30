@@ -6,6 +6,7 @@ import type {
   AgendaView,
   AgendaCalendarMode,
 } from "../agenda.types";
+import Select from "@/presentation/common/Select";
 
 type Props = {
   activeView: AgendaView;
@@ -28,9 +29,6 @@ type Props = {
   onGoToNextPeriod: () => void;
   onReloadDailyCash: () => void;
 };
-
-const filterSelectClassName =
-  "rounded-full border border-[#19b3bc]/20 bg-white px-4 py-2 text-sm text-slate-700 outline-none transition-all duration-200 focus:border-[#19b3bc] focus:ring-2 focus:ring-[#19b3bc]/15 disabled:cursor-not-allowed disabled:opacity-60";
 
 export default function AgendaHeader({
   activeView,
@@ -193,24 +191,20 @@ export default function AgendaHeader({
 
           {agendaMode === "doctor" && (
             <>
-              <select
+              <Select
+                wrapperClassName="min-w-[12rem]"
+                className="!rounded-full !border-[#19b3bc]/20 !bg-white !px-4"
                 value={selectedDoctorId}
-                onChange={(event) => onSetSelectedDoctorId(event.target.value)}
-                className={filterSelectClassName}
+                onChange={onSetSelectedDoctorId}
                 disabled={doctors.length === 0 || isDoctor}
-              >
-                {doctors.length === 0 ? (
-                  <option value="">Sin profesionales</option>
-                ) : null}
-                {doctors.map((doctor) => {
+                ariaLabel="Profesional"
+                placeholder="Sin profesionales"
+                searchPlaceholder="Buscar profesional..."
+                options={doctors.map((doctor) => {
                   const label = `${doctor.profile?.firstName ?? ""} ${doctor.profile?.lastName ?? ""}`.trim();
-                  return (
-                    <option key={doctor.id} value={doctor.id}>
-                      {label || "Profesional"}
-                    </option>
-                  );
+                  return { value: doctor.id, label: label || "Profesional" };
                 })}
-              </select>
+              />
 
               <div className="flex items-center rounded-full border border-[#19b3bc]/15 bg-white p-1 shadow-sm shadow-[#19b3bc]/5">
                 <button

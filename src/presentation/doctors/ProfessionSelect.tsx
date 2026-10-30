@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Select from "@/presentation/common/Select";
 
 type ProfessionOption = { id: string; name: string; isGlobal: boolean };
 
@@ -40,27 +41,24 @@ export function ProfessionSelect({
 
   return (
     <div className={className}>
-      <select
+      <Select
         value={selectValue}
-        onChange={(e) => {
-          if (e.target.value === OTHER) {
+        onChange={(next) => {
+          if (next === OTHER) {
             setOther(true);
             onChange({ professionId: "", professionName: value.professionName });
           } else {
             setOther(false);
-            onChange({ professionId: e.target.value, professionName: "" });
+            onChange({ professionId: next, professionName: "" });
           }
         }}
-        className={inputClass}
-      >
-        <option value="">Sin definir</option>
-        {options.map((option) => (
-          <option key={option.id} value={option.id}>
-            {option.name}
-          </option>
-        ))}
-        <option value={OTHER}>Otra...</option>
-      </select>
+        ariaLabel="Profesion"
+        placeholder="Sin definir"
+        searchPlaceholder="Buscar profesion..."
+        emptyText="No hay profesiones que coincidan"
+        options={[{ value: "", label: "Sin definir" }, ...options.map((option) => ({ value: option.id, label: option.name }))]}
+        otherOption={{ value: OTHER, label: "Otra..." }}
+      />
       {other && (
         <input
           value={value.professionName}

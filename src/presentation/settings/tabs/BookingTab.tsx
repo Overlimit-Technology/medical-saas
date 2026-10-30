@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { Check, Copy, ExternalLink } from "lucide-react";
+import Select from "@/presentation/common/Select";
 
 type BookingSettings = {
   enabled: boolean;
@@ -95,19 +96,14 @@ export default function BookingTab() {
         <div className="mt-4 flex flex-wrap items-end gap-4">
           <label htmlFor="booking-slot" className="flex flex-col gap-1 text-xs font-medium text-slate-500">
             Duracion de cada hora
-            <select
+            <Select
               id="booking-slot"
-              value={settings.slotMinutes}
+              wrapperClassName="min-w-[10rem]"
+              value={String(settings.slotMinutes)}
               disabled={saving}
-              onChange={(event) => void save({ slotMinutes: Number(event.target.value) })}
-              className="h-10 rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700"
-            >
-              {SLOT_OPTIONS.map((minutes) => (
-                <option key={minutes} value={minutes}>
-                  {minutes} minutos
-                </option>
-              ))}
-            </select>
+              onChange={(next) => void save({ slotMinutes: Number(next) })}
+              options={SLOT_OPTIONS.map((minutes) => ({ value: String(minutes), label: `${minutes} minutos` }))}
+            />
           </label>
         </div>
 

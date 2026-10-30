@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useProfileViewModel, getInitials } from "@/presentation/profile/ProfileViewModel";
+import Select from "@/presentation/common/Select";
 
 type TeamCategory = { id: string; name: string };
 
@@ -107,18 +108,12 @@ export default function ProfileTab() {
             {teams.length > 0 && (
               <label className="grid gap-2 text-sm text-slate-600">
                 <span>Equipo de trabajo</span>
-                <select
+                <Select
                   value={form.teamCategoryId}
-                  onChange={(event) => setForm({ ...form, teamCategoryId: event.target.value })}
-                  className="rounded-2xl border border-slate-200 px-4 py-3 text-sm text-slate-900 outline-none focus:border-slate-400"
-                >
-                  <option value="">Sin equipo asignado</option>
-                  {teams.map((t) => (
-                    <option key={t.id} value={t.id}>
-                      {t.name}
-                    </option>
-                  ))}
-                </select>
+                  onChange={(next) => setForm({ ...form, teamCategoryId: next })}
+                  ariaLabel="Equipo de trabajo"
+                  options={[{ value: "", label: "Sin equipo asignado" }, ...teams.map((t) => ({ value: t.id, label: t.name }))]}
+                />
               </label>
             )}
 

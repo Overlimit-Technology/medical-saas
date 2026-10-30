@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { DeleteIconButton } from "@/presentation/common/DeleteIconButton";
 import { usePatientsViewModel, formatRelativeDate } from "./PatientsViewModel";
+import Select from "@/presentation/common/Select";
 
 type PatientsTab = "patients" | "imaging";
 
@@ -652,40 +653,38 @@ function ImagingSection({
                 <label className="mb-1 block text-[11px] font-medium uppercase tracking-wider text-slate-400">
                   Estado
                 </label>
-                <select
+                <Select
                   value={form.status}
-                  onChange={(event) =>
+                  onChange={(next) =>
                     setForm((current) => ({
                       ...current,
-                      status: event.target.value as ImagingUploadForm["status"],
+                      status: next as ImagingUploadForm["status"],
                     }))
                   }
-                  className="w-full rounded-xl border border-slate-200 bg-slate-50/40 px-3 py-2.5 text-sm"
-                >
-                  <option value="pendiente">Pendiente</option>
-                  <option value="completado">Completado</option>
-                </select>
+                  ariaLabel="Estado del examen"
+                  options={[
+                    { value: "pendiente", label: "Pendiente" },
+                    { value: "completado", label: "Completado" },
+                  ]}
+                />
               </div>
 
               <div className="md:col-span-2">
                 <label className="mb-1 block text-[11px] font-medium uppercase tracking-wider text-slate-400">
                   Paciente
                 </label>
-                <select
+                <Select
                   value={form.patientId}
-                  onChange={(event) => setForm((current) => ({ ...current, patientId: event.target.value }))}
+                  onChange={(next) => setForm((current) => ({ ...current, patientId: next }))}
                   disabled={Boolean(selectedPatientId)}
-                  className="w-full rounded-xl border border-slate-200 bg-slate-50/40 px-3 py-2.5 text-sm"
-                >
-                  <option value="">
-                    {selectedPatientName ? selectedPatientName : "Selecciona un paciente de la sede (opcional)"}
-                  </option>
-                  {patients.map((patient) => (
-                    <option key={patient.id} value={patient.id}>
-                      {getPatientFullName(patient)}
-                    </option>
-                  ))}
-                </select>
+                  ariaLabel="Paciente"
+                  searchPlaceholder="Buscar paciente..."
+                  emptyText="No hay pacientes que coincidan"
+                  options={[
+                    { value: "", label: selectedPatientName ? selectedPatientName : "Selecciona un paciente de la sede (opcional)" },
+                    ...patients.map((patient) => ({ value: patient.id, label: getPatientFullName(patient) })),
+                  ]}
+                />
               </div>
 
               <div className="md:col-span-2">

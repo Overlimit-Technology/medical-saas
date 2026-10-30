@@ -2,6 +2,7 @@
 
 import { APPOINTMENT_STATUSES, STATUS_LABELS, type AppointmentStatus } from "../statusColors";
 import type { AgendaAppointment } from "../agenda.types";
+import Select from "@/presentation/common/Select";
 
 type Props = {
   appointment: AgendaAppointment;
@@ -31,18 +32,14 @@ export default function AppointmentStatusModal({
           Estado actual: <span className="font-semibold text-slate-700">{STATUS_LABELS[appointment.status]}</span>.
         </p>
 
-        <select
+        <Select
+          wrapperClassName="mt-4"
           value={selectedStatus}
-          onChange={(event) => onSelectStatus(event.target.value as AppointmentStatus | "")}
-          className="mt-4 w-full rounded-xl border border-slate-200 bg-slate-50/40 px-3.5 py-2.5 text-sm transition-colors focus:border-blue-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-100"
-        >
-          <option value="">Selecciona un estado</option>
-          {APPOINTMENT_STATUSES.map((status) => (
-            <option key={status} value={status}>
-              {STATUS_LABELS[status]}
-            </option>
-          ))}
-        </select>
+          onChange={(next) => onSelectStatus(next as AppointmentStatus | "")}
+          ariaLabel="Estado de la cita"
+          placeholder="Selecciona un estado"
+          options={APPOINTMENT_STATUSES.map((status) => ({ value: status, label: STATUS_LABELS[status] }))}
+        />
 
         {errorMessage && (
           <div className="mt-4 animate-fade-in rounded-xl border border-rose-200 bg-rose-50 px-3.5 py-2.5 text-sm text-rose-600">

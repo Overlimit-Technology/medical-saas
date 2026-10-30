@@ -8,6 +8,7 @@ import type {
   PaymentStatus,
 } from "../agenda.types";
 import { formatCurrency, formatFullDateLabel, formatTimeLabel, getPatientFullName } from "../agenda.utils";
+import Select from "@/presentation/common/Select";
 
 type Props = {
   appointment: AgendaAppointment;
@@ -58,34 +59,25 @@ export default function PaymentModal({
         <div className="mt-6 grid gap-4">
           <div>
             <label className="mb-1 block text-[11px] font-medium uppercase tracking-wider text-slate-400">Tratamiento</label>
-            <select
+            <Select
               value={form.treatmentId}
-              onChange={(event) => onTreatmentChange(event.target.value)}
-              className="w-full rounded-xl border border-slate-200 bg-slate-50/40 px-3.5 py-2.5 text-sm transition-colors focus:border-blue-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-100"
-            >
-              <option value="">Selecciona un tratamiento</option>
-              {treatments.map((treatment) => (
-                <option key={treatment.id} value={treatment.id}>
-                  {treatment.name} · {formatCurrency(treatment.price)}
-                </option>
-              ))}
-            </select>
+              onChange={onTreatmentChange}
+              ariaLabel="Tratamiento"
+              placeholder="Selecciona un tratamiento"
+              emptyText="No hay tratamientos que coincidan"
+              options={treatments.map((treatment) => ({ value: treatment.id, label: treatment.name, hint: formatCurrency(treatment.price) }))}
+            />
           </div>
 
           <div className="grid gap-3 md:grid-cols-2">
             <div>
               <label className="mb-1 block text-[11px] font-medium uppercase tracking-wider text-slate-400">Estado de pago</label>
-              <select
+              <Select
                 value={form.status}
-                onChange={(event) => onFieldChange("status", event.target.value as PaymentStatus)}
-                className="w-full rounded-xl border border-slate-200 bg-slate-50/40 px-3.5 py-2.5 text-sm transition-colors focus:border-blue-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-100"
-              >
-                {Object.entries(PAYMENT_STATUS_LABELS).map(([value, label]) => (
-                  <option key={value} value={value}>
-                    {label}
-                  </option>
-                ))}
-              </select>
+                onChange={(next) => onFieldChange("status", next as PaymentStatus)}
+                ariaLabel="Estado del pago"
+                options={Object.entries(PAYMENT_STATUS_LABELS).map(([value, label]) => ({ value, label }))}
+              />
             </div>
 
             <div>

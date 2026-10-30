@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { ProfessionSelect } from "./ProfessionSelect";
 import { DeleteIconButton } from "@/presentation/common/DeleteIconButton";
 import { useDoctorsViewModel, formatRelativeDate } from "./DoctorsViewModel";
+import Select from "@/presentation/common/Select";
 
 const ROLE_LABELS: Record<string, string> = {
   ADMIN: "Admin",
@@ -167,15 +168,16 @@ export default function Doctors() {
             <form onSubmit={actions.handleSubmit} className="mt-5 grid gap-4 overflow-y-auto pr-1">
               <div>
                 <label className="mb-1 block text-[11px] font-medium uppercase tracking-wider text-slate-400">Rol</label>
-                <select
+                <Select
                   value={state.form.role}
-                  onChange={(e) => actions.handleFieldChange("role", e.target.value)}
-                  className="w-full rounded-xl border border-slate-200 bg-slate-50/40 px-3 py-2.5 text-sm transition-colors focus:border-blue-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-100"
-                >
-                  <option value="ADMIN">Admin</option>
-                  <option value="DOCTOR">Profesional</option>
-                  <option value="SECRETARY">Secretaria</option>
-                </select>
+                  onChange={(next) => actions.handleFieldChange("role", next)}
+                  ariaLabel="Rol"
+                  options={[
+                    { value: "ADMIN", label: "Admin" },
+                    { value: "DOCTOR", label: "Profesional" },
+                    { value: "SECRETARY", label: "Secretaria" },
+                  ]}
+                />
               </div>
 
               {state.form.role === "ADMIN" && (

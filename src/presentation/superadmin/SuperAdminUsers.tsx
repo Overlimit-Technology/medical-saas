@@ -13,6 +13,7 @@ import {
   PageHeader,
   StatTile,
 } from "./SuperAdminPrimitives";
+import Select from "@/presentation/common/Select";
 
 function roleTone(user: SuperAdminUserRow): "rose" | "teal" | "violet" | "slate" {
   if (user.isSuperAdmin) return "rose";
@@ -131,39 +132,44 @@ export default function SuperAdminUsers({ data }: { data: SuperAdminPlatformData
               className="h-10 w-full rounded-lg border border-slate-200 bg-slate-50 pl-9 pr-3 text-sm outline-none transition focus:border-[#0e88ab] focus:bg-white"
             />
           </div>
-          <select
+          <Select
+            wrapperClassName="min-w-[12rem]"
+            size="sm"
+            className="!h-10 !text-sm"
             value={clinicFilter}
-            onChange={(event) => setClinicFilter(event.target.value)}
-            className="h-10 rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none focus:border-[#0e88ab]"
-          >
-            <option value="all">Todas las clinicas</option>
-            {clinics.map((clinic) => (
-              <option key={clinic.id} value={clinic.id}>
-                {clinic.name}
-              </option>
-            ))}
-          </select>
-          <select
+            onChange={setClinicFilter}
+            ariaLabel="Clinica"
+            options={[{ value: "all", label: "Todas las clinicas" }, ...clinics.map((clinic) => ({ value: clinic.id, label: clinic.name }))]}
+          />
+          <Select
+            wrapperClassName="min-w-[10rem]"
+            size="sm"
+            className="!h-10 !text-sm"
             value={roleFilter}
-            onChange={(event) => setRoleFilter(event.target.value)}
-            className="h-10 rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none focus:border-[#0e88ab]"
-          >
-            <option value="all">Todos los roles</option>
-            <option value="SUPER_ADMIN">Super Admin</option>
-            <option value="ADMIN">Admin Clinica</option>
-            <option value="DOCTOR">Medico</option>
-            <option value="SECRETARY">Recepcionista</option>
-          </select>
-          <select
+            onChange={setRoleFilter}
+            ariaLabel="Rol"
+            options={[
+              { value: "all", label: "Todos los roles" },
+              { value: "SUPER_ADMIN", label: "Super Admin" },
+              { value: "ADMIN", label: "Admin Clinica" },
+              { value: "DOCTOR", label: "Medico" },
+              { value: "SECRETARY", label: "Recepcionista" },
+            ]}
+          />
+          <Select
+            wrapperClassName="min-w-[10rem]"
+            size="sm"
+            className="!h-10 !text-sm"
             value={statusFilter}
-            onChange={(event) => setStatusFilter(event.target.value)}
-            className="h-10 rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none focus:border-[#0e88ab]"
-          >
-            <option value="all">Todos los estados</option>
-            <option value="ACTIVE">Activos</option>
-            <option value="SUSPENDED">Suspendidos</option>
-            <option value="PENDING">Pendientes</option>
-          </select>
+            onChange={setStatusFilter}
+            ariaLabel="Estado"
+            options={[
+              { value: "all", label: "Todos los estados" },
+              { value: "ACTIVE", label: "Activos" },
+              { value: "SUSPENDED", label: "Suspendidos" },
+              { value: "PENDING", label: "Pendientes" },
+            ]}
+          />
         </div>
 
         {selectedIds.length > 0 && (
