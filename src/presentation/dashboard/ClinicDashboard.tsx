@@ -2,11 +2,7 @@
 
 import { useRef } from "react";
 import { useClinicDashboardViewModel } from "./ClinicDashboardViewModel";
-import {
-  formatCurrency,
-  SkeletonCard,
-  SkeletonBlock,
-} from "./shared";
+import { formatCurrency, SkeletonBlock } from "./shared";
 import {
   DoorOpen,
   Pill,
@@ -15,22 +11,14 @@ import {
   Users,
   CalendarDays,
   Wallet,
-  AlertCircle,
   RefreshCw,
-  TrendingUp,
-  ArrowRight,
+  HeartPulse,
+  Mail,
+  ShieldCheck,
+  Building2,
 } from "lucide-react";
-import Link from "next/link";
-
-const MODULE_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
-  DoorOpen,
-  Pill,
-  ClipboardList,
-  UserCog,
-  Users,
-  CalendarDays,
-  Wallet,
-};
+import OptionFinder, { type Option } from "@/presentation/ui/OptionFinder";
+import { Card, Notice, PageHead, View, btnClass, zs } from "@/presentation/ui/zs";
 
 export default function ClinicDashboard() {
   const {
@@ -49,311 +37,94 @@ export default function ClinicDashboard() {
   const { fetchData } = actions;
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  /* ----- Loading skeleton ----- */
   if (loading && !data) {
     return (
-      <div className="space-y-6">
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
-          {Array.from({ length: 5 }).map((_, i) => (
-            <SkeletonCard key={i} />
-          ))}
-        </div>
-        <div className="grid gap-4 lg:grid-cols-2">
-          <SkeletonBlock h="h-64" />
-          <SkeletonBlock h="h-64" />
-        </div>
-      </div>
+      <View label="Mi clínica">
+        <SkeletonBlock h="h-28" />
+        <SkeletonBlock h="h-64" />
+      </View>
     );
   }
 
   if (error) {
     return (
-      <div className="flex flex-col items-center justify-center gap-4 py-20 text-slate-500">
-        <AlertCircle size={40} className="text-rose-400" />
-        <p className="text-sm">{error}</p>
-        <button
-          onClick={fetchData}
-          className="text-sm text-[#1e737b] underline hover:text-[#1e737b]"
-        >
-          Reintentar
-        </button>
-      </div>
+      <View label="Mi clínica">
+        <Notice tone="err">
+          {error}{" "}
+          <button onClick={fetchData} className="font-semibold underline underline-offset-2">
+            Reintentar
+          </button>
+        </Notice>
+      </View>
     );
   }
 
   if (!data) return null;
 
   const { clinic, modules, topTreatments, canManageUsers } = data;
+  const n = (count: number | string, one: string, many: string) => `${count} ${count === 1 ? one : many}`;
 
-  const today = new Date().toLocaleDateString("es-CL", {
-    weekday: "long",
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-  });
-
-  // Build module cards
-  const modulesList = [
-    {
-      key: "formTemplates",
-      href: "/form-templates",
-      ...modules.formTemplates,
-    },
-    {
-      key: "boxes",
-      href: "/boxes",
-      ...modules.boxes,
-    },
-    {
-      key: "treatments",
-      href: "/treatments",
-      ...modules.treatments,
-    },
-    {
-      key: "users",
-      href: "/usuarios",
-      ...modules.users,
-    },
-    {
-      key: "vacations",
-      href: "/vacaciones",
-      label: "Vacaciones",
-      total: "Panel",
-      icon: "CalendarDays",
-    },
-    {
-      key: "liquidaciones",
-      href: "/liquidaciones",
-      label: "Liquidaciones",
-      total: "Panel",
-      icon: "Wallet",
-    },
+  // Todo lo que se configura de la sede, agrupado y con palabras para el buscador.
+  const options: Option[] = [
+    { id: "boxes", group: "Atención", title: "Boxes y salas", description: "Dónde se atiende: boxes, salas y equipos.", href: "/boxes", icon: DoorOpen, keywords: "sala consulta box recursos mapa", meta: n(modules.boxes.total, "box", "boxes") },
+    { id: "treatments", group: "Atención", title: "Tratamientos y servicios", description: "Catálogo con precios y códigos.", href: "/treatments", icon: Pill, keywords: "servicios precios fonasa prestaciones catalogo", meta: n(modules.treatments.total, "servicio", "servicios") },
+    { id: "forms", group: "Atención", title: "Fichas clínicas", description: "Plantillas de ficha para cada especialidad.", href: "/form-templates", icon: ClipboardList, keywords: "plantillas formulario anamnesis", meta: n(modules.formTemplates.total, "plantilla", "plantillas") },
+    { id: "users", group: "Equipo", title: "Usuarios y permisos", description: `${modules.users.doctors} profesionales y ${modules.users.staff} de personal.`, href: canManageUsers ? "/gestion-usuarios" : "/usuarios", icon: UserCog, keywords: "doctores profesionales secretaria roles permisos equipo", meta: n(modules.users.total, "persona", "personas") },
+    { id: "vacations", group: "Equipo", title: "Vacaciones del equipo", description: "Días permitidos y solicitudes por aprobar.", href: "/vacaciones", icon: CalendarDays, keywords: "ausencias feriados permisos dias" },
+    { id: "payouts", group: "Equipo", title: "Liquidaciones", description: "Pago mensual a cada profesional.", href: "/liquidaciones", icon: Wallet, keywords: "honorarios boletas sueldo pagos sii" },
+    { id: "patients", group: "Pacientes", title: "Pacientes", description: "Fichas e historial de la sede.", href: "/patients", icon: Users, keywords: "ficha historial clientes", meta: n(modules.patients.total, "paciente", "pacientes") },
+    { id: "portal", group: "Pacientes", title: "Portal del paciente", description: "Enlace para que tus pacientes reserven y vean sus citas.", href: "/portal-paciente", icon: HeartPulse, keywords: "portal enlace link reservas pacientes" },
+    { id: "comms", group: "Comunicación y seguridad", title: "Correos, CRM y reserva online", description: "Avisos automáticos, CRM y enlace de reserva.", href: "/configuracion?vista=comunicaciones", icon: Mail, keywords: "email correo whatsapp recordatorio confirmacion reserva crm plantillas" },
+    { id: "security", group: "Comunicación y seguridad", title: "Seguridad de acceso", description: "Equipos compartidos y bloqueo automático.", href: "/configuracion?vista=seguridad", icon: ShieldCheck, keywords: "sesiones contraseña pin bloqueo compartido" },
   ];
 
   return (
-    <div className="space-y-8">
-      {/* Header */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-        <div>
-          <p className="text-sm text-slate-500 capitalize">{today}</p>
-          <h1 className="text-2xl font-bold text-slate-900">
+    <View label="Mi clínica">
+      <PageHead
+        tag={
+          <>
+            <Building2 className="h-[15px] w-[15px]" strokeWidth={1.8} />
             Mi clínica
-            {clinic.city && <span className="ml-2 text-base font-normal text-slate-400">· {clinic.city}</span>}
-          </h1>
-          <p className="mt-1 text-sm text-slate-500">Resumen de tus módulos y configuraciones</p>
-        </div>
-        <div className="flex items-center gap-2">
-          <button
-            onClick={fetchData}
-            disabled={loading}
-            className="inline-flex items-center gap-1.5 rounded-full bg-white border border-slate-200 px-3 py-1.5 text-xs text-slate-600 shadow-sm hover:bg-slate-50 transition disabled:opacity-50"
-          >
-            <RefreshCw size={12} className={loading ? "animate-spin" : ""} />
+          </>
+        }
+        title="Configura"
+        accent={clinic.name || "tu clínica"}
+        lead={clinic.city ? `Sede ${clinic.city}. Busca lo que quieras ajustar o entra por sección.` : "Busca lo que quieras ajustar o entra por sección."}
+        actions={
+          <button type="button" onClick={fetchData} disabled={loading} className={btnClass("quiet", "sm")}>
+            <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} strokeWidth={1.8} />
             Actualizar
           </button>
-        </div>
-      </div>
+        }
+      />
 
-      {/* Module Cards Grid */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
-        {modulesList.map((module, i) => {
-          const Icon = MODULE_ICONS[module.icon] || Users;
-          const isUsers = module.key === "users";
-          const isShortcut = module.key === "vacations" || module.key === "liquidaciones";
+      <OptionFinder options={options} placeholder="Buscar: boxes, servicios, vacaciones, correos…" />
 
-          return (
-            <Link
-              key={module.key}
-              href={module.href}
-              className={`group rounded-2xl border p-6 shadow-sm transition animate-fade-in hover:shadow-md ${
-                isShortcut
-                  ? "bg-gradient-to-br from-cyan-50 to-white border-cyan-100 hover:border-[#50c9d5]"
-                  : "bg-white border-slate-100 hover:border-[#50c9d5]"
-              }`}
-              style={{ animationDelay: `${i * 60}ms` }}
-            >
-              <div className="flex flex-col gap-3">
-                <div className="flex items-center justify-between">
-                  <div
-                    className={`flex h-12 w-12 items-center justify-center rounded-lg transition ${
-                      isShortcut
-                        ? "bg-[#50c9d5]/10 group-hover:bg-[#50c9d5]"
-                        : "bg-slate-50 group-hover:bg-[#50c9d5]"
-                    }`}
-                  >
-                    <Icon className="h-6 w-6 text-[#1e737b] group-hover:text-white" />
-                  </div>
-                  <ArrowRight className="h-4 w-4 text-slate-300 group-hover:text-[#1e737b] transition" />
-                </div>
-                <div>
-                  <p className="text-sm font-semibold text-slate-900">{module.label}</p>
-                </div>
-                {isUsers ? (
-                  <div className="space-y-1">
-                    <p className="text-2xl font-bold text-slate-900">{module.total}</p>
-                    <p className="text-xs text-slate-500">{modules.users.doctors} doctores · {modules.users.staff} staff</p>
-                  </div>
-                ) : isShortcut ? (
-                  <div className="space-y-1">
-                    <p className="text-xl font-bold text-slate-900">Abrir</p>
-                    <p className="text-xs text-slate-500">Configuración y gestión</p>
-                  </div>
-                ) : (
-                  <p className="text-2xl font-bold text-slate-900">{module.total}</p>
-                )}
-              </div>
-            </Link>
-          );
-        })}
-
-        {/* Patients Card */}
-        <Link
-          href="/patients"
-          className="group rounded-2xl bg-gradient-to-br from-emerald-50 to-teal-50 border border-emerald-100 p-6 shadow-sm hover:shadow-md transition animate-fade-in hover:border-emerald-300"
-          style={{ animationDelay: `${modulesList.length * 60}ms` }}
-        >
-          <div className="flex flex-col gap-3">
-            <div className="flex items-center justify-between">
-              <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-emerald-100 group-hover:bg-emerald-200 transition">
-                <Users className="h-6 w-6 text-emerald-600" strokeWidth={2} />
-              </div>
-              <ArrowRight className="h-4 w-4 text-emerald-300 group-hover:text-emerald-600 transition" />
-            </div>
-            <div>
-              <p className="text-sm font-semibold text-slate-900">Pacientes</p>
-            </div>
-            <p className="text-2xl font-bold text-slate-900">{modules.patients.total}</p>
-          </div>
-        </Link>
-      </div>
-
-      {/* Quick Stats Row */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3 lg:grid-cols-3">
-        {/* Module Overview Card */}
-        <div className="rounded-2xl bg-white border border-slate-100 p-6 shadow-sm animate-card-in" style={{ animationDelay: "360ms" }}>
-          <div className="flex items-center justify-between mb-4">
-            <p className="text-sm font-semibold text-slate-900">Estado de módulos</p>
-            <TrendingUp size={16} className="text-slate-400" />
-          </div>
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-slate-600">Fichas Clínicas</span>
-              <span className="text-sm font-semibold text-slate-900">{modules.formTemplates.total}</span>
-            </div>
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-slate-600">Boxes</span>
-              <span className="text-sm font-semibold text-slate-900">{modules.boxes.total}</span>
-            </div>
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-slate-600">Tratamientos</span>
-              <span className="text-sm font-semibold text-slate-900">{modules.treatments.total}</span>
-            </div>
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-slate-600">Usuarios Activos</span>
-              <span className="text-sm font-semibold text-slate-900">{modules.users.total}</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Team Overview Card */}
-        <div className="rounded-2xl bg-white border border-slate-100 p-6 shadow-sm animate-card-in" style={{ animationDelay: "420ms" }}>
-          <div className="flex items-center justify-between mb-4">
-            <p className="text-sm font-semibold text-slate-900">Tu equipo</p>
-            <UserCog size={16} className="text-slate-400" />
-          </div>
-          <div className="space-y-4">
-            <div>
-              <div className="flex items-center justify-between mb-1">
-                <span className="text-sm text-slate-600">Doctores</span>
-                <span className="text-sm font-semibold text-blue-600">{modules.users.doctors}</span>
-              </div>
-              <div className="h-2 rounded-full bg-slate-100">
-                <div
-                  className="h-2 rounded-full bg-blue-400 transition-all duration-500"
-                  style={{
-                    width: `${modules.users.total > 0 ? (modules.users.doctors / modules.users.total) * 100 : 0}%`,
-                  }}
-                />
-              </div>
-            </div>
-            <div>
-              <div className="flex items-center justify-between mb-1">
-                <span className="text-sm text-slate-600">Personal</span>
-                <span className="text-sm font-semibold text-violet-600">{modules.users.staff}</span>
-              </div>
-              <div className="h-2 rounded-full bg-slate-100">
-                <div
-                  className="h-2 rounded-full bg-violet-400 transition-all duration-500"
-                  style={{
-                    width: `${modules.users.total > 0 ? (modules.users.staff / modules.users.total) * 100 : 0}%`,
-                  }}
-                />
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Top Treatments Card */}
-        <div className="rounded-2xl bg-white border border-slate-100 p-6 shadow-sm animate-card-in" style={{ animationDelay: "480ms" }}>
-          <div className="flex items-center justify-between mb-4">
-            <p className="text-sm font-semibold text-slate-900">Tratamientos activos</p>
-            <Pill size={16} className="text-slate-400" />
-          </div>
-          {topTreatments.length === 0 ? (
-            <p className="text-xs text-slate-400 py-6 text-center">Sin tratamientos configurados</p>
-          ) : (
-            <div className="space-y-2">
-              {topTreatments.slice(0, 4).map((treatment) => (
-                <div key={treatment.id} className="flex items-center justify-between text-sm">
-                  <span className="text-slate-600 truncate">{treatment.name}</span>
-                  <span className="text-slate-900 font-medium whitespace-nowrap ml-2">{formatCurrency(treatment.price)}</span>
-                </div>
-              ))}
-              {topTreatments.length > 4 && (
-                <p className="text-xs text-slate-400 pt-2">+{topTreatments.length - 4} más</p>
-              )}
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Quick Actions */}
-      <div className="rounded-2xl bg-gradient-to-r from-[#50c9d5]/5 to-emerald-50 border border-[#50c9d5]/20 p-6 animate-card-in" style={{ animationDelay: "540ms" }}>
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <p className="text-sm font-semibold text-slate-900">
-              {canManageUsers
-                ? "Gestiona usuarios entre todas las sedes"
-                : "¿Necesitas agregar más elementos a tu clínica?"}
-            </p>
-            <p className="mt-1 text-sm text-slate-600">
-              {canManageUsers
-                ? "Como super admin puedes activar usuarios, deshabilitarlos y decidir si entran al software nuevo o a Zensya."
-                : "Accede a cualquier módulo desde el menú lateral"}
-            </p>
-          </div>
-          <Link
-            href={canManageUsers ? "/gestion-usuarios" : "/usuarios"}
-            className="inline-flex items-center gap-2 rounded-lg bg-[#50c9d5] px-4 py-2 text-sm font-medium text-[#080b04] hover:bg-[#45bcc8] transition whitespace-nowrap"
-          >
-            Gestionar usuarios
-            <ArrowRight size={14} />
-          </Link>
-        </div>
-      </div>
+      {topTreatments.length ? (
+        <Card title="Servicios más usados" action={<a className={zs.link} href="/treatments">Ver catálogo →</a>}>
+          <ul className="grid gap-x-8 sm:grid-cols-2">
+            {topTreatments.slice(0, 6).map((t) => (
+              <li key={t.id} className="flex items-center justify-between gap-3 border-t border-slate-200 py-2.5 text-sm first:border-t-0 sm:[&:nth-child(2)]:border-t-0">
+                <span className="truncate text-slate-600">{t.name}</span>
+                <span className="whitespace-nowrap font-medium tabular-nums text-slate-900">{formatCurrency(t.price)}</span>
+              </li>
+            ))}
+          </ul>
+        </Card>
+      ) : null}
 
       {/* Clinic Profile */}
       {clinicProfile && (
-        <div className="rounded-2xl border border-slate-100 bg-white px-6 pb-6 pt-5 shadow-sm animate-card-in" style={{ animationDelay: "600ms" }}>
+        <div className={zs.card}>
           <div className="flex items-start justify-between">
             <div>
-              <h2 className="text-lg font-semibold text-slate-900">Perfil de la clínica</h2>
-              <p className="mt-0.5 text-xs text-slate-400">Logo, nombre, dirección y teléfono</p>
+              <h2 className="font-display text-xl font-bold tracking-[-0.3px] text-slate-900">Perfil de la clínica</h2>
+              <p className="mt-0.5 text-[13px] text-slate-500">Logo, nombre, dirección y teléfono que ven tus pacientes</p>
             </div>
             {isAdmin && !profileEditing && (
               <button
                 onClick={actions.startProfileEditing}
-                className="rounded-full border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-600 transition-colors hover:border-slate-300 hover:text-slate-800"
+                className={btnClass("quiet", "sm")}
               >
                 Editar
               </button>
@@ -362,14 +133,14 @@ export default function ClinicDashboard() {
               <div className="flex items-center gap-2">
                 <button
                   onClick={actions.cancelProfileEditing}
-                  className="rounded-full border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-600 transition-colors hover:border-slate-300 hover:text-slate-800"
+                  className={btnClass("quiet", "sm")}
                 >
                   Cancelar
                 </button>
                 <button
                   onClick={actions.saveProfile}
                   disabled={profileSaving}
-                  className="rounded-full bg-slate-900 px-3 py-1.5 text-xs font-semibold text-white transition-all hover:bg-slate-800 disabled:opacity-50"
+                  className={btnClass("primary", "sm")}
                 >
                   {profileSaving ? "Guardando..." : "Guardar"}
                 </button>
@@ -438,17 +209,17 @@ export default function ClinicDashboard() {
                 };
                 return (
                   <div key={key}>
-                    <p className="mb-1 text-[11px] font-medium uppercase tracking-wider text-slate-400">
+                    <p className={`${zs.label} mb-1.5`}>
                       {labels[key]}
                     </p>
                     {profileEditing ? (
                       <input
                         value={profileForm[key]}
                         onChange={(e) => actions.handleProfileFieldChange(key, e.target.value)}
-                        className="w-full rounded-xl border border-slate-200 bg-slate-50/40 px-3 py-2 text-sm focus:border-blue-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-100"
+                        className={zs.input}
                       />
                     ) : (
-                      <p className="text-sm text-slate-700">
+                      <p className="text-[15px] text-slate-900">
                         {clinicProfile[key] || <span className="italic text-slate-400">—</span>}
                       </p>
                     )}
@@ -468,10 +239,10 @@ export default function ClinicDashboard() {
 
       {/* Profile success toast */}
       {profileSuccess && (
-        <div className="animate-fade-in fixed bottom-6 right-6 z-50 rounded-2xl bg-emerald-500 px-4 py-3 text-sm font-medium text-white shadow-lg shadow-emerald-500/30">
+        <div className="animate-fade-in fixed bottom-6 left-1/2 z-50 -translate-x-1/2 rounded-full bg-slate-900 px-5 py-3 text-sm font-medium text-white shadow-xl">
           {profileSuccess}
         </div>
       )}
-    </div>
+    </View>
   );
 }

@@ -40,6 +40,8 @@ type NavItem = {
   icon: LucideIcon;
   group: Group;
   matchPrefixes?: string[];
+  /** Rutas que solo marcan el item si coinciden exactas. */
+  exact?: string[];
   roles?: Role[];
   permission?: UserPermission;
   doctorOnlyWithPermission?: boolean;
@@ -60,6 +62,7 @@ const NAV_ITEMS: NavItem[] = [
     icon: LayoutGrid,
     group: "dia",
     matchPrefixes: ["/dashboard"],
+    exact: ["/clinic-dashboard"],
   },
   { href: "/agenda", label: "Agenda", icon: CalendarDays, group: "dia", permission: "AGENDA" },
   {
@@ -97,11 +100,10 @@ const NAV_ITEMS: NavItem[] = [
     matchPrefixes: ["/crm", "/chat-meta", "/leads"],
   },
   {
-    href: "/clinic-dashboard",
+    href: "/clinic-dashboard/clinica",
     label: "Mi clínica",
     icon: Building2,
     group: "gestion",
-    matchPrefixes: ["/clinic-dashboard"],
   },
   {
     href: "/configuracion",
@@ -166,7 +168,7 @@ export default function Sidebar() {
     }`;
 
   const renderItem = (item: NavItem) => {
-    const active = isActive(item.matchPrefixes ?? [item.href]);
+    const active = isActive(item.matchPrefixes ?? [item.href]) || (item.exact ?? []).includes(pathname);
     return (
       <Link
         key={item.href}
@@ -181,7 +183,7 @@ export default function Sidebar() {
     );
   };
 
-  const profileActive = isActive(["/profile", "/mis-boletas", "/vacaciones"]);
+  const profileActive = isActive(["/profile", "/mis-boletas"]);
 
   return (
     <aside

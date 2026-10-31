@@ -3,6 +3,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { DeleteIconButton } from "@/presentation/common/DeleteIconButton";
+import { ScanLine, Users } from "lucide-react";
+import { PageHead, Segmented, View, btnClass, zs } from "@/presentation/ui/zs";
 import { usePatientsViewModel, formatRelativeDate } from "./PatientsViewModel";
 
 type PatientsTab = "patients" | "imaging";
@@ -739,42 +741,27 @@ export default function Patients() {
   const [selectedImagingPatientId, setSelectedImagingPatientId] = useState<string | null>(null);
 
   return (
-    <div className="mx-auto max-w-6xl space-y-6">
-      <div className="rounded-2xl border border-slate-100 bg-white p-6 shadow-sm">
-        <div className="flex flex-wrap items-end justify-between gap-4">
-          <div>
-            <p className="text-sm text-slate-500">Modulo clinico</p>
-            <h1 className="text-2xl font-semibold text-slate-900">Historial paciente</h1>
-            <p className="mt-2 text-sm text-slate-500">
-              Revisa pacientes e imagenologia desde una misma vista.
-            </p>
-          </div>
-
-          <div className="inline-flex rounded-full border border-slate-200 bg-slate-50 p-1">
-            <button
-              type="button"
-              onClick={() => setActiveTab("patients")}
-              className={`rounded-full px-4 py-2 text-sm font-medium transition ${
-                activeTab === "patients" ? "bg-slate-900 text-white" : "text-slate-600 hover:text-slate-900"
-              }`}
-            >
-              Pacientes
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setSelectedImagingPatientId(null);
-                setActiveTab("imaging");
-              }}
-              className={`rounded-full px-4 py-2 text-sm font-medium transition ${
-                activeTab === "imaging" ? "bg-slate-900 text-white" : "text-slate-600 hover:text-slate-900"
-              }`}
-            >
-              Imagenologia
-            </button>
-          </div>
-        </div>
-      </div>
+    <View label="Historial paciente" wide>
+      <PageHead
+        tag="Módulo clínico"
+        title="Historial"
+        accent="paciente"
+        lead="Pacientes e imagenología de la sede en una misma vista."
+        actions={
+          <Segmented
+            label="Vista"
+            value={activeTab}
+            onChange={(id) => {
+              if (id === "imaging") setSelectedImagingPatientId(null);
+              setActiveTab(id);
+            }}
+            items={[
+              { id: "patients", label: "Pacientes", icon: Users },
+              { id: "imaging", label: "Imagenología", icon: ScanLine },
+            ]}
+          />
+        }
+      />
 
       {activeTab === "imaging" ? (
         <ImagingSection
@@ -785,10 +772,10 @@ export default function Patients() {
         />
       ) : (
         <>
-          <div className="rounded-2xl border border-slate-100 bg-white px-6 pb-6 pt-5 shadow-sm">
+          <div className={zs.card}>
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
-                <h2 className="text-xl font-semibold tracking-tight text-slate-900">Lista de pacientes de la sede</h2>
+                <h2 className="font-display text-xl font-bold tracking-[-0.3px] text-slate-900">Pacientes de la sede</h2>
                 <div className="mt-1 flex items-center gap-2">
                   <span className="text-xs text-slate-400">{state.totalLabel}</span>
                   {state.headerHint && (
@@ -803,26 +790,23 @@ export default function Patients() {
                     value={state.query}
                     onChange={(event) => actions.handleSearchChange(event.target.value)}
                     placeholder="Buscar"
-                    className="w-48 rounded-full border border-slate-200 bg-slate-50/60 py-2 pl-9 pr-4 text-sm outline-none transition-all focus:w-64 focus:border-blue-300 focus:bg-white focus:ring-2 focus:ring-blue-100"
+                    className="h-11 w-56 rounded-full border border-slate-200 bg-white/60 py-2 pl-9 pr-4 text-sm outline-none transition-all focus:w-72 focus:border-[#50c9d5] focus:ring-[3px] focus:ring-[#50c9d5]/20"
                   />
                 </div>
               </div>
             </div>
 
             <div className="mt-4 flex items-center gap-2 border-b border-slate-100 pb-3">
-              <button
-                onClick={actions.openCreateModal}
-                className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 text-slate-500 transition-colors hover:border-slate-300 hover:bg-slate-50 hover:text-slate-700"
-                aria-label="Nuevo paciente"
-              >
+              <button onClick={actions.openCreateModal} className={btnClass("primary", "sm")}>
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
+                Nuevo paciente
               </button>
             </div>
 
             <div className="mt-0 overflow-x-auto">
               <table className="w-full text-left text-sm">
                 <thead>
-                  <tr className="border-b border-slate-100 text-[11px] uppercase tracking-wider text-slate-400">
+                  <tr className="border-b border-slate-200 text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-500">
                     <th className="px-4 py-3 font-medium">Nombre</th>
                     <th className="px-4 py-3 font-medium">RUN</th>
                     <th className="px-4 py-3 font-medium">Telefono</th>
@@ -883,11 +867,11 @@ export default function Patients() {
                       >
                         <td className="px-4 py-3">
                           <div className="flex items-center gap-3">
-                            <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-slate-100 text-xs font-semibold text-slate-500">
+                            <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#50c9d5] to-[#84d9e1] font-display text-xs font-bold text-slate-900">
                               {initials}
                             </div>
                             <div>
-                              <span className="font-medium text-slate-800">
+                              <span className="font-display font-semibold text-slate-900">
                                 {patient.firstName} {patient.lastName}{" "}
                                 {patient.secondLastName && (
                                   <span className="text-slate-400">{patient.secondLastName}</span>
@@ -902,15 +886,15 @@ export default function Patients() {
                           <span className="text-slate-400">{formatRelativeDate(patient.createdAt)}</span>
                         </td>
                         <td className="px-4 py-3 text-right">
-                          <div className="flex items-center justify-end gap-1 opacity-0 transition-opacity group-hover:opacity-100" onClick={(e) => e.stopPropagation()}>
+                          <div className="flex items-center justify-end gap-1.5" onClick={(e) => e.stopPropagation()}>
                             <button
-                              className="rounded-full border border-blue-200 px-3 py-1 text-xs font-medium text-blue-700 transition-colors hover:border-blue-300 hover:bg-blue-50"
+                              className={btnClass("ghost", "sm")}
                               onClick={() => router.push(`/patients/${patient.id}`)}
                             >
-                              Ver Perfil Completo
+                              Ver perfil completo
                             </button>
                             <button
-                              className="rounded-full border border-slate-200 px-3 py-1 text-xs font-medium text-slate-600 transition-colors hover:border-slate-300 hover:text-slate-800"
+                              className={btnClass("quiet", "sm")}
                               onClick={() => actions.openEditModal(patient)}
                             >
                               Editar
@@ -1042,6 +1026,6 @@ export default function Patients() {
           )}
         </>
       )}
-    </div>
+    </View>
   );
 }

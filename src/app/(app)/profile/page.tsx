@@ -1,5 +1,10 @@
-import { redirect } from "next/navigation";
+import { Suspense } from "react";
+import MyProfile from "@/presentation/profile/MyProfile";
 
 export default function ProfilePage() {
-  redirect("/configuracion");
+  return (
+    <Suspense fallback={null}>
+      <MyProfile />
+    </Suspense>
+  );
 }

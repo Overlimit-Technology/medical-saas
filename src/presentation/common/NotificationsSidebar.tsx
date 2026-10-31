@@ -55,10 +55,10 @@ function SidebarHeader({
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <div className="flex items-center gap-2">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[linear-gradient(135deg,#dff8f4,#effcf8)] text-[#129f97]">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-[#50c9d5]/30 bg-gradient-to-br from-[#50c9d5]/20 to-[#50c9d5]/[0.06] text-[#1e737b]">
               <Bell className="h-4 w-4" />
             </div>
-            <h2 className="text-[15px] font-semibold tracking-tight text-slate-900">
+            <h2 className="font-display text-[15px] font-bold tracking-[-0.3px] text-slate-900">
               Notificaciones
             </h2>
           </div>
@@ -69,7 +69,7 @@ function SidebarHeader({
 
         <div className="flex shrink-0 items-center gap-1">
           {unreadCount > 0 ? (
-            <span className="inline-flex min-w-6 items-center justify-center rounded-full bg-[#17c2b2]/10 px-1.5 py-0.5 text-[10px] font-semibold text-[#129f97]">
+            <span className="inline-flex min-w-6 items-center justify-center rounded-full bg-[#e8a020]/[0.14] px-1.5 py-0.5 text-[10px] font-semibold text-[#8a5a0b]">
               {unreadCount}
             </span>
           ) : null}
@@ -127,7 +127,7 @@ function SidebarSection({
   return (
     <section className="px-3 pb-1 pt-3">
       <div className="mb-2 px-1">
-        <h3 className="text-[11px] font-medium text-slate-500">{title}</h3>
+        <h3 className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-500">{title}</h3>
       </div>
 
       {items.length > 0 ? (
@@ -197,7 +197,7 @@ function SidebarContent({
         onCollapse={onCollapse}
       />
 
-      <div className="min-h-0 flex-1 overflow-y-auto bg-[linear-gradient(180deg,#f5f9fc_0%,#f8fafc_20%,#f3f7fb_100%)] pb-2">
+      <div className="min-h-0 flex-1 overflow-y-auto bg-[#f4f7f9] pb-2">
         {loading ? (
           <LoadingState />
         ) : !hasVisibleAlerts && error ? (

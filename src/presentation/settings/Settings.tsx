@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   UserCircle,
   Building2,
@@ -11,315 +12,152 @@ import {
   FileText,
   Coins,
   ShieldCheck,
+  DoorOpen,
+  Pill,
+  UserCog,
+  Wallet,
+  HeartPulse,
+  Receipt,
+  Bell,
 } from "lucide-react";
 import { ProfileRepositoryHttp } from "@/data/profile/ProfileRepository";
 import { GetMyProfileUseCase } from "@/domain/profile/usecases/ProfileUseCases";
-import ProfileTab from "./tabs/ProfileTab";
 import CrmTab from "./tabs/CrmTab";
 import BookingTab from "./tabs/BookingTab";
 import EmailTab from "./tabs/EmailTab";
 import SharedSessionsTab from "./tabs/SharedSessionsTab";
-import dynamic from "next/dynamic";
+import OptionFinder, { type Option } from "@/presentation/ui/OptionFinder";
+import { Loading, PageHead, Segmented, View } from "@/presentation/ui/zs";
 
-const VacationSettings = dynamic(
-  () => import("@/presentation/vacations/VacationSettings"),
-  { ssr: false },
-);
-const MyLiquidacionesTab = dynamic(
-  () => import("./tabs/MyLiquidacionesTab"),
-  { ssr: false },
-);
-
-type AdminView = "landing" | "perfil" | "comunicaciones" | "seguridad";
+type AdminView = "landing" | "comunicaciones" | "seguridad";
 type ComunicacionesTab = "contactabilidad" | "crm" | "reserva";
-type DoctorTab = "perfil" | "vacaciones" | "fichas" | "liquidaciones";
 
 export default function Settings() {
-  const getMyProfileUseCase = useMemo(() => {
-    return new GetMyProfileUseCase(new ProfileRepositoryHttp());
-  }, []);
-
+  const getMyProfileUseCase = useMemo(() => new GetMyProfileUseCase(new ProfileRepositoryHttp()), []);
   const [role, setRole] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const load = async () => {
-      try {
-        const profile = await getMyProfileUseCase.execute();
-        setRole(profile.role);
-      } catch {
-        setRole(null);
-      } finally {
-        setLoading(false);
-      }
-    };
-    void load();
+    getMyProfileUseCase
+      .execute()
+      .then((profile) => setRole(profile.role))
+      .catch(() => setRole(null))
+      .finally(() => setLoading(false));
   }, [getMyProfileUseCase]);
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center p-12">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-[#50c9d5]/20 border-t-[#50c9d5]" />
-      </div>
-    );
-  }
-
-  if (role === "ADMIN") {
-    return <AdminSettings />;
-  }
-
-  return <StaffSettings />;
+  if (loading) return <Loading />;
+  if (role === "ADMIN") return <AdminSettings />;
+  return <StaffSettings role={role} />;
 }
 
+// Lo personal vive en Mi perfil; aca se busca y se entra a cada ajuste.
+const PERSONAL: Option[] = [
+  { id: "me", group: "Mi cuenta", title: "Mis datos y foto", description: "Nombre, correo, teléfono y contraseña.", href: "/profile", icon: UserCircle, keywords: "perfil nombre foto contraseña clave correo" },
+  { id: "my-vacations", group: "Mi cuenta", title: "Mis vacaciones", description: "Pide días y revisa cuántos te quedan.", href: "/profile?tab=vacaciones", icon: CalendarDays, keywords: "vacaciones dias libres ausencia permiso" },
+];
+
 // =============================================================================
-// ADMIN VIEW — 3 module cards landing + sub-views
+// ADMIN
 // =============================================================================
 
 function AdminSettings() {
-  const [view, setView] = useState<AdminView>("landing");
-  const [comTab, setComTab] = useState<ComunicacionesTab>("contactabilidad");
+  const router = useRouter();
+  const params = useSearchParams();
+  const requested = params.get("vista");
+  const view: AdminView = requested === "comunicaciones" || requested === "seguridad" ? requested : "landing";
+  const [comTab, setComTab] = useState<ComunicacionesTab>(
+    (["contactabilidad", "crm", "reserva"] as const).find((t) => t === params.get("tab")) ?? "contactabilidad"
+  );
 
-  if (view === "perfil") {
-    return (
-      <div className="space-y-6">
-        <SubViewHeader title="Mi Perfil" onBack={() => setView("landing")} />
-        <ProfileTab />
-      </div>
-    );
-  }
+  const back = () => router.push("/configuracion");
 
   if (view === "seguridad") {
     return (
-      <div className="space-y-6">
-        <SubViewHeader title="Seguridad de acceso" onBack={() => setView("landing")} />
+      <View label="Seguridad de acceso">
+        <PageHead back={<BackButton onClick={back} />} tag="Configuración" title="Seguridad" accent="de acceso" lead="Varias personas en un mismo computador, con bloqueo automático." />
         <SharedSessionsTab />
-      </div>
+      </View>
     );
   }
 
   if (view === "comunicaciones") {
     return (
-      <div className="space-y-6">
-        <SubViewHeader title="Contactabilidad & CRM" onBack={() => setView("landing")} />
-
-        <div className="flex gap-1 rounded-2xl border border-slate-200 bg-slate-50 p-1">
-          <TabButton
-            active={comTab === "contactabilidad"}
-            onClick={() => setComTab("contactabilidad")}
-            icon={Mail}
-            label="Contactabilidad"
-          />
-          <TabButton
-            active={comTab === "crm"}
-            onClick={() => setComTab("crm")}
-            icon={KanbanSquare}
-            label="CRM"
-          />
-          <TabButton
-            active={comTab === "reserva"}
-            onClick={() => setComTab("reserva")}
-            icon={CalendarDays}
-            label="Reserva online"
-          />
-        </div>
-
+      <View label="Correos, CRM y reserva online">
+        <PageHead back={<BackButton onClick={back} />} tag="Configuración" title="Correos, CRM" accent="y reserva online" lead="Qué se envía solo, cuándo y a quién." />
+        <Segmented
+          label="Secciones"
+          value={comTab}
+          onChange={setComTab}
+          items={[
+            { id: "contactabilidad", label: "Avisos automáticos", icon: Mail },
+            { id: "crm", label: "CRM", icon: KanbanSquare },
+            { id: "reserva", label: "Reserva online", icon: CalendarDays },
+          ]}
+        />
         {comTab === "contactabilidad" && <EmailTab />}
         {comTab === "crm" && <CrmTab />}
         {comTab === "reserva" && <BookingTab />}
-      </div>
+      </View>
     );
   }
 
-  // Landing
-  return (
-    <div className="space-y-6">
-      <div>
-        <p className="text-sm text-slate-500">Ajustes generales</p>
-        <h1 className="text-2xl font-semibold text-slate-900">Configuracion</h1>
-      </div>
+  const options: Option[] = [
+    ...PERSONAL,
+    { id: "clinic", group: "Clínica", title: "Perfil de la clínica", description: "Logo, nombre, dirección y teléfono.", href: "/clinic-dashboard/clinica", icon: Building2, keywords: "logo nombre direccion telefono sede" },
+    { id: "boxes", group: "Clínica", title: "Boxes y salas", description: "Dónde se atiende.", href: "/boxes", icon: DoorOpen, keywords: "sala box consulta recursos mapa" },
+    { id: "treatments", group: "Clínica", title: "Tratamientos y servicios", description: "Catálogo con precios y códigos.", href: "/treatments", icon: Pill, keywords: "servicios precios fonasa prestaciones" },
+    { id: "forms", group: "Clínica", title: "Fichas clínicas", description: "Plantillas por especialidad.", href: "/form-templates", icon: FileText, keywords: "plantillas formulario anamnesis" },
+    { id: "users", group: "Equipo", title: "Usuarios y permisos", description: "Profesionales, secretarias y roles.", href: "/usuarios", icon: UserCog, keywords: "doctores equipo roles permisos" },
+    { id: "team-vacations", group: "Equipo", title: "Vacaciones del equipo", description: "Límites y solicitudes por aprobar.", href: "/vacaciones", icon: CalendarDays, keywords: "ausencias aprobar dias" },
+    { id: "payouts", group: "Equipo", title: "Liquidaciones", description: "Pago mensual a cada profesional.", href: "/liquidaciones", icon: Wallet, keywords: "honorarios boletas sii pagos" },
+    { id: "emails", group: "Comunicación", title: "Avisos automáticos", description: "Confirmaciones, recordatorios y bienvenidas.", href: "/configuracion?vista=comunicaciones", icon: Mail, keywords: "correo email recordatorio confirmacion whatsapp plantilla" },
+    { id: "crm", group: "Comunicación", title: "CRM", description: "Canales, etapas y asistente.", href: "/configuracion?vista=comunicaciones&tab=crm", icon: KanbanSquare, keywords: "leads whatsapp instagram messenger agente ia" },
+    { id: "booking", group: "Comunicación", title: "Reserva online", description: "Enlace público para reservar horas.", href: "/configuracion?vista=comunicaciones&tab=reserva", icon: CalendarDays, keywords: "link reserva agendamiento online" },
+    { id: "portal", group: "Comunicación", title: "Portal del paciente", description: "Enlace de tus pacientes.", href: "/portal-paciente", icon: HeartPulse, keywords: "portal pacientes enlace" },
+    { id: "security", group: "Seguridad", title: "Seguridad de acceso", description: "Equipos compartidos y bloqueo automático.", href: "/configuracion?vista=seguridad", icon: ShieldCheck, keywords: "sesiones pin bloqueo compartido contraseña" },
+  ];
 
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-        <ModuleCard
-          icon={UserCircle}
-          title="Mi Perfil"
-          description="Datos personales, foto y vacaciones"
-          color="bg-[#50c9d5]"
-          onClick={() => setView("perfil")}
-        />
-        <ModuleCard
-          icon={Building2}
-          title="Clinica"
-          description="Datos institucionales, boxes y equipo"
-          color="bg-indigo-500"
-          onClick={() => window.location.assign("/clinic-dashboard")}
-        />
-        <ModuleCard
-          icon={Mail}
-          title="Contactabilidad & CRM"
-          description="Emails, WhatsApp, redes y agentes IA"
-          color="bg-violet-500"
-          onClick={() => setView("comunicaciones")}
-        />
-        <ModuleCard
-          icon={ShieldCheck}
-          title="Seguridad de acceso"
-          description="Sesiones multiples en equipos compartidos"
-          color="bg-amber-500"
-          onClick={() => setView("seguridad")}
-        />
-      </div>
-    </div>
+  return (
+    <View label="Configuración">
+      <PageHead tag="Configuración" title="¿Qué quieres" accent="ajustar hoy?" lead="Escribe lo que buscas o entra por sección." />
+      <OptionFinder options={options} placeholder="Buscar: correo, boxes, permisos, vacaciones…" />
+    </View>
   );
 }
 
 // =============================================================================
-// DOCTOR / SECRETARY VIEW — "Mi Cuenta" with tabs
+// PROFESIONAL Y SECRETARIA
 // =============================================================================
 
-const DOCTOR_TABS: { id: DoctorTab; label: string; icon: typeof UserCircle }[] = [
-  { id: "perfil", label: "Perfil", icon: UserCircle },
-  { id: "vacaciones", label: "Vacaciones", icon: CalendarDays },
-  { id: "fichas", label: "Fichas clinicas", icon: FileText },
-  { id: "liquidaciones", label: "Liquidaciones", icon: Coins },
-];
-
-function StaffSettings() {
-  const [tab, setTab] = useState<DoctorTab>("perfil");
+function StaffSettings({ role }: { role: string | null }) {
+  const options: Option[] = [
+    ...PERSONAL,
+    ...(role === "DOCTOR"
+      ? [{ id: "boleta", group: "Mi cuenta", title: "Mi boleta de honorarios", description: "Datos para emitir tu boleta del mes.", href: "/profile?tab=boleta", icon: Receipt, keywords: "boleta sii honorarios" }]
+      : []),
+    { id: "my-payouts", group: "Mi cuenta", title: "Mis liquidaciones", description: "Lo que te corresponde cada mes.", href: "/profile?tab=liquidaciones", icon: Coins, keywords: "pagos sueldo liquidacion" },
+    { id: "forms", group: "Trabajo clínico", title: "Fichas clínicas", description: "Plantillas que usas en tus consultas.", href: "/form-templates", icon: FileText, keywords: "plantillas formulario anamnesis" },
+    { id: "notifications", group: "Trabajo clínico", title: "Notificaciones", description: "Avisos de citas, llegadas y mensajes.", href: "/notifications", icon: Bell, keywords: "avisos alertas" },
+  ];
 
   return (
-    <div className="space-y-6">
-      <div>
-        <p className="text-sm text-slate-500">Configuracion personal</p>
-        <h1 className="text-2xl font-semibold text-slate-900">Mi Cuenta</h1>
-      </div>
-
-      <div className="flex gap-1 rounded-2xl border border-slate-200 bg-slate-50 p-1">
-        {DOCTOR_TABS.map((t) => (
-          <TabButton
-            key={t.id}
-            active={tab === t.id}
-            onClick={() => setTab(t.id)}
-            icon={t.icon}
-            label={t.label}
-          />
-        ))}
-      </div>
-
-      {tab === "perfil" && <ProfileTab />}
-      {tab === "vacaciones" && <VacationSettings />}
-      {tab === "fichas" && <FichasClinicasTab />}
-      {tab === "liquidaciones" && <MyLiquidacionesTab />}
-    </div>
+    <View label="Configuración">
+      <PageHead tag="Configuración" title="Tus" accent="ajustes" lead="Lo personal está en Mi perfil; aquí lo encuentras rápido." />
+      <OptionFinder options={options} />
+    </View>
   );
 }
 
-// =============================================================================
-// Fichas Clinicas — redirect to form-templates
-// =============================================================================
-
-function FichasClinicasTab() {
-  return (
-    <div className="space-y-4">
-      <section className="rounded-[28px] border border-slate-200 bg-white p-6 shadow-sm">
-        <div className="flex items-center gap-4">
-          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-amber-50">
-            <FileText className="h-6 w-6 text-amber-600" />
-          </div>
-          <div className="flex-1">
-            <h3 className="text-base font-semibold text-slate-900">Fichas clinicas</h3>
-            <p className="mt-0.5 text-sm text-slate-500">
-              Gestiona las plantillas de fichas clinicas disponibles para tus consultas
-            </p>
-          </div>
-          <a
-            href="/form-templates"
-            className="rounded-2xl bg-[#50c9d5] px-5 py-3 text-sm font-medium text-[#080b04] transition-colors hover:bg-[#45bcc8]"
-          >
-            Ir a fichas
-          </a>
-        </div>
-      </section>
-    </div>
-  );
-}
-
-// =============================================================================
-// Shared components
-// =============================================================================
-
-function ModuleCard({
-  icon: Icon,
-  title,
-  description,
-  color,
-  onClick,
-}: {
-  icon: typeof UserCircle;
-  title: string;
-  description: string;
-  color: string;
-  onClick: () => void;
-}) {
+function BackButton({ onClick }: { onClick: () => void }) {
   return (
     <button
       type="button"
       onClick={onClick}
-      className="group flex flex-col items-center gap-4 rounded-[28px] border border-slate-200 bg-white p-8 shadow-sm transition-all hover:border-slate-300 hover:shadow-md"
+      aria-label="Volver a Configuración"
+      className="mt-1 grid h-10 w-10 shrink-0 place-items-center rounded-full border border-slate-200 bg-white text-slate-600 transition hover:border-[#50c9d5]"
     >
-      <div
-        className={`flex h-16 w-16 items-center justify-center rounded-2xl ${color} text-white shadow-lg transition-transform group-hover:scale-105`}
-      >
-        <Icon className="h-8 w-8" strokeWidth={1.8} />
-      </div>
-      <div className="text-center">
-        <h3 className="text-lg font-semibold text-slate-900">{title}</h3>
-        <p className="mt-1 text-sm text-slate-500">{description}</p>
-      </div>
+      <ChevronLeft className="h-5 w-5" strokeWidth={1.8} />
     </button>
   );
 }
 
-function SubViewHeader({ title, onBack }: { title: string; onBack: () => void }) {
-  return (
-    <div className="flex items-center gap-3">
-      <button
-        type="button"
-        onClick={onBack}
-        className="flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 text-slate-500 transition-colors hover:bg-slate-50"
-      >
-        <ChevronLeft className="h-5 w-5" />
-      </button>
-      <div>
-        <p className="text-sm text-slate-500">Configuracion</p>
-        <h1 className="text-2xl font-semibold text-slate-900">{title}</h1>
-      </div>
-    </div>
-  );
-}
-
-function TabButton({
-  active,
-  onClick,
-  icon: Icon,
-  label,
-}: {
-  active: boolean;
-  onClick: () => void;
-  icon: typeof UserCircle;
-  label: string;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={`flex flex-1 items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-medium transition-all ${
-        active
-          ? "bg-white text-[#1e737b] shadow-sm"
-          : "text-slate-500 hover:text-slate-700"
-      }`}
-    >
-      <Icon className="h-4 w-4" strokeWidth={2} />
-      {label}
-    </button>
-  );
-}

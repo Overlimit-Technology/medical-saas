@@ -1,10 +1,7 @@
-import { Suspense } from "react";
-import MisBoletas from "@/presentation/liquidaciones/MisBoletas";
+import { redirect } from "next/navigation";
 
-export default function MisBoletasPage() {
-  return (
-    <Suspense fallback={null}>
-      <MisBoletas />
-    </Suspense>
-  );
+// Mi boleta es un apartado personal: ahora vive en Mi perfil. Se conserva ?month= de los correos.
+export default function MisBoletasPage({ searchParams }: { searchParams: { month?: string } }) {
+  const month = searchParams.month ? `&month=${encodeURIComponent(searchParams.month)}` : "";
+  redirect(`/profile?tab=boleta${month}`);
 }
