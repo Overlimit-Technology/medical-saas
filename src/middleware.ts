@@ -123,6 +123,7 @@ const PROTECTED_PREFIXES = [
   "/clinical-visits",
   "/consultation",
   "/form-templates",
+  "/portal-paciente",
 ];
 
 function getPermissions(value: unknown) {
@@ -477,5 +478,6 @@ export const config = {
     "/clinical-visits/:path*",
     "/consultation/:path*",
     "/form-templates/:path*",
+    "/portal-paciente/:path*",
   ],
 };
