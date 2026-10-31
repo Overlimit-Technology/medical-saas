@@ -1,5 +1,6 @@
 "use client";
 
+import { Tag } from "@/presentation/ui/zs";
 import { useMemo, useState } from "react";
 
 import {
@@ -384,10 +385,12 @@ export default function SecretaryDashboard() {
     <div className="space-y-8">
       {/* Header */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-        <div>
-          <p className="text-sm text-slate-500 capitalize">{today}</p>
-          <h1 className="text-2xl font-bold text-slate-900">Recepción</h1>
-          <p className="mt-1 text-xs text-slate-400">
+        <div className="flex min-w-0 flex-col gap-3">
+          <Tag>{today.charAt(0).toUpperCase() + today.slice(1)}</Tag>
+          <h1 className="font-display text-[40px] font-bold leading-[1.12] tracking-[-1.5px] text-slate-900 max-sm:text-[30px] max-sm:tracking-[-1px]">
+            Recepción <span className="text-[#50c9d5]">de hoy</span>
+          </h1>
+          <p className="font-display text-[17px] font-medium leading-relaxed text-slate-600">
             {clinic.name}
             {clinic.city ? ` · ${clinic.city}` : ""}
           </p>

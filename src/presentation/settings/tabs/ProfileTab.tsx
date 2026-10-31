@@ -63,7 +63,7 @@ export default function ProfileTab() {
                 <input
                   value={form.firstName}
                   onChange={(event) => setForm({ ...form, firstName: event.target.value })}
-                  className="rounded-2xl border border-slate-200 px-4 py-3 text-sm text-slate-900 outline-none focus:border-slate-400"
+                  className="w-full min-w-0 rounded-2xl border border-slate-200 px-4 py-3 text-sm text-slate-900 outline-none focus:border-[#50c9d5]"
                 />
               </label>
               <label className="grid gap-2 text-sm text-slate-600">
@@ -71,7 +71,7 @@ export default function ProfileTab() {
                 <input
                   value={form.lastName}
                   onChange={(event) => setForm({ ...form, lastName: event.target.value })}
-                  className="rounded-2xl border border-slate-200 px-4 py-3 text-sm text-slate-900 outline-none focus:border-slate-400"
+                  className="w-full min-w-0 rounded-2xl border border-slate-200 px-4 py-3 text-sm text-slate-900 outline-none focus:border-[#50c9d5]"
                 />
               </label>
             </div>
@@ -81,7 +81,7 @@ export default function ProfileTab() {
               <input
                 value={form.email}
                 disabled
-                className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-500"
+                className="w-full min-w-0 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-500"
               />
             </label>
 
@@ -91,7 +91,7 @@ export default function ProfileTab() {
                 <input
                   value={form.phone}
                   onChange={(event) => setForm({ ...form, phone: event.target.value })}
-                  className="rounded-2xl border border-slate-200 px-4 py-3 text-sm text-slate-900 outline-none focus:border-slate-400"
+                  className="w-full min-w-0 rounded-2xl border border-slate-200 px-4 py-3 text-sm text-slate-900 outline-none focus:border-[#50c9d5]"
                 />
               </label>
               <label className="grid gap-2 text-sm text-slate-600">
@@ -99,7 +99,7 @@ export default function ProfileTab() {
                 <input
                   value={form.role}
                   disabled
-                  className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-500"
+                  className="w-full min-w-0 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-500"
                 />
               </label>
             </div>
@@ -110,7 +110,7 @@ export default function ProfileTab() {
                 <select
                   value={form.teamCategoryId}
                   onChange={(event) => setForm({ ...form, teamCategoryId: event.target.value })}
-                  className="rounded-2xl border border-slate-200 px-4 py-3 text-sm text-slate-900 outline-none focus:border-slate-400"
+                  className="w-full min-w-0 rounded-2xl border border-slate-200 px-4 py-3 text-sm text-slate-900 outline-none focus:border-[#50c9d5]"
                 >
                   <option value="">Sin equipo asignado</option>
                   {teams.map((t) => (

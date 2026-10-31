@@ -12,7 +12,7 @@ export class GetTreatmentsUseCase {
 export class SaveTreatmentUseCase {
   constructor(private readonly repo: TreatmentsRepository) {}
 
-  async execute(input: { id?: string; name: string; price: number }): Promise<void> {
+  async execute(input: { id?: string; name: string; price: number; fonasaCode?: string | null }): Promise<void> {
     await this.repo.saveTreatment(input);
   }
 }

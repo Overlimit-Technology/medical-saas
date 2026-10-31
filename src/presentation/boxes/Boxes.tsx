@@ -1,10 +1,15 @@
 "use client";
 
+import { useState } from "react";
+import { List, Map as MapIcon } from "lucide-react";
 import { useBoxesViewModel } from "@/presentation/boxes/BoxesViewModel";
+import ClinicMapEditor from "@/presentation/boxes/ClinicMapEditor";
+import { PageHead, Segmented, View, zs } from "@/presentation/ui/zs";
 import { DeleteIconButton } from "@/presentation/common/DeleteIconButton";
 
 export default function Boxes() {
   const { state, actions } = useBoxesViewModel();
+  const [view, setView] = useState<"lista" | "mapa">("lista");
 
   const {
     filteredItems,
@@ -60,13 +65,33 @@ export default function Boxes() {
   }
 
   return (
-    <div className="mx-auto max-w-6xl">
+    <View label="Boxes" wide>
+      <PageHead
+        tag="Configuración"
+        title="Boxes"
+        accent="y mapa de la clínica"
+        lead="Dónde se atiende en tu sede. Dibuja el plano para que todo el equipo se ubique."
+        actions={
+          <Segmented
+            label="Vista"
+            value={view}
+            onChange={setView}
+            items={[
+              { id: "lista", label: "Lista", icon: List },
+              { id: "mapa", label: "Mapa", icon: MapIcon },
+            ]}
+          />
+        }
+      />
+
+      {view === "mapa" ? <ClinicMapEditor canEdit={canUseBoxes} /> : (
+      <>
       {/* -- Panel principal -- */}
-      <div className="rounded-2xl border border-slate-100 bg-white px-6 pb-6 pt-5 shadow-sm">
+      <div className={zs.card}>
         {/* Encabezado */}
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <h1 className="text-xl font-semibold tracking-tight text-slate-900">Boxes</h1>
+            <h2 className="font-display text-xl font-bold tracking-[-0.3px] text-slate-900">Tus boxes</h2>
             <div className="mt-1 flex items-center gap-2">
               <span className="text-xs text-slate-400">{totalLabel}</span>
               {headerHint && (
@@ -253,6 +278,8 @@ export default function Boxes() {
           </div>
         </div>
       )}
-    </div>
+      </>
+      )}
+    </View>
   );
 }

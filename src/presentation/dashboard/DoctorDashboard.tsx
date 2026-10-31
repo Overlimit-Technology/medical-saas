@@ -1,5 +1,6 @@
 "use client";
 
+import { Tag } from "@/presentation/ui/zs";
 import { useDoctorDashboardViewModel } from "./DoctorDashboardViewModel";
 import {
   STATUS_LABELS,
@@ -76,13 +77,13 @@ export default function DoctorDashboard() {
     <div className="space-y-8">
       {/* Header */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-        <div>
-          <p className="text-sm text-slate-500 capitalize">{today}</p>
-          <h1 className="text-2xl font-bold text-slate-900">
-            Hola, {doctorName}
+        <div className="flex min-w-0 flex-col gap-3">
+          <Tag>{today.charAt(0).toUpperCase() + today.slice(1)}</Tag>
+          <h1 className="font-display text-[40px] font-bold leading-[1.12] tracking-[-1.5px] text-slate-900 max-sm:text-[30px] max-sm:tracking-[-1px]">
+            Hola, <span className="text-[#50c9d5]">{doctorName}</span>
           </h1>
-          {specialty && <p className="text-sm text-slate-400">{specialty}</p>}
-          <p className="text-xs text-slate-400 mt-1">
+          <p className="font-display text-[17px] font-medium leading-relaxed text-slate-600">
+            {specialty ? `${specialty} · ` : ""}
             {clinic.name}
             {clinic.city && <> · {clinic.city}</>}
           </p>

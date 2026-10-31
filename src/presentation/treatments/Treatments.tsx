@@ -1,179 +1,155 @@
 "use client";
 
+import { Plus, Search, Pill } from "lucide-react";
 import { DeleteIconButton } from "@/presentation/common/DeleteIconButton";
+import { FONASA_CODES, fonasaLabel } from "@/lib/fonasa";
+import { Card, EmptyState, IconBox, Loading, Notice, PageHead, View, btnClass, zs } from "@/presentation/ui/zs";
 import { useTreatmentsViewModel, formatPrice } from "./TreatmentsViewModel";
+
+const FONASA_GROUPS = Array.from(new Set(FONASA_CODES.map((c) => c.group)));
 
 export default function Treatments() {
   const { state, actions } = useTreatmentsViewModel();
 
-  if (state.roleLoading) {
-    return (
-      <div className="mx-auto max-w-6xl">
-        <div className="animate-pulse space-y-4">
-          <div className="h-8 w-48 rounded-lg bg-slate-100" />
-          <div className="h-64 rounded-2xl bg-slate-100" />
-        </div>
-      </div>
-    );
-  }
+  if (state.roleLoading) return <Loading label="Cargando servicios…" />;
 
   if (!state.hasAccess) {
     return (
-      <div className="mx-auto max-w-6xl">
-        <div className="rounded-2xl border border-amber-200 bg-amber-50 p-6 text-sm text-amber-800 shadow-sm">
-          No tienes acceso a esta sección. Redirigiendo...
-        </div>
-      </div>
+      <View label="Servicios">
+        <Notice tone="err">No tienes acceso a esta sección. Te estamos llevando a tu inicio…</Notice>
+      </View>
     );
   }
 
+  const withCode = state.filteredItems.filter((i) => i.fonasaCode).length;
+
   return (
-    <div className="mx-auto max-w-6xl">
-      {/* ── Panel principal ── */}
-      <div className="rounded-2xl border border-slate-100 bg-white px-6 pb-6 pt-5 shadow-sm">
-        {/* Encabezado */}
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div>
-            <h1 className="text-xl font-semibold tracking-tight text-slate-900">Tratamientos</h1>
-            <div className="mt-1 flex items-center gap-2">
-              <span className="text-xs text-slate-400">{state.totalLabel}</span>
-              {state.headerHint && (
-                <span className="text-xs text-slate-400">&middot; {state.headerHint}</span>
-              )}
-            </div>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="relative">
-              <svg className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-300" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></svg>
-              <input
-                value={state.query}
-                onChange={(e) => actions.setQuery(e.target.value)}
-                placeholder="Buscar"
-                className="w-48 rounded-full border border-slate-200 bg-slate-50/60 py-2 pl-9 pr-4 text-sm outline-none transition-all focus:w-64 focus:border-blue-300 focus:bg-white focus:ring-2 focus:ring-blue-100"
-              />
-            </div>
-          </div>
-        </div>
-
-        {/* Toolbar */}
-        <div className="mt-4 flex items-center gap-2 border-b border-slate-100 pb-3">
-          <button
-            onClick={actions.openCreateModal}
-            className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 text-slate-500 transition-colors hover:border-slate-300 hover:bg-slate-50 hover:text-slate-700"
-            aria-label="Nuevo tratamiento"
-          >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
+    <View label="Servicios" wide>
+      <PageHead
+        tag="Configuración"
+        title="Servicios"
+        accent="y códigos Fonasa"
+        lead="Lo que ofrece tu clínica, con su precio y su código de venta Fonasa."
+        actions={
+          <button type="button" onClick={actions.openCreateModal} className={btnClass("primary", "sm")}>
+            <Plus className="h-4 w-4" strokeWidth={2} />
+            Nuevo servicio
           </button>
-        </div>
+        }
+      />
 
-        {/* Tabla */}
-        <div className="mt-0 overflow-x-auto">
-          <table className="w-full text-left text-sm">
-            <thead>
-              <tr className="border-b border-slate-100 text-[11px] uppercase tracking-wider text-slate-400">
-                <th className="px-4 py-3 font-medium">Nombre</th>
-                <th className="px-4 py-3 font-medium">Precio</th>
-                <th className="px-4 py-3 font-medium" />
-              </tr>
-            </thead>
-            <tbody>
-              {state.loading && (
-                <tr>
-                  <td className="px-4 py-8 text-center text-slate-400" colSpan={3}>
-                    Cargando tratamientos...
-                  </td>
+      <Card
+        title={
+          <>
+            Catálogo <span className="text-[13px] font-normal text-slate-500">{state.totalLabel} · {withCode} con código Fonasa</span>
+          </>
+        }
+        action={
+          <label className="relative block">
+            <span className="sr-only">Buscar</span>
+            <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" strokeWidth={1.8} />
+            <input
+              value={state.query}
+              onChange={(e) => actions.setQuery(e.target.value)}
+              placeholder="Buscar por nombre o código"
+              className="h-11 w-64 rounded-full border border-slate-200 bg-white/60 pl-10 pr-4 text-sm outline-none transition focus:border-[#50c9d5] focus:ring-[3px] focus:ring-[#50c9d5]/20"
+            />
+          </label>
+        }
+      >
+        {state.loading ? (
+          <Loading label="Cargando servicios…" />
+        ) : state.filteredItems.length === 0 ? (
+          <EmptyState
+            title={state.query.trim() ? "No encontramos servicios con esa búsqueda" : "Aún no tienes servicios"}
+            action={
+              state.query.trim() ? undefined : (
+                <button type="button" onClick={actions.openCreateModal} className={btnClass("primary", "sm")}>
+                  Agregar el primero
+                </button>
+              )
+            }
+          >
+            {state.query.trim() ? "Prueba con otro nombre o con el código de 7 números." : "Agrega tus servicios con su precio y código Fonasa."}
+          </EmptyState>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-sm">
+              <thead>
+                <tr className="border-b border-slate-200 text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-500">
+                  <th className="px-3 py-3">Servicio</th>
+                  <th className="px-3 py-3">Código Fonasa</th>
+                  <th className="px-3 py-3">Precio</th>
+                  <th className="px-3 py-3" />
                 </tr>
-              )}
-              {!state.loading && state.filteredItems.length === 0 && !state.query.trim() && (
-                <tr>
-                  <td className="px-4 py-8 text-center text-slate-400" colSpan={3}>
-                    No hay tratamientos registrados.
-                  </td>
-                </tr>
-              )}
-              {!state.loading && state.filteredItems.length === 0 && state.query.trim() && (
-                <tr>
-                  <td className="px-4 py-8 text-center text-slate-400" colSpan={3}>
-                    No se encontraron tratamientos con ese criterio.
-                  </td>
-                </tr>
-              )}
-              {state.filteredItems.map((item, idx) => {
-                const initial = item.name.charAt(0).toUpperCase();
-                return (
+              </thead>
+              <tbody>
+                {state.filteredItems.map((item, idx) => (
                   <tr
                     key={item.id}
                     style={{ animationDelay: `${idx * 25}ms` }}
-                    className="animate-card-in group cursor-pointer border-b border-slate-50 transition-colors last:border-b-0 hover:bg-slate-50/70"
+                    className="animate-card-in cursor-pointer border-b border-slate-200 transition-colors last:border-b-0 hover:bg-[#50c9d5]/[0.05]"
                     onClick={() => actions.openEditModal(item)}
                   >
-                    <td className="px-4 py-3">
+                    <td className="px-3 py-3">
                       <div className="flex items-center gap-3">
-                        <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-indigo-50 text-xs font-semibold text-indigo-500">
-                          {initial}
-                        </div>
-                        <span className="font-medium text-slate-800">{item.name}</span>
+                        <IconBox icon={Pill} size={36} />
+                        <span className="font-display font-semibold text-slate-900">{item.name}</span>
                       </div>
                     </td>
-                    <td className="px-4 py-3">
-                      <span className="font-medium text-slate-900">{formatPrice(item.price)}</span>
+                    <td className="px-3 py-3">
+                      {item.fonasaCode ? (
+                        <span className="flex flex-col">
+                          <b className="font-mono text-[13px] font-semibold tabular-nums text-slate-900">{item.fonasaCode}</b>
+                          <span className="max-w-[320px] truncate text-[12px] text-slate-500">{fonasaLabel(item.fonasaCode) ?? "Código propio"}</span>
+                        </span>
+                      ) : (
+                        <span className="text-[13px] text-slate-400">Sin código</span>
+                      )}
                     </td>
-                    <td className="px-4 py-3 text-right">
-                      <div className="flex items-center justify-end gap-1 opacity-0 transition-opacity group-hover:opacity-100" onClick={(e) => e.stopPropagation()}>
-                        <button
-                          className="rounded-full border border-slate-200 px-3 py-1 text-xs font-medium text-slate-600 transition-colors hover:border-slate-300 hover:text-slate-800"
-                          onClick={() => actions.openEditModal(item)}
-                        >
+                    <td className="whitespace-nowrap px-3 py-3 font-medium tabular-nums text-slate-900">{formatPrice(item.price)}</td>
+                    <td className="px-3 py-3 text-right">
+                      <div className="flex items-center justify-end gap-1.5" onClick={(e) => e.stopPropagation()}>
+                        <button className={btnClass("quiet", "sm")} onClick={() => actions.openEditModal(item)}>
                           Editar
                         </button>
-                        <DeleteIconButton
-                          ariaLabel={`Eliminar ${item.name}`}
-                          onClick={() => actions.setDeleteTarget(item)}
-                        />
+                        <DeleteIconButton ariaLabel={`Eliminar ${item.name}`} onClick={() => actions.setDeleteTarget(item)} />
                       </div>
                     </td>
                   </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-      </div>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </Card>
 
-      {/* ── Modal: Crear / Editar tratamiento ── */}
+      {/* Crear / editar servicio */}
       {state.isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-slate-900/30 backdrop-blur-sm transition-opacity" onClick={actions.closeModal} />
-          <div className="relative w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl shadow-slate-900/10 animate-modal-in">
-            <div className="mb-6 flex h-14 w-14 items-center justify-center rounded-full bg-slate-100">
-              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-slate-800"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" /><polyline points="17 21 17 13 7 13 7 21" /><polyline points="7 3 7 8 15 8" /></svg>
-            </div>
-
-            <h2 className="text-lg font-semibold text-slate-900">
-              {state.selected ? "Editar tratamiento" : "Nuevo tratamiento"}
+          <div className="absolute inset-0 bg-[#0d1b2a]/45 backdrop-blur-sm" onClick={actions.closeModal} />
+          <div className="relative w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl animate-modal-in">
+            <h2 className="font-display text-2xl font-bold tracking-[-0.6px] text-slate-900">
+              {state.selected ? "Editar servicio" : "Nuevo servicio"}
             </h2>
-            <p className="mt-1 text-xs text-slate-500">
-              {state.selected
-                ? "Modifica el nombre o precio del tratamiento."
-                : "Registra un nuevo tratamiento en el catálogo."}
-            </p>
+            <p className="mt-1 text-[14px] text-slate-500">Nombre, precio y, si corresponde, su código Fonasa.</p>
 
             <form onSubmit={actions.handleSubmit} className="mt-5 grid gap-4">
-              <div>
-                <label className="mb-1 block text-[11px] font-medium uppercase tracking-wider text-slate-400">Nombre</label>
+              <label className="flex flex-col gap-1.5">
+                <span className="text-sm font-medium text-slate-900">Nombre</span>
                 <input
                   value={state.form.name}
                   onChange={(e) => actions.handleFieldChange("name", e.target.value)}
-                  placeholder="Ej: Limpieza dental"
-                  className={`w-full rounded-xl border bg-slate-50/40 px-3 py-2.5 text-sm transition-colors focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-100 ${state.errors.name ? "border-rose-300 focus:border-rose-400 focus:ring-rose-100" : "border-slate-200 focus:border-blue-400"}`}
+                  placeholder="Ej: Sesión de kinesiología"
+                  className={`${zs.input} ${state.errors.name ? "border-[#c23434]" : ""}`}
                 />
-                {state.errors.name && <p className="mt-1 text-[11px] text-rose-500">{state.errors.name}</p>}
-              </div>
+                {state.errors.name && <span className="text-[12.5px] text-[#c23434]">{state.errors.name}</span>}
+              </label>
 
-              <div>
-                <label className="mb-1 block text-[11px] font-medium uppercase tracking-wider text-slate-400">Precio</label>
+              <label className="flex flex-col gap-1.5">
+                <span className="text-sm font-medium text-slate-900">Precio</span>
                 <div className="relative">
-                  <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-slate-400">$</span>
+                  <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-sm text-slate-500">$</span>
                   <input
                     type="number"
                     min={0}
@@ -181,24 +157,53 @@ export default function Treatments() {
                     value={state.form.price}
                     onChange={(e) => actions.handleFieldChange("price", e.target.value)}
                     placeholder="0"
-                    className={`w-full rounded-xl border bg-slate-50/40 py-2.5 pl-7 pr-3 text-sm transition-colors focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-100 ${state.errors.price ? "border-rose-300 focus:border-rose-400 focus:ring-rose-100" : "border-slate-200 focus:border-blue-400"}`}
+                    className={`${zs.input} pl-8 ${state.errors.price ? "border-[#c23434]" : ""}`}
                   />
                 </div>
-                {state.errors.price && <p className="mt-1 text-[11px] text-rose-500">{state.errors.price}</p>}
-              </div>
+                {state.errors.price && <span className="text-[12.5px] text-[#c23434]">{state.errors.price}</span>}
+              </label>
 
-              {state.apiError && (
-                <div className="animate-fade-in rounded-xl border border-rose-200 bg-rose-50 px-3.5 py-2.5 text-sm text-rose-600">
-                  {state.apiError}
-                </div>
-              )}
+              <label className="flex flex-col gap-1.5">
+                <span className="text-sm font-medium text-slate-900">Código Fonasa (opcional)</span>
+                <select
+                  value={FONASA_CODES.some((c) => c.code === state.form.fonasaCode) ? state.form.fonasaCode : state.form.fonasaCode ? "otro" : ""}
+                  onChange={(e) => actions.handleFieldChange("fonasaCode", e.target.value === "otro" ? "" : e.target.value)}
+                  className={zs.input}
+                >
+                  <option value="">Sin código Fonasa</option>
+                  {FONASA_GROUPS.map((group) => (
+                    <optgroup key={group} label={group}>
+                      {FONASA_CODES.filter((c) => c.group === group).map((c) => (
+                        <option key={c.code} value={c.code}>
+                          {c.code} · {c.name}
+                        </option>
+                      ))}
+                    </optgroup>
+                  ))}
+                  <option value="otro">Otro código…</option>
+                </select>
+                <input
+                  value={state.form.fonasaCode}
+                  onChange={(e) => actions.handleFieldChange("fonasaCode", e.target.value.replace(/\D/g, "").slice(0, 7))}
+                  inputMode="numeric"
+                  placeholder="O escribe el código de 7 números"
+                  className={`${zs.input} font-mono tabular-nums ${state.errors.fonasaCode ? "border-[#c23434]" : ""}`}
+                />
+                {state.errors.fonasaCode ? (
+                  <span className="text-[12.5px] text-[#c23434]">{state.errors.fonasaCode}</span>
+                ) : (
+                  <span className="text-[12.5px] text-slate-500">Elige de la lista o escribe otro código del arancel MLE.</span>
+                )}
+              </label>
+
+              {state.apiError && <Notice tone="err">{state.apiError}</Notice>}
 
               <div className="mt-2 flex gap-3">
-                <button type="button" onClick={actions.closeModal} className="flex-1 rounded-full border border-slate-200 py-2.5 text-sm font-medium text-slate-600 transition-colors hover:border-slate-300 hover:text-slate-800">
+                <button type="button" onClick={actions.closeModal} className={btnClass("quiet", "md", "flex-1")}>
                   Cancelar
                 </button>
-                <button type="submit" disabled={state.isSubmitDisabled} className="flex-1 rounded-full bg-slate-900 py-2.5 text-sm font-semibold text-white transition-all hover:bg-slate-800 hover:shadow-lg hover:shadow-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-400 disabled:shadow-none">
-                  {state.saving ? "Guardando..." : state.selected ? "Actualizar" : "Guardar"}
+                <button type="submit" disabled={state.isSubmitDisabled} className={btnClass("primary", "md", "flex-1")}>
+                  {state.saving ? "Guardando…" : state.selected ? "Guardar cambios" : "Agregar servicio"}
                 </button>
               </div>
             </form>
@@ -206,39 +211,40 @@ export default function Treatments() {
         </div>
       )}
 
-      {/* ── Toast de éxito ── */}
       {state.successMessage && (
-        <div className="animate-fade-in fixed bottom-6 right-6 z-50 rounded-2xl bg-emerald-500 px-4 py-3 text-sm font-medium text-white shadow-lg shadow-emerald-500/30">
+        <div className="animate-fade-in fixed bottom-6 left-1/2 z-50 -translate-x-1/2 rounded-full bg-slate-900 px-5 py-3 text-sm font-medium text-white shadow-xl">
           {state.successMessage}
         </div>
       )}
 
-      {/* ── Modal: Eliminar tratamiento ── */}
+      {/* Eliminar */}
       {state.deleteTarget && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-slate-900/30 backdrop-blur-sm transition-opacity" onClick={actions.dismissDeleteModal} />
-          <div className="relative w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl shadow-slate-900/10 animate-modal-in">
-            <h3 className="text-lg font-semibold text-slate-900">Eliminar tratamiento</h3>
-            <p className="mt-2 text-sm text-slate-500">
-              ¿Estás seguro de eliminar el tratamiento <span className="font-medium text-slate-700">{state.deleteTarget.name}</span>?
-              Esta acción no se puede deshacer.
+          <div className="absolute inset-0 bg-[#0d1b2a]/45 backdrop-blur-sm" onClick={actions.dismissDeleteModal} />
+          <div className="relative w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl animate-modal-in">
+            <h3 className="font-display text-xl font-bold text-slate-900">¿Eliminar este servicio?</h3>
+            <p className="mt-2 text-sm text-slate-600">
+              Vas a eliminar <b className="text-slate-900">{state.deleteTarget.name}</b>. No se puede deshacer.
             </p>
             {state.deleteError && (
-              <div className="mt-4 animate-fade-in rounded-xl border border-rose-200 bg-rose-50 px-3.5 py-2.5 text-sm text-rose-600">
-                {state.deleteError}
+              <div className="mt-4">
+                <Notice tone="err">{state.deleteError}</Notice>
               </div>
             )}
             <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:justify-end">
-              <button onClick={actions.dismissDeleteModal} className="rounded-full border border-slate-200 px-4 py-2.5 text-sm font-medium text-slate-600 transition-colors hover:border-slate-300 hover:text-slate-800">
+              <button onClick={actions.dismissDeleteModal} className={btnClass("quiet", "sm")}>
                 Cancelar
               </button>
-              <button onClick={actions.handleDelete} className="rounded-full bg-rose-500 px-4 py-2.5 text-sm font-semibold text-white transition-all hover:bg-rose-600 hover:shadow-lg hover:shadow-rose-500/20">
+              <button
+                onClick={actions.handleDelete}
+                className="inline-flex h-[38px] items-center justify-center rounded-full bg-[#c23434] px-4 font-display text-sm font-medium text-white transition hover:-translate-y-0.5"
+              >
                 Eliminar
               </button>
             </div>
           </div>
         </div>
       )}
-    </div>
+    </View>
   );
 }

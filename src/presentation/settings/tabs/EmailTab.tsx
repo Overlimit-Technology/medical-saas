@@ -2,19 +2,17 @@
 
 import { useEffect, useMemo, useState, useCallback, useRef } from "react";
 import {
-  Mail,
   Calendar,
   Bell,
   ChevronLeft,
-  ChevronRight,
   Eye,
   Pencil,
-  ToggleLeft,
-  ToggleRight,
   CreditCard,
   Users,
   AlertCircle,
   Sparkles,
+  Zap,
+  ArrowRight,
 } from "lucide-react";
 import { ClinicSettingsRepositoryHttp } from "@/data/clinic-settings/ClinicSettingsRepository";
 import {
@@ -29,6 +27,7 @@ import {
   type EmailTemplate,
 } from "@/domain/clinic-settings/entities/EmailTemplate";
 import WysiwygEditor from "@/presentation/common/WysiwygEditor";
+import { Card, Notice, StatusPill, btnClass, zs } from "@/presentation/ui/zs";
 
 type TemplateMap = Partial<Record<EmailTemplateType, EmailTemplate>>;
 
@@ -43,21 +42,19 @@ const TEMPLATE_ICONS: Record<EmailTemplateType, React.ReactNode> = {
   INTERNAL_ALERT: <AlertCircle className="h-4 w-4" />,
 };
 
-const TEMPLATE_COLORS: Record<EmailTemplateType, string> = {
-  APPOINTMENT_CONFIRMATION: "bg-emerald-50 text-emerald-600",
-  APPOINTMENT_REMINDER: "bg-amber-50 text-amber-600",
-  APPOINTMENT_CANCELLATION: "bg-rose-50 text-rose-500",
-  PATIENT_WELCOME: "bg-blue-50 text-blue-600",
-  USER_WELCOME: "bg-violet-50 text-violet-600",
-  PAYMENT_UPDATE: "bg-cyan-50 text-cyan-600",
-  PROFESSIONAL_PAYOUT: "bg-teal-50 text-teal-600",
-  INTERNAL_ALERT: "bg-slate-100 text-slate-500",
+
+// Cada aviso como regla: que lo dispara y a quien le llega.
+const FLOW: Record<EmailTemplateType, { when: string; to: string }> = {
+  APPOINTMENT_CONFIRMATION: { when: "Se agenda una cita", to: "al paciente" },
+  APPOINTMENT_REMINDER: { when: "Faltan 24 horas para la cita", to: "al paciente" },
+  APPOINTMENT_CANCELLATION: { when: "La clínica cancela una cita", to: "al paciente" },
+  PATIENT_WELCOME: { when: "Se registra un paciente nuevo", to: "al paciente" },
+  USER_WELCOME: { when: "Se crea una cuenta del equipo", to: "a la persona nueva" },
+  PAYMENT_UPDATE: { when: "Cambia el estado de un pago", to: "al paciente" },
+  PROFESSIONAL_PAYOUT: { when: "Se cierra la liquidación del mes", to: "a cada profesional" },
+  INTERNAL_ALERT: { when: "Ocurre un evento importante", to: "al equipo" },
 };
 
-const RECOMMENDED = new Set<EmailTemplateType>([
-  "APPOINTMENT_CONFIRMATION",
-  "APPOINTMENT_REMINDER",
-]);
 
 const TEMPLATE_GROUPS: { label: string; types: EmailTemplateType[] }[] = [
   {
@@ -364,126 +361,97 @@ export default function EmailTab() {
   );
 
   return (
-    <div className="space-y-4">
-      {error && (
-        <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
-          {error}
-        </div>
-      )}
+    <div className="space-y-6">
+      {error && <Notice tone="err">{error}</Notice>}
 
-      {/* Banner recomendado — solo si los emails clave están desactivados */}
       {recommendedInactive.length > 0 && (
-        <div className="flex items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50 px-5 py-4">
-          <Sparkles className="mt-0.5 h-4 w-4 flex-shrink-0 text-amber-500" />
-          <div>
-            <p className="text-sm font-medium text-amber-800">
-              Activa estos 2 emails para reducir los no-shows
-            </p>
-            <p className="mt-0.5 text-xs text-amber-600">
-              La confirmacion y el recordatorio de cita son los mas efectivos para que los pacientes lleguen.
-            </p>
-          </div>
-        </div>
+        <Notice icon={Sparkles}>
+          <b className="font-semibold">Activa la confirmación y el recordatorio de cita.</b> Son los que más ayudan a que los pacientes lleguen.
+        </Notice>
       )}
 
-      <section className="rounded-[28px] border border-slate-200 bg-white shadow-sm">
-        {/* Header con contador */}
-        <div className="flex items-center gap-3 border-b border-slate-100 px-6 py-5">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-50">
-            <Mail className="h-5 w-5 text-blue-600" />
-          </div>
-          <div className="flex-1">
-            <h3 className="text-base font-semibold text-slate-900">Emails automaticos</h3>
-            <p className="text-xs text-slate-500">
-              Activa o desactiva cada email. Personaliza el texto si lo necesitas.
-            </p>
-          </div>
-          <div className="flex-shrink-0 rounded-xl bg-slate-100 px-3 py-1.5 text-xs font-medium text-slate-600">
-            {totalEnabled} de {EMAIL_TEMPLATE_TYPES.length} activos
-          </div>
-        </div>
-
-        {/* Grupos de templates */}
-        {TEMPLATE_GROUPS.map((group, groupIdx) => (
-          <div key={group.label}>
-            {/* Separador de grupo */}
-            <div
-              className={`flex items-center gap-3 px-6 py-2.5 ${groupIdx === 0 ? "" : "border-t border-slate-100"}`}
-            >
-              <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">
-                {group.label}
-              </span>
-              <div className="flex-1 border-t border-slate-100" />
-            </div>
-
-            {group.types.map((eventType) => {
-              const meta = EMAIL_TEMPLATE_META[eventType];
-              const existing = templates[eventType];
-              const isEnabled = existing?.enabled ?? true;
-              const isCustomized = !!existing;
-              const isRecommended = RECOMMENDED.has(eventType);
-
-              return (
-                <div
-                  key={eventType}
-                  className={`flex items-center gap-4 px-6 py-3.5 transition-opacity ${isEnabled ? "opacity-100" : "opacity-40"}`}
-                >
-                  {/* Icono */}
-                  <div
-                    className={`flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl ${TEMPLATE_COLORS[eventType]}`}
-                  >
-                    {TEMPLATE_ICONS[eventType]}
-                  </div>
-
-                  {/* Info */}
-                  <div className="min-w-0 flex-1">
-                    <div className="flex flex-wrap items-center gap-1.5">
-                      <p className="text-sm font-medium text-slate-900">{meta.label}</p>
-                      {isRecommended && (
-                        <span className="flex items-center gap-0.5 rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-semibold text-amber-600 ring-1 ring-amber-200">
-                          <Sparkles className="h-2.5 w-2.5" />
-                          Recomendado
-                        </span>
-                      )}
-                      {isCustomized && isEnabled && (
-                        <span className="rounded-full bg-[#50c9d5]/10 px-2 py-0.5 text-[10px] font-medium text-[#1e737b]">
-                          Personalizado
-                        </span>
-                      )}
-                    </div>
-                    <p className="truncate text-xs text-slate-400">{meta.description}</p>
-                    <button
-                      type="button"
-                      onClick={() => openEditor(eventType)}
-                      className="mt-0.5 flex items-center gap-0.5 text-[11px] font-medium text-[#1e737b] hover:text-[#1e737b]"
+      <Card
+        title={
+          <>
+            Avisos automáticos <StatusPill tone="ok">{totalEnabled} de {EMAIL_TEMPLATE_TYPES.length} activos</StatusPill>
+          </>
+        }
+      >
+        <p className={`${zs.small} -mt-2 mb-5`}>Cada aviso es una regla: cuando pasa algo, se envía un correo.</p>
+        <div className="flex flex-col gap-6">
+          {TEMPLATE_GROUPS.map((group) => (
+            <section key={group.label} aria-label={group.label}>
+              <h4 className={`${zs.label} mb-2`}>{group.label}</h4>
+              <ul className="flex flex-col gap-2.5">
+                {group.types.map((eventType) => {
+                  const meta = EMAIL_TEMPLATE_META[eventType];
+                  const flow = FLOW[eventType];
+                  const existing = templates[eventType];
+                  const isEnabled = existing?.enabled ?? true;
+                  const isCustomized = !!existing;
+                  return (
+                    <li
+                      key={eventType}
+                      className={`flex flex-wrap items-center gap-3 rounded-[20px] border p-3 transition-[opacity,border-color] lg:flex-nowrap ${
+                        isEnabled ? "border-slate-200 bg-white" : "border-dashed border-slate-200 bg-slate-50 opacity-60"
+                      }`}
                     >
-                      Personalizar mensaje
-                      <ChevronRight className="h-3 w-3" />
-                    </button>
-                  </div>
+                      {/* Disparador */}
+                      <div className="flex min-w-0 flex-1 basis-56 items-center gap-2.5 rounded-2xl bg-[#e8a020]/[0.08] px-3 py-2.5">
+                        <span className="grid h-8 w-8 shrink-0 place-items-center rounded-xl bg-[#e8a020]/[0.16] text-[#8a5a0b]">
+                          <Zap className="h-4 w-4" strokeWidth={1.8} />
+                        </span>
+                        <span className="min-w-0">
+                          <span className="block text-[11px] font-semibold uppercase tracking-[0.1em] text-[#8a5a0b]">Cuando</span>
+                          <span className="block truncate text-[14px] font-medium text-slate-900">{flow.when}</span>
+                        </span>
+                      </div>
 
-                  {/* Toggle */}
-                  <button
-                    type="button"
-                    onClick={() => void handleToggleEnabled(eventType)}
-                    className="flex-shrink-0 transition-transform active:scale-95"
-                    title={isEnabled ? "Desactivar" : "Activar"}
-                  >
-                    {isEnabled ? (
-                      <ToggleRight className="h-7 w-7 text-[#1e737b]" />
-                    ) : (
-                      <ToggleLeft className="h-7 w-7 text-slate-300" />
-                    )}
-                  </button>
-                </div>
-              );
-            })}
-          </div>
-        ))}
-      </section>
+                      <ArrowRight className="hidden h-5 w-5 shrink-0 text-slate-400 lg:block" strokeWidth={1.8} aria-hidden="true" />
+
+                      {/* Accion */}
+                      <div className="flex min-w-0 flex-1 basis-56 items-center gap-2.5 rounded-2xl bg-[#50c9d5]/[0.08] px-3 py-2.5">
+                        <span className="grid h-8 w-8 shrink-0 place-items-center rounded-xl bg-[#50c9d5]/20 text-[#1e737b]">
+                          {TEMPLATE_ICONS[eventType]}
+                        </span>
+                        <span className="min-w-0">
+                          <span className="block text-[11px] font-semibold uppercase tracking-[0.1em] text-[#1e737b]">
+                            Enviar correo {flow.to}
+                          </span>
+                          <span className="block truncate text-[14px] font-medium text-slate-900">
+                            {meta.label}
+                            {isCustomized ? <span className="ml-1.5 text-[12px] font-normal text-[#1e737b]">· tu texto</span> : null}
+                          </span>
+                        </span>
+                      </div>
+
+                      <div className="flex shrink-0 items-center gap-2">
+                        <button type="button" onClick={() => openEditor(eventType)} className={btnClass("quiet", "sm")}>
+                          <Pencil className="h-3.5 w-3.5" strokeWidth={1.8} />
+                          Mensaje
+                        </button>
+                        <button
+                          type="button"
+                          role="switch"
+                          aria-checked={isEnabled}
+                          aria-label={`${isEnabled ? "Desactivar" : "Activar"}: ${meta.label}`}
+                          onClick={() => void handleToggleEnabled(eventType)}
+                          className={`relative inline-flex h-7 w-12 shrink-0 items-center rounded-full transition-colors ${isEnabled ? "bg-[#50c9d5]" : "bg-slate-300"}`}
+                        >
+                          <span className={`absolute left-1 h-5 w-5 rounded-full bg-white shadow-sm transition-transform ${isEnabled ? "translate-x-5" : ""}`} />
+                        </button>
+                      </div>
+                    </li>
+                  );
+                })}
+              </ul>
+            </section>
+          ))}
+        </div>
+      </Card>
 
       {success && (
-        <div className="fixed bottom-6 right-6 z-50 rounded-2xl bg-emerald-500 px-4 py-3 text-sm font-medium text-white shadow-lg shadow-emerald-500/30">
+        <div className="animate-fade-in fixed bottom-6 left-1/2 z-50 -translate-x-1/2 rounded-full bg-slate-900 px-5 py-3 text-sm font-medium text-white shadow-xl">
           {success}
         </div>
       )}

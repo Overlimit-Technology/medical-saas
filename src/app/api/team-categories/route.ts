@@ -17,7 +17,8 @@ export async function GET() {
 
     const items = await prisma.teamCategory.findMany({
       where: { clinicId: session.clinicId },
-      select: { id: true, name: true },
+      // Con sus integrantes, para mostrar quien esta en cada equipo.
+      select: { id: true, name: true, members: { select: { firstName: true, lastName: true }, orderBy: { firstName: "asc" } } },
       orderBy: { name: "asc" },
     });
 

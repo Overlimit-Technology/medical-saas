@@ -4,11 +4,13 @@ import { prisma } from "@/lib/prisma";
 type CreateTreatmentInput = {
   name: string;
   price: number;
+  fonasaCode?: string | null;
 };
 
 type UpdateTreatmentInput = {
   name: string;
   price: number;
+  fonasaCode?: string | null;
 };
 
 function toNumber(value: { toString(): string } | number) {
@@ -100,6 +102,7 @@ export class TreatmentsService {
           id: true,
           name: true,
           price: true,
+          fonasaCode: true,
         },
       });
     });
@@ -130,11 +133,13 @@ export class TreatmentsService {
               id: nextId,
               name: input.name.trim(),
               price: input.price,
+              fonasaCode: input.fonasaCode || null,
             },
             select: {
               id: true,
               name: true,
               price: true,
+              fonasaCode: true,
             },
           });
         });
@@ -173,11 +178,13 @@ export class TreatmentsService {
         data: {
           name: input.name.trim(),
           price: input.price,
+          ...(input.fonasaCode !== undefined ? { fonasaCode: input.fonasaCode || null } : {}),
         },
         select: {
           id: true,
           name: true,
           price: true,
+          fonasaCode: true,
         },
       });
 

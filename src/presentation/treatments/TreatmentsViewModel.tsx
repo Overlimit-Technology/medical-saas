@@ -16,6 +16,7 @@ export type { Treatment };
 export type FormState = {
   name: string;
   price: string;
+  fonasaCode: string;
 };
 
 export type FormErrors = Partial<Record<keyof FormState, string>>;
@@ -23,6 +24,7 @@ export type FormErrors = Partial<Record<keyof FormState, string>>;
 const EMPTY_FORM: FormState = {
   name: "",
   price: "",
+  fonasaCode: "",
 };
 
 function validateForm(form: FormState): FormErrors {
@@ -37,6 +39,9 @@ function validateForm(form: FormState): FormErrors {
     } else if (parsed < 0) {
       errors.price = "El precio debe ser mayor o igual a 0.";
     }
+  }
+  if (form.fonasaCode.trim() && !/^d{7}$/.test(form.fonasaCode.trim())) {
+    errors.fonasaCode = "El código Fonasa tiene 7 números.";
   }
   return errors;
 }
@@ -80,7 +85,7 @@ export function useTreatmentsViewModel() {
   const filteredItems = useMemo(() => {
     if (!query.trim()) return items;
     const term = query.toLowerCase();
-    return items.filter((item) => item.name.toLowerCase().includes(term));
+    return items.filter((item) => item.name.toLowerCase().includes(term) || (item.fonasaCode ?? "").includes(term));
   }, [items, query]);
 
   const totalLabel = `${items.length} tratamiento${items.length === 1 ? "" : "s"}`;
@@ -147,6 +152,7 @@ export function useTreatmentsViewModel() {
     setForm({
       name: treatment.name,
       price: `${treatment.price}`,
+      fonasaCode: treatment.fonasaCode ?? "",
     });
     setErrors({});
     setApiError(null);
@@ -184,6 +190,7 @@ export function useTreatmentsViewModel() {
         id: selected?.id,
         name: form.name.trim(),
         price: Number(form.price),
+        fonasaCode: form.fonasaCode.trim() || null,
       });
       const editing = Boolean(selected);
       closeModal();

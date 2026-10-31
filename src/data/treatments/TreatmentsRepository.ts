@@ -19,12 +19,12 @@ export class TreatmentsRepositoryHttp implements TreatmentsRepository {
     return data.items ?? [];
   }
 
-  async saveTreatment(input: { id?: string; name: string; price: number }): Promise<void> {
+  async saveTreatment(input: { id?: string; name: string; price: number; fonasaCode?: string | null }): Promise<void> {
     const editing = Boolean(input.id);
     const res = await fetch(editing ? `/api/treatments/${input.id}` : "/api/treatments", {
       method: editing ? "PUT" : "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name: input.name, price: input.price }),
+      body: JSON.stringify({ name: input.name, price: input.price, fonasaCode: input.fonasaCode ?? null }),
     });
     const data = (await res.json().catch(() => null)) as TreatmentsResponse | null;
 

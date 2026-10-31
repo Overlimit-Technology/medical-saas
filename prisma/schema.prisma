@@ -322,6 +322,8 @@ model ClinicSettings {
   id                                 String   @id @default(cuid())
   clinicId                           String   @unique
   statusColors                       Json?
+  // Mapa de la sede: figuras (boxes y areas) con posicion en una grilla. Ver /api/clinic-settings/clinic-map.
+  clinicMap                          Json?
   professionalPayoutClinicPercentage Decimal? @db.Decimal(5, 2)
   professionalPayoutSiiPercentage    Decimal? @db.Decimal(5, 2)
   logoBase64                         String?
@@ -639,6 +641,8 @@ model Treatment {
   name  String  @unique
   // Precio del tratamiento
   price Decimal @db.Decimal(10, 2)
+  // Codigo Fonasa MLE de 7 digitos (por ejemplo 0601024), opcional.
+  fonasaCode String?
   patientTreatments PatientTreatment[]
   treatmentPlans   TreatmentPlanTreatment[]
 }

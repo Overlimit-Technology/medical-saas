@@ -6,6 +6,8 @@ import { TreatmentsService } from "@/server/treatments/TreatmentsService";
 const updateTreatmentSchema = z.object({
   name: z.string().trim().min(1),
   price: z.number().min(0),
+  // Codigo Fonasa MLE: 7 digitos o vacio.
+  fonasaCode: z.string().trim().regex(/^\d{7}$/).nullable().optional().or(z.literal("")),
 });
 
 export async function PUT(req: Request, { params }: { params: { id: string } }) {

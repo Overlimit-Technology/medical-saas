@@ -1,5 +1,7 @@
 "use client";
 
+import { CalendarDays } from "lucide-react";
+import { Card, EmptyState, IconBox, Loading, Notice, PageHead, Segmented, StatusPill, View, btnClass, zs } from "@/presentation/ui/zs";
 import { useEffect, useMemo, useState } from "react";
 
 type VacationItem = {
@@ -21,12 +23,6 @@ type ProfessionalLimit = {
   usedDays: number;
   availableDays: number;
   annualDays: number;
-};
-
-const STATUS_STYLES: Record<VacationItem["status"], string> = {
-  pending: "bg-amber-100 text-amber-700",
-  approved: "bg-emerald-100 text-emerald-700",
-  rejected: "bg-rose-100 text-rose-700",
 };
 
 const STATUS_LABELS: Record<VacationItem["status"], string> = {
@@ -104,117 +100,112 @@ export default function VacationsTeam() {
     }
   }
 
+  const pendingCount = requests.filter((item) => item.status === "pending").length;
+
   return (
-    <div className="space-y-6">
-      <div>
-        <p className="text-sm text-slate-500">Mi clinica</p>
-        <h1 className="text-2xl font-semibold text-slate-900">Vacaciones del equipo</h1>
-      </div>
+    <View label="Vacaciones del equipo" wide>
+      <PageHead
+        tag="Equipo"
+        title="Vacaciones"
+        accent="del equipo"
+        lead="Aprueba las solicitudes y define cuántos días seguidos puede tomar cada profesional."
+      />
 
-      <section className="rounded-[28px] border border-slate-200 bg-white p-6 shadow-sm">
-        <h2 className="text-lg font-semibold text-slate-900">Configuracion por profesional</h2>
-        <p className="mt-1 text-sm text-slate-500">
-          Define el campo &quot;Limite de dias permitidos&quot; para cada profesional.
-        </p>
-        <div className="mt-4 grid gap-2">
-          {professionals.map((professional) => (
-            <div key={professional.userId} className="grid grid-cols-1 items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 md:grid-cols-[minmax(0,1fr)_100px_150px_130px]">
-              <div>
-                <p className="text-sm font-semibold text-slate-900">{professional.userName}</p>
-                <p className="text-xs text-slate-500">{professional.userEmail}</p>
-                <p className="mt-1 text-xs text-slate-500">
-                  Consumidos {professional.usedDays}/{professional.annualDays} dias - disponibles {professional.availableDays}
-                </p>
-              </div>
-              <input
-                type="number"
-                min={1}
-                max={60}
-                value={limitDrafts[professional.userId] ?? professional.maxConsecutiveDays}
-                onChange={(event) =>
-                  setLimitDrafts((prev) => ({
-                    ...prev,
-                    [professional.userId]: Number(event.target.value),
-                  }))
-                }
-                className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 outline-none focus:border-slate-400"
-              />
-              <p className="text-xs text-slate-500">Limite de dias permitidos</p>
-              <button
-                type="button"
-                onClick={() => saveLimit(professional.userId)}
-                className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-700 transition hover:bg-slate-100"
-              >
-                Guardar limite
-              </button>
-            </div>
-          ))}
-        </div>
-      </section>
+      {error ? <Notice tone="err">{error}</Notice> : null}
 
-      <section className="rounded-[28px] border border-slate-200 bg-white p-6 shadow-sm">
-        <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-          <p className="text-sm text-slate-500">Solicitudes de vacaciones por usuario en la clinica actual.</p>
-          <div className="inline-flex rounded-xl border border-slate-200 bg-slate-50 p-1">
-            {(["all", "pending", "approved", "rejected"] as const).map((status) => (
-              <button
-                key={status}
-                type="button"
-                onClick={() => setStatusFilter(status)}
-                className={`rounded-lg px-3 py-1.5 text-xs font-medium transition ${
-                  statusFilter === status
-                    ? "bg-white text-slate-800 shadow-sm"
-                    : "text-slate-500 hover:text-slate-700"
-                }`}
-              >
-                {status === "all" ? "Todos" : STATUS_LABELS[status]}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {error && <p className="mb-3 text-sm text-rose-600">{error}</p>}
-        {loading && <p className="text-sm text-slate-400">Cargando vacaciones...</p>}
-        {!loading && filtered.length === 0 && <p className="text-sm text-slate-400">No hay solicitudes para mostrar.</p>}
-
-        <div className="space-y-2">
-          {filtered.map((item) => (
-            <article key={item.id} className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
-              <div className="flex flex-wrap items-start justify-between gap-3">
-                <div>
-                  <p className="text-sm font-semibold text-slate-900">{item.userName}</p>
-                  <p className="text-xs text-slate-500">{item.userEmail}</p>
-                  <p className="mt-1 text-sm text-slate-700">
-                    {item.startDate} al {item.endDate}
-                  </p>
-                  {item.note ? <p className="mt-1 text-xs text-slate-500">{item.note}</p> : null}
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${STATUS_STYLES[item.status]}`}>
-                    {STATUS_LABELS[item.status]}
+      <Card
+        title={
+          <>
+            Solicitudes{" "}
+            {pendingCount ? <StatusPill tone="warn">{pendingCount} por aprobar</StatusPill> : <StatusPill tone="ok">Al día</StatusPill>}
+          </>
+        }
+        action={
+          <Segmented
+            label="Estado"
+            value={statusFilter}
+            onChange={setStatusFilter}
+            items={(["all", "pending", "approved", "rejected"] as const).map((status) => ({
+              id: status,
+              label: status === "all" ? "Todas" : STATUS_LABELS[status],
+            }))}
+          />
+        }
+      >
+        {loading ? (
+          <Loading label="Cargando vacaciones…" />
+        ) : filtered.length === 0 ? (
+          <EmptyState title="No hay solicitudes con este filtro">Cuando alguien pida vacaciones, aparecerá aquí.</EmptyState>
+        ) : (
+          <ul className="flex flex-col">
+            {filtered.map((item) => (
+              <li key={item.id} className="flex flex-wrap items-center gap-4 border-t border-slate-200 py-3.5 first:border-t-0 first:pt-0">
+                <IconBox icon={CalendarDays} tone={item.status === "pending" ? "warn" : "accent"} />
+                <div className="min-w-0 flex-1 basis-60">
+                  <b className="block font-display text-[15px] font-semibold text-slate-900">{item.userName}</b>
+                  <span className="block text-[13.5px] text-slate-700">
+                    Del {item.startDate} al {item.endDate}
                   </span>
-                  <div className="flex gap-1">
-                    <button
-                      type="button"
-                      onClick={() => updateStatus(item.id, "approved")}
-                      className="rounded-lg border border-emerald-200 bg-white px-2.5 py-1 text-[11px] font-medium text-emerald-700 hover:bg-emerald-50"
-                    >
-                      Aprobar
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => updateStatus(item.id, "rejected")}
-                      className="rounded-lg border border-rose-200 bg-white px-2.5 py-1 text-[11px] font-medium text-rose-700 hover:bg-rose-50"
-                    >
-                      Rechazar
-                    </button>
-                  </div>
+                  {item.note ? <span className={zs.small}>{item.note}</span> : null}
                 </div>
-              </div>
-            </article>
-          ))}
-        </div>
-      </section>
-    </div>
+                <StatusPill tone={item.status === "approved" ? "ok" : item.status === "rejected" ? "err" : "warn"}>
+                  {STATUS_LABELS[item.status]}
+                </StatusPill>
+                <div className="flex gap-2">
+                  <button type="button" onClick={() => updateStatus(item.id, "approved")} className={btnClass(item.status === "pending" ? "primary" : "quiet", "sm")}>
+                    Aprobar
+                  </button>
+                  <button type="button" onClick={() => updateStatus(item.id, "rejected")} className={btnClass("danger", "sm")}>
+                    Rechazar
+                  </button>
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </Card>
+
+      <Card title="Días por profesional">
+        <p className={`${zs.small} -mt-2 mb-4`}>El límite es la cantidad máxima de días seguidos que puede pedir cada persona.</p>
+        <ul className="grid gap-3 xl:grid-cols-2">
+          {professionals.map((professional) => {
+            const pct = professional.annualDays ? Math.min(100, (professional.usedDays / professional.annualDays) * 100) : 0;
+            return (
+              <li key={professional.userId} className="flex flex-wrap items-center gap-4 rounded-[20px] border border-slate-200 p-4">
+                <div className="min-w-0 flex-1 basis-52">
+                  <b className="block truncate font-display text-[15px] font-semibold text-slate-900">{professional.userName}</b>
+                  <span className="block truncate text-[12.5px] text-slate-500">{professional.userEmail}</span>
+                  <div className="mt-2 h-2 overflow-hidden rounded-full bg-slate-100" aria-hidden="true">
+                    <div className="h-full rounded-full bg-[#50c9d5]" style={{ width: `${pct}%` }} />
+                  </div>
+                  <span className="mt-1 block text-[12.5px] text-slate-500">
+                    {professional.usedDays} de {professional.annualDays} días usados · quedan {professional.availableDays}
+                  </span>
+                </div>
+                <label className="flex items-center gap-2">
+                  <span className="text-[12.5px] text-slate-500">Límite</span>
+                  <input
+                    type="number"
+                    min={1}
+                    max={60}
+                    value={limitDrafts[professional.userId] ?? professional.maxConsecutiveDays}
+                    onChange={(event) =>
+                      setLimitDrafts((prev) => ({
+                        ...prev,
+                        [professional.userId]: Number(event.target.value),
+                      }))
+                    }
+                    className={`${zs.input} min-h-[38px] w-20 py-1.5 text-center tabular-nums`}
+                  />
+                </label>
+                <button type="button" onClick={() => saveLimit(professional.userId)} className={btnClass("quiet", "sm")}>
+                  Guardar
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+      </Card>
+    </View>
   );
 }

@@ -1,6 +1,10 @@
 "use client";
 
+import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { UserCog, UsersRound } from "lucide-react";
+import TeamsCard from "./TeamsCard";
+import { PageHead, Segmented, View, zs } from "@/presentation/ui/zs";
 import { ProfessionSelect } from "./ProfessionSelect";
 import { DeleteIconButton } from "@/presentation/common/DeleteIconButton";
 import { useDoctorsViewModel, formatRelativeDate } from "./DoctorsViewModel";
@@ -12,9 +16,9 @@ const ROLE_LABELS: Record<string, string> = {
 };
 
 const ROLE_COLORS: Record<string, string> = {
-  ADMIN: "bg-emerald-50 text-emerald-700",
-  DOCTOR: "bg-blue-50 text-blue-600",
-  SECRETARY: "bg-violet-50 text-violet-600",
+  ADMIN: "bg-[#50c9d5]/[0.12] text-[#1e737b]",
+  DOCTOR: "bg-slate-100 text-slate-700",
+  SECRETARY: "bg-[#e8a020]/[0.14] text-[#8a5a0b]",
 };
 
 function getRoleLabel(role: string, isSuperAdmin?: boolean) {
@@ -22,16 +26,37 @@ function getRoleLabel(role: string, isSuperAdmin?: boolean) {
   return ROLE_LABELS[role] ?? role;
 }
 
-export default function Doctors() {
+export default function Doctors({ canEditTeams = false }: { canEditTeams?: boolean }) {
   const router = useRouter();
   const { state, actions } = useDoctorsViewModel();
+  const [tab, setTab] = useState<"personas" | "equipos">("personas");
 
   return (
-    <div className="mx-auto max-w-6xl">
-      <div className="rounded-2xl border border-slate-100 bg-white px-6 pb-6 pt-5 shadow-sm">
+    <View label="Usuarios" wide>
+      <PageHead
+        tag="Equipo"
+        title="Tu equipo"
+        accent="y sus permisos"
+        lead="Profesionales, secretarias y administradores de la sede, y cómo se agrupan."
+        actions={
+          <Segmented
+            label="Vista"
+            value={tab}
+            onChange={setTab}
+            items={[
+              { id: "personas", label: "Personas", icon: UserCog },
+              { id: "equipos", label: "Equipos de trabajo", icon: UsersRound },
+            ]}
+          />
+        }
+      />
+
+      {tab === "equipos" ? <TeamsCard canEdit={canEditTeams} /> : (
+      <>
+      <div className={zs.card}>
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <h1 className="text-xl font-semibold tracking-tight text-slate-900">Usuarios</h1>
+            <h2 className="font-display text-xl font-bold tracking-[-0.3px] text-slate-900">Personas</h2>
             <div className="mt-1 flex items-center gap-2">
               <span className="text-xs text-slate-400">{state.totalLabel}</span>
               {state.headerHint && (
@@ -132,8 +157,8 @@ export default function Doctors() {
                       </span>
                     </td>
                     <td className="px-4 py-3 text-slate-500">{rut}</td>
-                    <td className="px-4 py-3">
-                      <span className="text-slate-400">
+                    <td className="whitespace-nowrap px-4 py-3">
+                      <span className="text-slate-500">
                         {user.createdAt ? formatRelativeDate(user.createdAt) : "-"}
                       </span>
                     </td>
@@ -351,6 +376,8 @@ export default function Doctors() {
           </div>
         </div>
       )}
-    </div>
+      </>
+      )}
+    </View>
   );
 }
