@@ -29,7 +29,7 @@ type Props = {
 const SAVE_LABELS: Record<SaveState, { text: string; className: string }> = {
   idle: { text: "Sin cambios", className: "text-slate-400" },
   pending: { text: "Cambios sin guardar", className: "text-amber-600" },
-  saving: { text: "Guardando...", className: "text-[#0f8f98]" },
+  saving: { text: "Guardando...", className: "text-[#1e737b]" },
   saved: { text: "Guardado", className: "text-emerald-600" },
   error: { text: "No se pudo guardar", className: "text-rose-600" },
 };
@@ -58,7 +58,7 @@ function ElapsedTimer({ startedAt, frozen }: { startedAt: string; frozen: boolea
   return (
     <span
       className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-semibold tabular-nums transition-colors ${
-        frozen ? "bg-slate-100 text-slate-500" : "bg-[#19b3bc]/10 text-[#0f8f98]"
+        frozen ? "bg-slate-100 text-slate-500" : "bg-[#50c9d5]/10 text-[#1e737b]"
       }`}
       title={`Consulta iniciada a las ${formatTime(startedAt)}`}
     >
@@ -89,7 +89,7 @@ export default function ConsultationHeader({
           <ArrowLeft size={17} />
         </Link>
 
-        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-[#19b3bc] to-[#0f8f98] text-sm font-bold text-white">
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-[#50c9d5] to-[#84d9e1] text-sm font-bold text-white">
           {initials}
         </div>
 

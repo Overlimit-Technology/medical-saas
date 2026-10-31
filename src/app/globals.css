@@ -3,26 +3,40 @@
 @tailwind utilities;
 
 :root {
-  --background: #f5f7fb;
-  --foreground: #101828;
+  --background: #f4f7f9;
+  --foreground: #0d1b2a;
+  /* Mismo sistema que el portal del paciente (src/presentation/portal/portal.css). */
+  --zs-font-display: "Syne";
+  --zs-font-body: "Lexend";
 }
 
 body {
   color: var(--foreground);
   background: var(--background);
-  font-family: var(--font-geist-sans), system-ui, sans-serif;
+  font-family: var(--zs-font-body), "Segoe UI", system-ui, sans-serif;
   scrollbar-width: thin;
-  scrollbar-color: #19b3bc #e9f7f8;
+  scrollbar-color: #50c9d5 #eef9fa;
+}
+
+@layer base {
+  /* Titulos en Syne con letter-spacing negativo, como el portal. */
+  h1, h2, h3 {
+    font-family: var(--zs-font-display), "Segoe UI", system-ui, sans-serif;
+    letter-spacing: -0.02em;
+  }
+  :focus-visible {
+    outline-color: #50c9d5;
+  }
 }
 
 html {
   scrollbar-width: thin;
-  scrollbar-color: #19b3bc #e9f7f8;
+  scrollbar-color: #50c9d5 #eef9fa;
 }
 
 * {
   scrollbar-width: thin;
-  scrollbar-color: #19b3bc #e9f7f8;
+  scrollbar-color: #50c9d5 #eef9fa;
 }
 
 html::-webkit-scrollbar,
@@ -35,27 +49,27 @@ body::-webkit-scrollbar,
 html::-webkit-scrollbar-track,
 body::-webkit-scrollbar-track,
 *::-webkit-scrollbar-track {
-  background: #e9f7f8;
+  background: #eef9fa;
   border-radius: 999px;
 }
 
 html::-webkit-scrollbar-thumb,
 body::-webkit-scrollbar-thumb,
 *::-webkit-scrollbar-thumb {
-  background: #19b3bc;
+  background: #50c9d5;
   border-radius: 999px;
-  border: 2px solid #e9f7f8;
+  border: 2px solid #eef9fa;
 }
 
 html::-webkit-scrollbar-thumb:hover,
 body::-webkit-scrollbar-thumb:hover,
 *::-webkit-scrollbar-thumb:hover {
-  background: #159ea7;
+  background: #45bcc8;
 }
 
 .sidebar-scrollbar {
   scrollbar-width: thin;
-  scrollbar-color: #19b3bc #e9f7f8;
+  scrollbar-color: #50c9d5 #eef9fa;
 }
 
 .sidebar-scrollbar::-webkit-scrollbar {
@@ -63,18 +77,18 @@ body::-webkit-scrollbar-thumb:hover,
 }
 
 .sidebar-scrollbar::-webkit-scrollbar-track {
-  background: #e9f7f8;
+  background: #eef9fa;
   border-radius: 999px;
 }
 
 .sidebar-scrollbar::-webkit-scrollbar-thumb {
-  background: #19b3bc;
+  background: #50c9d5;
   border-radius: 999px;
-  border: 2px solid #e9f7f8;
+  border: 2px solid #eef9fa;
 }
 
 .sidebar-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: #159ea7;
+  background: #45bcc8;
 }
 
 @layer utilities {

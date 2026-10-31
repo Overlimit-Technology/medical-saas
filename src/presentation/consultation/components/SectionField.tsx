@@ -46,7 +46,7 @@ export default function SectionField({
   };
 
   const fieldClassName =
-    "w-full resize-none rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm leading-relaxed text-slate-700 transition-all duration-200 placeholder:text-slate-300 focus:border-[#19b3bc] focus:outline-none focus:ring-2 focus:ring-[#19b3bc]/15 disabled:bg-slate-50 disabled:text-slate-500";
+    "w-full resize-none rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm leading-relaxed text-slate-700 transition-all duration-200 placeholder:text-slate-300 focus:border-[#50c9d5] focus:outline-none focus:ring-2 focus:ring-[#50c9d5]/15 disabled:bg-slate-50 disabled:text-slate-500";
 
   return (
     <div className="group">
@@ -109,7 +109,7 @@ export default function SectionField({
               key={phrase}
               type="button"
               onClick={() => appendPhrase(phrase)}
-              className="rounded-full border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-medium text-slate-500 transition-all duration-200 hover:-translate-y-px hover:border-[#19b3bc]/50 hover:text-[#0f8f98]"
+              className="rounded-full border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-medium text-slate-500 transition-all duration-200 hover:-translate-y-px hover:border-[#50c9d5]/50 hover:text-[#1e737b]"
             >
               + {phrase}
             </button>

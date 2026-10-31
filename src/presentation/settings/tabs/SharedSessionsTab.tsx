@@ -126,7 +126,7 @@ export default function SharedSessionsTab() {
             type="button"
             disabled={saving || !dirty || idleInvalid || hoursInvalid}
             onClick={() => void save({ idleMinutes: draft.idleMinutes, maxHours: draft.maxHours })}
-            className="h-10 rounded-xl bg-[#19b3bc] px-4 text-sm font-semibold text-white hover:bg-[#159ea7] disabled:opacity-50"
+            className="h-10 rounded-xl bg-[#50c9d5] px-4 text-sm font-semibold text-[#080b04] hover:bg-[#45bcc8] disabled:opacity-50"
           >
             Guardar
           </button>

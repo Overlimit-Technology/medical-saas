@@ -73,7 +73,7 @@ export default function ClinicDashboard() {
         <p className="text-sm">{error}</p>
         <button
           onClick={fetchData}
-          className="text-sm text-[#19b3bc] underline hover:text-[#159ea7]"
+          className="text-sm text-[#1e737b] underline hover:text-[#1e737b]"
         >
           Reintentar
         </button>
@@ -167,8 +167,8 @@ export default function ClinicDashboard() {
               href={module.href}
               className={`group rounded-2xl border p-6 shadow-sm transition animate-fade-in hover:shadow-md ${
                 isShortcut
-                  ? "bg-gradient-to-br from-cyan-50 to-white border-cyan-100 hover:border-[#19b3bc]"
-                  : "bg-white border-slate-100 hover:border-[#19b3bc]"
+                  ? "bg-gradient-to-br from-cyan-50 to-white border-cyan-100 hover:border-[#50c9d5]"
+                  : "bg-white border-slate-100 hover:border-[#50c9d5]"
               }`}
               style={{ animationDelay: `${i * 60}ms` }}
             >
@@ -177,13 +177,13 @@ export default function ClinicDashboard() {
                   <div
                     className={`flex h-12 w-12 items-center justify-center rounded-lg transition ${
                       isShortcut
-                        ? "bg-[#19b3bc]/10 group-hover:bg-[#19b3bc]"
-                        : "bg-slate-50 group-hover:bg-[#19b3bc]"
+                        ? "bg-[#50c9d5]/10 group-hover:bg-[#50c9d5]"
+                        : "bg-slate-50 group-hover:bg-[#50c9d5]"
                     }`}
                   >
-                    <Icon className="h-6 w-6 text-[#19b3bc] group-hover:text-white" />
+                    <Icon className="h-6 w-6 text-[#1e737b] group-hover:text-white" />
                   </div>
-                  <ArrowRight className="h-4 w-4 text-slate-300 group-hover:text-[#19b3bc] transition" />
+                  <ArrowRight className="h-4 w-4 text-slate-300 group-hover:text-[#1e737b] transition" />
                 </div>
                 <div>
                   <p className="text-sm font-semibold text-slate-900">{module.label}</p>
@@ -318,7 +318,7 @@ export default function ClinicDashboard() {
       </div>
 
       {/* Quick Actions */}
-      <div className="rounded-2xl bg-gradient-to-r from-[#19b3bc]/5 to-emerald-50 border border-[#19b3bc]/20 p-6 animate-card-in" style={{ animationDelay: "540ms" }}>
+      <div className="rounded-2xl bg-gradient-to-r from-[#50c9d5]/5 to-emerald-50 border border-[#50c9d5]/20 p-6 animate-card-in" style={{ animationDelay: "540ms" }}>
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <p className="text-sm font-semibold text-slate-900">
@@ -334,7 +334,7 @@ export default function ClinicDashboard() {
           </div>
           <Link
             href={canManageUsers ? "/gestion-usuarios" : "/usuarios"}
-            className="inline-flex items-center gap-2 rounded-lg bg-[#19b3bc] px-4 py-2 text-sm font-medium text-white hover:bg-[#159ea7] transition whitespace-nowrap"
+            className="inline-flex items-center gap-2 rounded-lg bg-[#50c9d5] px-4 py-2 text-sm font-medium text-[#080b04] hover:bg-[#45bcc8] transition whitespace-nowrap"
           >
             Gestionar usuarios
             <ArrowRight size={14} />
@@ -408,7 +408,7 @@ export default function ClinicDashboard() {
                     type="button"
                     disabled={logoUploading}
                     onClick={() => fileInputRef.current?.click()}
-                    className="text-xs text-[#19b3bc] hover:underline disabled:opacity-50"
+                    className="text-xs text-[#1e737b] hover:underline disabled:opacity-50"
                   >
                     {logoUploading ? "Subiendo..." : clinicProfile.logoUrl ? "Cambiar logo" : "Subir logo"}
                   </button>

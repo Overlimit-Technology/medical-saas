@@ -59,7 +59,7 @@ export default function Settings() {
   if (loading) {
     return (
       <div className="flex items-center justify-center p-12">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-[#19b3bc]/20 border-t-[#19b3bc]" />
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-[#50c9d5]/20 border-t-[#50c9d5]" />
       </div>
     );
   }
@@ -143,7 +143,7 @@ function AdminSettings() {
           icon={UserCircle}
           title="Mi Perfil"
           description="Datos personales, foto y vacaciones"
-          color="bg-[#19b3bc]"
+          color="bg-[#50c9d5]"
           onClick={() => setView("perfil")}
         />
         <ModuleCard
@@ -233,7 +233,7 @@ function FichasClinicasTab() {
           </div>
           <a
             href="/form-templates"
-            className="rounded-2xl bg-[#19b3bc] px-5 py-3 text-sm font-medium text-white transition-colors hover:bg-[#159ea7]"
+            className="rounded-2xl bg-[#50c9d5] px-5 py-3 text-sm font-medium text-[#080b04] transition-colors hover:bg-[#45bcc8]"
           >
             Ir a fichas
           </a>
@@ -314,7 +314,7 @@ function TabButton({
       onClick={onClick}
       className={`flex flex-1 items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-medium transition-all ${
         active
-          ? "bg-white text-[#19b3bc] shadow-sm"
+          ? "bg-white text-[#1e737b] shadow-sm"
           : "text-slate-500 hover:text-slate-700"
       }`}
     >

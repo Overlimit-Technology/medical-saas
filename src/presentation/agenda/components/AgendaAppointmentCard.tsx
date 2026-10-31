@@ -97,8 +97,8 @@ export default function AgendaAppointmentCard({
               onResizeEndPointerDown?.(event);
             }}
           />
-          <div className="pointer-events-none absolute inset-x-3 top-[2px] h-px rounded-full bg-[#19b3bc]/55 opacity-0 transition-opacity duration-200 group-hover:opacity-100" />
-          <div className="pointer-events-none absolute inset-x-3 bottom-[2px] h-px rounded-full bg-[#19b3bc]/55 opacity-0 transition-opacity duration-200 group-hover:opacity-100" />
+          <div className="pointer-events-none absolute inset-x-3 top-[2px] h-px rounded-full bg-[#50c9d5]/55 opacity-0 transition-opacity duration-200 group-hover:opacity-100" />
+          <div className="pointer-events-none absolute inset-x-3 bottom-[2px] h-px rounded-full bg-[#50c9d5]/55 opacity-0 transition-opacity duration-200 group-hover:opacity-100" />
         </>
       )}
 
@@ -131,7 +131,7 @@ export default function AgendaAppointmentCard({
         {showSeparatedMeta ? (
           <>
             {treatmentPlanLabel ? (
-              <p className="mt-1 truncate text-[10px] font-semibold leading-tight text-[#0f8f98]">
+              <p className="mt-1 truncate text-[10px] font-semibold leading-tight text-[#1e737b]">
                 {treatmentPlanLabel}
               </p>
             ) : null}

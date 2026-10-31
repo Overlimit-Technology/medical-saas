@@ -76,7 +76,7 @@ function ReceiverForm({ onSaved }: { onSaved: () => void }) {
           id="invoice-legal-name"
           value={legalName}
           onChange={(event) => setLegalName(event.target.value)}
-          className="h-10 rounded-xl border border-slate-200 bg-white px-3.5 text-[14px] text-slate-700 outline-none focus:border-[#19b3bc]"
+          className="h-10 rounded-xl border border-slate-200 bg-white px-3.5 text-[14px] text-slate-700 outline-none focus:border-[#50c9d5]"
         />
       </label>
       <label className="flex flex-col gap-1 text-[12px] font-medium text-slate-500 lg:w-[200px]">
@@ -86,7 +86,7 @@ function ReceiverForm({ onSaved }: { onSaved: () => void }) {
           value={taxId}
           onChange={(event) => setTaxId(event.target.value)}
           placeholder="76.123.456-7"
-          className="h-10 rounded-xl border border-slate-200 bg-white px-3.5 text-[14px] text-slate-700 outline-none focus:border-[#19b3bc]"
+          className="h-10 rounded-xl border border-slate-200 bg-white px-3.5 text-[14px] text-slate-700 outline-none focus:border-[#50c9d5]"
         />
       </label>
       <button
@@ -244,7 +244,7 @@ export default function InvoiceBoard({
                                     [invoice.id]: event.target.value.replace(/\D/g, "").slice(0, 10),
                                   }))
                                 }
-                                className="h-8 w-[110px] rounded-lg border border-slate-200 px-2.5 text-[12px] outline-none focus:border-[#19b3bc]"
+                                className="h-8 w-[110px] rounded-lg border border-slate-200 px-2.5 text-[12px] outline-none focus:border-[#50c9d5]"
                               />
                               <button
                                 type="button"

@@ -206,7 +206,7 @@ function MiniMetric({ label, value, tone = "default" }: { label: string; value: 
   return (
     <div className={`rounded-xl px-3 py-3 ${tone === "accent" ? "bg-[#e8f8f9]" : "bg-slate-50"}`}>
       <p className="text-[10px] uppercase tracking-[0.12em] text-slate-400">{label}</p>
-      <p className={`mt-1 text-sm font-semibold ${tone === "accent" ? "text-[#0f8f98]" : "text-slate-800"}`}>{value}</p>
+      <p className={`mt-1 text-sm font-semibold ${tone === "accent" ? "text-[#1e737b]" : "text-slate-800"}`}>{value}</p>
     </div>
   );
 }

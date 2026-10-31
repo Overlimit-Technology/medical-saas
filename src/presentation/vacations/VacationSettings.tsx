@@ -181,7 +181,7 @@ export default function VacationSettings() {
           <button
             type="submit"
             disabled={saving || isInvalidSelection}
-            className="rounded-xl bg-[#19b3bc] px-4 py-2 text-sm font-medium text-white transition hover:bg-[#159ea7] disabled:opacity-60"
+            className="rounded-xl bg-[#50c9d5] px-4 py-2 text-sm font-medium text-[#080b04] transition hover:bg-[#45bcc8] disabled:opacity-60"
           >
             {saving ? "Guardando..." : "Solicitar vacaciones"}
           </button>

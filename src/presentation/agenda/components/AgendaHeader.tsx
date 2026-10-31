@@ -30,7 +30,7 @@ type Props = {
 };
 
 const filterSelectClassName =
-  "rounded-full border border-[#19b3bc]/20 bg-white px-4 py-2 text-sm text-slate-700 outline-none transition-all duration-200 focus:border-[#19b3bc] focus:ring-2 focus:ring-[#19b3bc]/15 disabled:cursor-not-allowed disabled:opacity-60";
+  "rounded-full border border-[#50c9d5]/20 bg-white px-4 py-2 text-sm text-slate-700 outline-none transition-all duration-200 focus:border-[#50c9d5] focus:ring-2 focus:ring-[#50c9d5]/15 disabled:cursor-not-allowed disabled:opacity-60";
 
 export default function AgendaHeader({
   activeView,
@@ -82,7 +82,7 @@ export default function AgendaHeader({
                 onClick={() => onSetActiveView("agenda")}
                 className={`rounded-full px-3 py-1 font-medium transition-colors ${
                   activeView === "agenda"
-                    ? "bg-[#19b3bc] text-white"
+                    ? "bg-[#50c9d5] text-[#080b04]"
                     : "text-slate-600 hover:text-slate-900"
                 }`}
               >
@@ -93,7 +93,7 @@ export default function AgendaHeader({
                 onClick={() => onSetActiveView("dailyCash")}
                 className={`rounded-full px-3 py-1 font-medium transition-colors ${
                   activeView === "dailyCash"
-                    ? "bg-[#19b3bc] text-white"
+                    ? "bg-[#50c9d5] text-[#080b04]"
                     : "text-slate-600 hover:text-slate-900"
                 }`}
               >
@@ -154,14 +154,14 @@ export default function AgendaHeader({
       </div>
 
       {activeView === "agenda" && (
-        <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-[#19b3bc]/10 bg-[#19b3bc]/[0.04] p-3">
-          <div className="flex items-center rounded-full border border-[#19b3bc]/15 bg-white p-1 shadow-sm shadow-[#19b3bc]/5">
+        <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-[#50c9d5]/10 bg-[#50c9d5]/[0.04] p-3">
+          <div className="flex items-center rounded-full border border-[#50c9d5]/15 bg-white p-1 shadow-sm shadow-[#50c9d5]/5">
             <button
               type="button"
               onClick={() => onSetAgendaMode("general")}
               className={`rounded-full px-3 py-1.5 text-sm font-medium transition-colors ${
                 agendaMode === "general"
-                  ? "bg-[#19b3bc] text-white"
+                  ? "bg-[#50c9d5] text-[#080b04]"
                   : "text-slate-600 hover:text-slate-900"
               }`}
             >
@@ -172,7 +172,7 @@ export default function AgendaHeader({
               onClick={() => onSetAgendaMode("boxDay")}
               className={`rounded-full px-3 py-1.5 text-sm font-medium transition-colors ${
                 agendaMode === "boxDay"
-                  ? "bg-[#19b3bc] text-white"
+                  ? "bg-[#50c9d5] text-[#080b04]"
                   : "text-slate-600 hover:text-slate-900"
               }`}
             >
@@ -183,7 +183,7 @@ export default function AgendaHeader({
               onClick={() => onSetAgendaMode("doctor")}
               className={`rounded-full px-3 py-1.5 text-sm font-medium transition-colors ${
                 agendaMode === "doctor"
-                  ? "bg-[#19b3bc] text-white"
+                  ? "bg-[#50c9d5] text-[#080b04]"
                   : "text-slate-600 hover:text-slate-900"
               }`}
             >
@@ -212,13 +212,13 @@ export default function AgendaHeader({
                 })}
               </select>
 
-              <div className="flex items-center rounded-full border border-[#19b3bc]/15 bg-white p-1 shadow-sm shadow-[#19b3bc]/5">
+              <div className="flex items-center rounded-full border border-[#50c9d5]/15 bg-white p-1 shadow-sm shadow-[#50c9d5]/5">
                 <button
                   type="button"
                   onClick={() => onSetDoctorViewMode("day")}
                   className={`rounded-full px-3 py-1.5 text-sm font-medium transition-colors ${
                     doctorViewMode === "day"
-                      ? "bg-[#19b3bc] text-white"
+                      ? "bg-[#50c9d5] text-[#080b04]"
                       : "text-slate-600 hover:text-slate-900"
                   }`}
                 >
@@ -229,7 +229,7 @@ export default function AgendaHeader({
                   onClick={() => onSetDoctorViewMode("week")}
                   className={`rounded-full px-3 py-1.5 text-sm font-medium transition-colors ${
                     doctorViewMode === "week"
-                      ? "bg-[#19b3bc] text-white"
+                      ? "bg-[#50c9d5] text-[#080b04]"
                       : "text-slate-600 hover:text-slate-900"
                   }`}
                 >
@@ -240,7 +240,7 @@ export default function AgendaHeader({
           )}
 
           {agendaMode === "boxDay" && (
-            <span className="rounded-full border border-[#19b3bc]/15 bg-white px-4 py-2 text-sm font-medium text-[#0f8f98] shadow-sm shadow-[#19b3bc]/5">
+            <span className="rounded-full border border-[#50c9d5]/15 bg-white px-4 py-2 text-sm font-medium text-[#1e737b] shadow-sm shadow-[#50c9d5]/5">
               Vista diaria agrupada por box
             </span>
           )}

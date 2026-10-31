@@ -52,7 +52,7 @@ export default function DoctorDashboard() {
       <div className="flex flex-col items-center justify-center gap-4 py-20 text-slate-500">
         <AlertCircle size={40} className="text-rose-400" />
         <p className="text-sm">{error}</p>
-        <button onClick={fetchData} className="text-sm text-[#19b3bc] underline hover:text-[#159ea7]">
+        <button onClick={fetchData} className="text-sm text-[#1e737b] underline hover:text-[#1e737b]">
           Reintentar
         </button>
       </div>
@@ -96,7 +96,7 @@ export default function DoctorDashboard() {
             <RefreshCw size={12} className={loading ? "animate-spin" : ""} />
             Actualizar
           </button>
-          <span className="inline-flex items-center gap-1.5 rounded-full border border-[#19b3bc]/15 bg-[#19b3bc]/10 px-3 py-1.5 text-xs font-medium text-[#0f8f98]">
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-[#50c9d5]/15 bg-[#50c9d5]/10 px-3 py-1.5 text-xs font-medium text-[#1e737b]">
             Panel Doctor
           </span>
         </div>
@@ -115,7 +115,7 @@ export default function DoctorDashboard() {
           label="Mis pacientes"
           value={kpis.totalPatients}
           icon={Users}
-          iconColor="bg-[#e8f8f9] text-[#0f8f98]"
+          iconColor="bg-[#e8f8f9] text-[#1e737b]"
           delay={60}
         />
         <StatCard
@@ -131,7 +131,7 @@ export default function DoctorDashboard() {
           value={formatCurrency(kpis.revenue)}
           delta={kpis.revenueDelta}
           icon={DollarSign}
-          iconColor="bg-[#e8f8f9] text-[#19b3bc]"
+          iconColor="bg-[#e8f8f9] text-[#1e737b]"
           delay={180}
           highlighted
         />
@@ -140,10 +140,10 @@ export default function DoctorDashboard() {
       {/* Second row: quick stats */}
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
         {[
-          { label: "Completadas hoy", value: kpis.todayCompleted, icon: CheckCircle2, color: "text-[#0f8f98]" },
+          { label: "Completadas hoy", value: kpis.todayCompleted, icon: CheckCircle2, color: "text-[#1e737b]" },
           { label: "Pendientes hoy", value: kpis.todayScheduled, icon: Clock, color: "text-cyan-700" },
           { label: "No asistieron", value: kpis.todayNoShow, icon: XCircle, color: "text-red-500" },
-          { label: "Asistencia hoy", value: `${kpis.attendanceRate}%`, icon: Activity, color: "text-[#19b3bc]" },
+          { label: "Asistencia hoy", value: `${kpis.attendanceRate}%`, icon: Activity, color: "text-[#1e737b]" },
         ].map((item, i) => (
           <div
             key={item.label}
@@ -181,7 +181,7 @@ export default function DoctorDashboard() {
                       </div>
                       <div className="h-1.5 rounded-full bg-slate-100">
                         <div
-                          className="h-1.5 rounded-full bg-gradient-to-r from-[#19b3bc] to-cyan-300 transition-all duration-500"
+                          className="h-1.5 rounded-full bg-gradient-to-r from-[#50c9d5] to-cyan-300 transition-all duration-500"
                           style={{ width: `${pct}%` }}
                         />
                       </div>
@@ -205,11 +205,11 @@ export default function DoctorDashboard() {
               {topTreatments.map((treatment, i) => {
                 const pct = ((treatment.count / totalTreatmentCount) * 100).toFixed(1);
                 const colors = [
-                  "bg-[#19b3bc]",
+                  "bg-[#50c9d5]",
                   "bg-cyan-400",
                   "bg-teal-400",
                   "bg-[#7adbe1]",
-                  "bg-[#0f8f98]",
+                  "bg-[#1e737b]",
                 ];
                 return (
                   <div key={i} className="flex items-center justify-between">
@@ -283,7 +283,7 @@ export default function DoctorDashboard() {
       </div>
 
       {/* Monthly summary card */}
-      <div className="rounded-2xl bg-gradient-to-br from-[#19b3bc] to-[#0f8f98] p-6 shadow-sm text-white animate-card-in" style={{ animationDelay: "480ms" }}>
+      <div className="rounded-2xl bg-gradient-to-br from-[#50c9d5] to-[#84d9e1] p-6 shadow-sm text-white animate-card-in" style={{ animationDelay: "480ms" }}>
         <p className="text-sm font-medium text-white/80 mb-3">Mi resumen del mes</p>
         <div className="grid grid-cols-3 gap-4">
           <div>

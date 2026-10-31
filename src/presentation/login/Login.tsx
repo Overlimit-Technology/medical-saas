@@ -164,7 +164,7 @@ export default function Login() {
                 <button
                   type="submit"
                   disabled={state.loading}
-                  className="w-full rounded-xl bg-[#19b3bc] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[#159ea7] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#50c9d5] focus-visible:ring-offset-2 focus-visible:ring-offset-white disabled:opacity-60"
+                  className="w-full rounded-xl bg-[#50c9d5] px-4 py-3 text-sm font-semibold text-[#080b04] transition hover:bg-[#45bcc8] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#50c9d5] focus-visible:ring-offset-2 focus-visible:ring-offset-white disabled:opacity-60"
                 >
                   {state.loading ? "Ingresando..." : "Iniciar sesión"}
                 </button>

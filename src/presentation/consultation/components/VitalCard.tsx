@@ -19,7 +19,7 @@ type Props = {
 /** Color del borde y del valor segun donde cae la medicion. */
 const FLAG_STYLES: Record<VitalFlag, { ring: string; text: string; chip: string }> = {
   empty: { ring: "border-slate-200", text: "text-slate-700", chip: "text-slate-400" },
-  normal: { ring: "border-[#19b3bc]/40", text: "text-[#0f8f98]", chip: "text-[#0f8f98]" },
+  normal: { ring: "border-[#50c9d5]/40", text: "text-[#1e737b]", chip: "text-[#1e737b]" },
   low: { ring: "border-sky-300", text: "text-sky-700", chip: "text-sky-600" },
   high: { ring: "border-amber-300", text: "text-amber-700", chip: "text-amber-600" },
   invalid: { ring: "border-rose-300", text: "text-rose-600", chip: "text-rose-500" },

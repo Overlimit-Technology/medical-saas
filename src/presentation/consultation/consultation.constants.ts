@@ -14,10 +14,10 @@ import type {
 
 /** Paleta corporativa. Se centraliza aca para no repetir el hex por toda la UI. */
 export const BRAND = {
-  base: "#19b3bc",
-  deep: "#0f8f98",
-  hover: "#159ea7",
-  mist: "#e9f7f8",
+  base: "#50c9d5",
+  deep: "#1e737b",
+  hover: "#45bcc8",
+  mist: "#eef9fa",
 } as const;
 
 export type ConsultationStageKey =

@@ -57,13 +57,13 @@ export default function AppointmentDetailModal({
   onDelete,
 }: Props) {
   const dropdownTriggerClassName =
-    "flex w-full items-center justify-between rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-left text-sm text-slate-700 transition-all duration-200 hover:border-[#19b3bc]/40 focus:outline-none";
+    "flex w-full items-center justify-between rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-left text-sm text-slate-700 transition-all duration-200 hover:border-[#50c9d5]/40 focus:outline-none";
   const dropdownPanelClassName =
-    "animate-fade-in absolute left-0 right-0 top-[calc(100%+8px)] z-20 overflow-hidden rounded-2xl border border-[#19b3bc]/20 bg-white shadow-xl shadow-[#19b3bc]/10";
+    "animate-fade-in absolute left-0 right-0 top-[calc(100%+8px)] z-20 overflow-hidden rounded-2xl border border-[#50c9d5]/20 bg-white shadow-xl shadow-[#50c9d5]/10";
   const dropdownItemClassName =
-    "flex w-full items-center justify-between px-4 py-3 text-left text-sm transition-colors duration-200 hover:bg-[#19b3bc]/5";
+    "flex w-full items-center justify-between px-4 py-3 text-left text-sm transition-colors duration-200 hover:bg-[#50c9d5]/5";
   const fieldClassName =
-    "w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm text-slate-700 transition-all duration-200 focus:border-[#19b3bc] focus:outline-none focus:ring-2 focus:ring-[#19b3bc]/15";
+    "w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm text-slate-700 transition-all duration-200 focus:border-[#50c9d5] focus:outline-none focus:ring-2 focus:ring-[#50c9d5]/15";
   const [openDropdown, setOpenDropdown] = useState<"appointmentStatus" | "treatment" | null>(null);
   const appointmentStatusRef = useRef<HTMLDivElement | null>(null);
   const treatmentRef = useRef<HTMLDivElement | null>(null);
@@ -151,7 +151,7 @@ export default function AppointmentDetailModal({
                 <p className="mt-1 font-medium text-slate-700">
                   {appointment.treatmentPlan.name}
                 </p>
-                <p className="mt-0.5 text-xs text-[#0f8f98]">
+                <p className="mt-0.5 text-xs text-[#1e737b]">
                   Sesion {appointment.treatmentPlan.sessionIndex ?? "?"} de {appointment.treatmentPlan.totalSessions}
                 </p>
               </div>
@@ -165,13 +165,13 @@ export default function AppointmentDetailModal({
           </div>
 
           <div className="space-y-4">
-            <div className="rounded-2xl border border-[#19b3bc]/12 bg-[#19b3bc]/[0.04] p-4">
+            <div className="rounded-2xl border border-[#50c9d5]/12 bg-[#50c9d5]/[0.04] p-4">
               <div className="flex items-center justify-between gap-3">
-                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#0f8f98]">
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#1e737b]">
                   Estado de la cita
                 </p>
                 {statusUpdating ? (
-                  <span className="text-xs font-medium text-[#0f8f98]">Actualizando...</span>
+                  <span className="text-xs font-medium text-[#1e737b]">Actualizando...</span>
                 ) : null}
               </div>
 
@@ -185,12 +185,12 @@ export default function AppointmentDetailModal({
                       )
                     }
                     className={`${dropdownTriggerClassName} ${
-                      openDropdown === "appointmentStatus" ? "border-[#19b3bc] ring-2 ring-[#19b3bc]/15" : ""
+                      openDropdown === "appointmentStatus" ? "border-[#50c9d5] ring-2 ring-[#50c9d5]/15" : ""
                     }`}
                   >
                     <span className="truncate text-slate-700">{selectedAppointmentStatusLabel}</span>
                     <span
-                      className={`text-[#19b3bc] transition-transform duration-200 ${
+                      className={`text-[#1e737b] transition-transform duration-200 ${
                         openDropdown === "appointmentStatus" ? "rotate-180" : ""
                       }`}
                     >
@@ -212,12 +212,12 @@ export default function AppointmentDetailModal({
                                 setOpenDropdown(null);
                               }}
                               className={`${dropdownItemClassName} ${
-                                isSelected ? "bg-[#19b3bc]/10 text-[#0f8f98]" : "text-slate-700"
+                                isSelected ? "bg-[#50c9d5]/10 text-[#1e737b]" : "text-slate-700"
                               }`}
                             >
                               <span>{STATUS_LABELS[status]}</span>
                               {isSelected ? (
-                                <span className="text-[#19b3bc]">
+                                <span className="text-[#1e737b]">
                                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
                                 </span>
                               ) : null}
@@ -236,8 +236,8 @@ export default function AppointmentDetailModal({
             </div>
 
             {canManageDailyCash && (
-              <div className="rounded-2xl border border-[#19b3bc]/12 bg-[#19b3bc]/[0.04] p-4">
-                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#0f8f98]">
+              <div className="rounded-2xl border border-[#50c9d5]/12 bg-[#50c9d5]/[0.04] p-4">
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#1e737b]">
                   Cobro de la cita
                 </p>
 
@@ -247,14 +247,14 @@ export default function AppointmentDetailModal({
                       type="button"
                       onClick={() => setOpenDropdown((current) => (current === "treatment" ? null : "treatment"))}
                       className={`${dropdownTriggerClassName} ${
-                        openDropdown === "treatment" ? "border-[#19b3bc] ring-2 ring-[#19b3bc]/15" : ""
+                        openDropdown === "treatment" ? "border-[#50c9d5] ring-2 ring-[#50c9d5]/15" : ""
                       }`}
                     >
                       <span className={`truncate ${paymentForm.treatmentId ? "text-slate-700" : "text-slate-400"}`}>
                         {selectedTreatmentLabel}
                       </span>
                       <span
-                        className={`text-[#19b3bc] transition-transform duration-200 ${
+                        className={`text-[#1e737b] transition-transform duration-200 ${
                           openDropdown === "treatment" ? "rotate-180" : ""
                         }`}
                       >
@@ -276,14 +276,14 @@ export default function AppointmentDetailModal({
                                   setOpenDropdown(null);
                                 }}
                                 className={`${dropdownItemClassName} ${
-                                  isSelected ? "bg-[#19b3bc]/10 text-[#0f8f98]" : "text-slate-700"
+                                  isSelected ? "bg-[#50c9d5]/10 text-[#1e737b]" : "text-slate-700"
                                 }`}
                               >
                                 <span className="truncate">
                                   {treatment.name} · {formatCurrency(treatment.price)}
                                 </span>
                                 {isSelected ? (
-                                  <span className="text-[#19b3bc]">
+                                  <span className="text-[#1e737b]">
                                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
                                   </span>
                                 ) : null}
@@ -306,7 +306,7 @@ export default function AppointmentDetailModal({
                               ? "Actualmente esta marcado como exento y no suma a la caja del dia."
                               : "Desmarcado queda pendiente y no suma a la caja del dia."}
                         </p>
-                        <p className="mt-2 text-xs font-medium text-[#0f8f98]">
+                        <p className="mt-2 text-xs font-medium text-[#1e737b]">
                           Estado actual: {selectedPaymentStatusLabel}
                         </p>
                       </div>
@@ -322,7 +322,7 @@ export default function AppointmentDetailModal({
                           }
                           className="peer sr-only"
                         />
-                        <span className="absolute inset-0 rounded-full bg-slate-200 transition-colors peer-checked:bg-[#19b3bc]" />
+                        <span className="absolute inset-0 rounded-full bg-slate-200 transition-colors peer-checked:bg-[#50c9d5]" />
                         <span className="absolute left-0.5 h-5 w-5 rounded-full bg-white shadow-sm transition-transform peer-checked:translate-x-5" />
                       </span>
                     </label>
@@ -374,7 +374,7 @@ export default function AppointmentDetailModal({
                 signos vitales, diagnostico, control y cobro en un solo flujo. */}
             <a
               href={`/consultation/${appointment.id}`}
-              className="group inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-[#19b3bc] to-[#0f8f98] px-5 py-2.5 text-center text-sm font-semibold text-white shadow-lg shadow-[#19b3bc]/25 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-xl hover:shadow-[#19b3bc]/30"
+              className="group inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-[#50c9d5] to-[#84d9e1] px-5 py-2.5 text-center text-sm font-semibold text-white shadow-lg shadow-[#50c9d5]/25 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-xl hover:shadow-[#50c9d5]/30"
             >
               <svg
                 width="15"
@@ -412,7 +412,7 @@ export default function AppointmentDetailModal({
                 type="button"
                 onClick={onApplyChanges}
                 disabled={detailApplyLoading || !hasDetailChanges}
-                className="rounded-full bg-[#19b3bc] px-5 py-2.5 text-sm font-semibold text-white transition-all hover:bg-[#159ea7] hover:shadow-lg hover:shadow-[#19b3bc]/20 disabled:cursor-not-allowed disabled:bg-[#19b3bc]/45 disabled:shadow-none"
+                className="rounded-full bg-[#50c9d5] px-5 py-2.5 text-sm font-semibold text-[#080b04] transition-all hover:bg-[#45bcc8] hover:shadow-lg hover:shadow-[#50c9d5]/20 disabled:cursor-not-allowed disabled:bg-[#50c9d5]/45 disabled:shadow-none"
               >
                 {detailApplyLoading ? "Aplicando..." : "Aplicar"}
               </button>

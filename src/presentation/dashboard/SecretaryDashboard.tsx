@@ -52,13 +52,13 @@ const WAITING_ROOM_STATUS_LABELS: Record<WaitingRoomStatus, string> = {
 
 const WAITING_ROOM_STATUS_STYLES: Record<WaitingRoomStatus, string> = {
   waiting: "border-slate-200 bg-slate-50 text-slate-600",
-  ready: "border-[#19b3bc]/20 bg-[#e8f8f9] text-[#0f8f98]",
+  ready: "border-[#50c9d5]/20 bg-[#e8f8f9] text-[#1e737b]",
   delayed: "border-amber-200 bg-amber-50 text-amber-700",
 };
 
 const CARD_BUTTON_STYLES: Record<WaitingRoomStatus, string> = {
-  waiting: "bg-[#19b3bc] text-white hover:bg-[#159ea7]",
-  ready: "bg-[#e8f8f9] text-[#0f8f98]",
+  waiting: "bg-[#50c9d5] text-[#080b04] hover:bg-[#45bcc8]",
+  ready: "bg-[#e8f8f9] text-[#1e737b]",
   delayed: "bg-amber-100 text-amber-800 hover:bg-amber-200",
 };
 
@@ -172,7 +172,7 @@ function QuickPaymentModal({
             <select
               value={treatmentId}
               onChange={(event) => handleTreatmentChange(event.target.value)}
-              className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-[#19b3bc]"
+              className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-[#50c9d5]"
             >
               <option value="">Selecciona un tratamiento</option>
               {treatments.map((treatment) => (
@@ -191,7 +191,7 @@ function QuickPaymentModal({
               value={amount}
               onChange={(event) => setAmount(event.target.value)}
               placeholder="0"
-              className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm tabular-nums text-slate-900 outline-none transition focus:border-[#19b3bc]"
+              className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm tabular-nums text-slate-900 outline-none transition focus:border-[#50c9d5]"
             />
           </div>
 
@@ -204,7 +204,7 @@ function QuickPaymentModal({
                   onClick={() => setStatus(option)}
                   className={`flex-1 rounded-lg px-3 py-2 text-xs font-semibold transition ${
                     status === option
-                      ? "bg-[#19b3bc] text-white"
+                      ? "bg-[#50c9d5] text-[#080b04]"
                       : "border border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
                   }`}
                 >
@@ -222,7 +222,7 @@ function QuickPaymentModal({
               rows={2}
               onChange={(event) => setNotes(event.target.value)}
               placeholder="Opcional"
-              className="mt-1 w-full resize-none rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-[#19b3bc]"
+              className="mt-1 w-full resize-none rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-[#50c9d5]"
             />
           </div>
 
@@ -254,7 +254,7 @@ function QuickPaymentModal({
                 notes: notes.trim() ? notes.trim() : null,
               })
             }
-            className="rounded-lg bg-[#19b3bc] px-4 py-2 text-xs font-semibold text-white transition hover:bg-[#159ea7] disabled:opacity-50"
+            className="rounded-lg bg-[#50c9d5] px-4 py-2 text-xs font-semibold text-[#080b04] transition hover:bg-[#45bcc8] disabled:opacity-50"
           >
             {saving ? "Guardando..." : "Registrar cobro"}
           </button>
@@ -332,7 +332,7 @@ export default function SecretaryDashboard() {
       <div className="flex flex-col items-center justify-center gap-4 py-20 text-slate-500">
         <AlertCircle size={40} className="text-rose-400" />
         <p className="text-sm">{error}</p>
-        <button onClick={fetchData} className="text-sm text-[#19b3bc] underline hover:text-[#159ea7]">
+        <button onClick={fetchData} className="text-sm text-[#1e737b] underline hover:text-[#1e737b]">
           Reintentar
         </button>
       </div>
@@ -401,7 +401,7 @@ export default function SecretaryDashboard() {
             <RefreshCw size={12} className={loading ? "animate-spin" : ""} />
             Actualizar
           </button>
-          <span className="inline-flex items-center gap-1.5 rounded-full border border-[#19b3bc]/15 bg-[#19b3bc]/10 px-3 py-1.5 text-xs font-medium text-[#0f8f98]">
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-[#50c9d5]/15 bg-[#50c9d5]/10 px-3 py-1.5 text-xs font-medium text-[#1e737b]">
             Panel Recepción
           </span>
         </div>
@@ -410,10 +410,10 @@ export default function SecretaryDashboard() {
       {/* Resumen de sala */}
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
         {[
-          { label: "En sala", value: waitingRoomSummary.ready, icon: CheckCircle2, color: "text-[#0f8f98]" },
+          { label: "En sala", value: waitingRoomSummary.ready, icon: CheckCircle2, color: "text-[#1e737b]" },
           { label: "En espera", value: waitingRoomSummary.waiting, icon: Clock, color: "text-cyan-700" },
           { label: "Con demora", value: waitingRoomSummary.delayed, icon: CircleAlert, color: "text-amber-600" },
-          { label: "Avisos enviados", value: waitingRoomSummary.notified, icon: BellRing, color: "text-[#19b3bc]" },
+          { label: "Avisos enviados", value: waitingRoomSummary.notified, icon: BellRing, color: "text-[#1e737b]" },
         ].map((item, i) => (
           <div
             key={item.label}
@@ -429,7 +429,7 @@ export default function SecretaryDashboard() {
 
       {/* Caja del dia: mismos datos que /agenda, no una copia paralela */}
       <div
-        className="rounded-2xl bg-gradient-to-br from-[#19b3bc] to-[#0f8f98] p-6 text-white shadow-sm animate-card-in lg:flex lg:items-center lg:justify-between lg:gap-6"
+        className="rounded-2xl bg-gradient-to-br from-[#50c9d5] to-[#84d9e1] p-6 text-white shadow-sm animate-card-in lg:flex lg:items-center lg:justify-between lg:gap-6"
         style={{ animationDelay: "160ms" }}
       >
         <div className="flex items-center gap-3">
@@ -486,7 +486,7 @@ export default function SecretaryDashboard() {
         >
           <div className="flex items-center justify-between gap-2">
             <div className="flex items-center gap-2.5">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#e8f8f9] text-[#0f8f98]">
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#e8f8f9] text-[#1e737b]">
                 <CalendarDays size={16} />
               </div>
               <div>
@@ -546,7 +546,7 @@ export default function SecretaryDashboard() {
                       <button
                         onClick={() => setPayingEntryId(appointment.id)}
                         disabled={busy}
-                        className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-semibold text-[#0f8f98] transition hover:border-[#19b3bc] hover:bg-[#e8f8f9] disabled:opacity-50"
+                        className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-semibold text-[#1e737b] transition hover:border-[#50c9d5] hover:bg-[#e8f8f9] disabled:opacity-50"
                       >
                         <Wallet size={12} />
                         {appointment.payment ? "Editar cobro" : "Cobrar"}
@@ -565,7 +565,7 @@ export default function SecretaryDashboard() {
         >
           <div className="flex flex-col gap-2 border-b border-slate-100 pb-3 sm:flex-row sm:items-end sm:justify-between">
             <div className="flex items-center gap-2.5">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#e8f8f9] text-[#0f8f98]">
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#e8f8f9] text-[#1e737b]">
                 <Clock size={16} />
               </div>
               <div>
@@ -594,7 +594,7 @@ export default function SecretaryDashboard() {
                   <tr key={appointment.id} className="border-b border-slate-100 text-xs last:border-b-0">
                     <td className="px-3 py-3.5">
                       <div className="flex items-center gap-2.5">
-                        <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#e8f8f9] text-xs font-semibold text-[#0f8f98]">
+                        <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#e8f8f9] text-xs font-semibold text-[#1e737b]">
                           {entry.initials}
                         </div>
                         <div>
@@ -623,7 +623,7 @@ export default function SecretaryDashboard() {
                         <button
                           onClick={() => setPayingEntryId(appointment.id)}
                           disabled={busy}
-                          className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-[11px] font-semibold text-[#0f8f98] transition hover:border-[#19b3bc] hover:bg-[#e8f8f9] disabled:opacity-50"
+                          className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-[11px] font-semibold text-[#1e737b] transition hover:border-[#50c9d5] hover:bg-[#e8f8f9] disabled:opacity-50"
                         >
                           <Wallet size={12} />
                           {appointment.payment ? "Editar cobro" : "Cobrar"}
@@ -631,7 +631,7 @@ export default function SecretaryDashboard() {
                         <button
                           onClick={() => notifyDoctor(entry)}
                           disabled={busy}
-                          className="rounded-lg bg-[#19b3bc] px-3 py-1.5 text-[11px] font-semibold text-white transition hover:bg-[#159ea7] disabled:opacity-50"
+                          className="rounded-lg bg-[#50c9d5] px-3 py-1.5 text-[11px] font-semibold text-[#080b04] transition hover:bg-[#45bcc8] disabled:opacity-50"
                         >
                           {appointment.arrivalNotifiedAt ? "Reenviar" : "Notificar"}
                         </button>
@@ -665,7 +665,7 @@ export default function SecretaryDashboard() {
           label="Completadas"
           value={kpis.todayCompleted}
           icon={CheckCircle2}
-          iconColor="bg-[#e8f8f9] text-[#0f8f98]"
+          iconColor="bg-[#e8f8f9] text-[#1e737b]"
           delay={60}
         />
         <StatCard
@@ -714,7 +714,7 @@ export default function SecretaryDashboard() {
                       </div>
                       <div className="h-1.5 rounded-full bg-slate-100">
                         <div
-                          className="h-1.5 rounded-full bg-gradient-to-r from-[#19b3bc] to-cyan-300 transition-all duration-500"
+                          className="h-1.5 rounded-full bg-gradient-to-r from-[#50c9d5] to-cyan-300 transition-all duration-500"
                           style={{ width: `${percentage}%` }}
                         />
                       </div>
@@ -747,7 +747,7 @@ export default function SecretaryDashboard() {
                 />
                 <defs>
                   <linearGradient id="secAttendGrad" x1="0" y1="0" x2="1" y2="1">
-                    <stop offset="0%" stopColor="#19b3bc" />
+                    <stop offset="0%" stopColor="#50c9d5" />
                     <stop offset="100%" stopColor="#7adbe1" />
                   </linearGradient>
                 </defs>
@@ -758,7 +758,7 @@ export default function SecretaryDashboard() {
             </div>
             <div className="space-y-2 text-sm">
               <div className="flex items-center gap-2">
-                <span className="h-2.5 w-2.5 rounded-full bg-[#0f8f98]" />
+                <span className="h-2.5 w-2.5 rounded-full bg-[#1e737b]" />
                 <span className="text-slate-600">Completadas: {kpis.todayCompleted}</span>
               </div>
               <div className="flex items-center gap-2">

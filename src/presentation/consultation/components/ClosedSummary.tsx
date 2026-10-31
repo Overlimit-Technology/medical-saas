@@ -51,7 +51,7 @@ export default function ClosedSummary({ bootstrap, result }: Props) {
           className={`px-8 py-9 text-center text-white ${
             isNoShow
               ? "bg-gradient-to-br from-rose-500 to-rose-600"
-              : "bg-gradient-to-br from-[#19b3bc] to-[#0f8f98]"
+              : "bg-gradient-to-br from-[#50c9d5] to-[#84d9e1]"
           }`}
         >
           <span className="animate-pop-in mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-white/15 ring-1 ring-white/25">
@@ -73,7 +73,7 @@ export default function ClosedSummary({ bootstrap, result }: Props) {
                 className="animate-rise-in flex items-start gap-3 rounded-2xl bg-slate-50 px-4 py-3"
                 style={{ animationDelay: `${120 + index * 70}ms` }}
               >
-                <item.icon size={17} className="mt-0.5 shrink-0 text-[#0f8f98]" />
+                <item.icon size={17} className="mt-0.5 shrink-0 text-[#1e737b]" />
                 <div>
                   <p className="text-sm font-semibold text-slate-800">{item.label}</p>
                   <p className="text-xs text-slate-500">{item.value}</p>
@@ -104,7 +104,7 @@ export default function ClosedSummary({ bootstrap, result }: Props) {
             </Link>
             <Link
               href="/agenda"
-              className="rounded-full bg-[#19b3bc] px-5 py-3 text-center text-sm font-semibold text-white shadow-lg shadow-[#19b3bc]/25 transition-all duration-200 hover:-translate-y-0.5 hover:bg-[#159ea7] sm:flex-1"
+              className="rounded-full bg-[#50c9d5] px-5 py-3 text-center text-sm font-semibold text-[#080b04] shadow-lg shadow-[#50c9d5]/25 transition-all duration-200 hover:-translate-y-0.5 hover:bg-[#45bcc8] sm:flex-1"
             >
               Volver a la agenda
             </Link>

@@ -119,7 +119,7 @@ export default function BookingTab() {
               <button
                 type="button"
                 onClick={() => void copy()}
-                className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 text-xs font-medium text-slate-700 hover:border-[#19b3bc]"
+                className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 text-xs font-medium text-slate-700 hover:border-[#50c9d5]"
               >
                 {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
                 {copied ? "Copiado" : "Copiar enlace"}
@@ -128,7 +128,7 @@ export default function BookingTab() {
                 href={settings.url}
                 target="_blank"
                 rel="noreferrer"
-                className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 text-xs font-medium text-slate-700 hover:border-[#19b3bc]"
+                className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 text-xs font-medium text-slate-700 hover:border-[#50c9d5]"
               >
                 <ExternalLink className="h-3.5 w-3.5" />
                 Abrir

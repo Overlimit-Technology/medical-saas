@@ -76,7 +76,7 @@ export default function PortalSettings({ canEdit }: { canEdit: boolean }) {
   return (
     <div className="mx-auto max-w-3xl space-y-4">
       <div className="flex items-center gap-3">
-        <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#e9f7f8] text-[#0f8f98]">
+        <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#eef9fa] text-[#1e737b]">
           <HeartPulse className="h-5 w-5" />
         </span>
         <div>
@@ -127,7 +127,7 @@ export default function PortalSettings({ canEdit }: { canEdit: boolean }) {
               type="button"
               disabled={saving || slug === settings.slug}
               onClick={() => void save({ slug })}
-              className="h-10 rounded-xl bg-[#19b3bc] px-4 text-sm font-medium text-white hover:bg-[#0f9ea8] disabled:opacity-50"
+              className="h-10 rounded-xl bg-[#50c9d5] px-4 text-sm font-medium text-[#080b04] hover:bg-[#0f9ea8] disabled:opacity-50"
             >
               Guardar enlace
             </button>
@@ -143,7 +143,7 @@ export default function PortalSettings({ canEdit }: { canEdit: boolean }) {
               <button
                 type="button"
                 onClick={() => void copy()}
-                className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 text-xs font-medium text-slate-700 hover:border-[#19b3bc]"
+                className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 text-xs font-medium text-slate-700 hover:border-[#50c9d5]"
               >
                 {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
                 {copied ? "Copiado" : "Copiar enlace"}
@@ -153,7 +153,7 @@ export default function PortalSettings({ canEdit }: { canEdit: boolean }) {
                   href={settings.url}
                   target="_blank"
                   rel="noreferrer"
-                  className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 text-xs font-medium text-slate-700 hover:border-[#19b3bc]"
+                  className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 text-xs font-medium text-slate-700 hover:border-[#50c9d5]"
                 >
                   <ExternalLink className="h-3.5 w-3.5" />
                   Abrir portal

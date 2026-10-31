@@ -42,7 +42,7 @@ export default function CrmDesktop() {
             <div className="flex flex-col gap-3 px-4 py-3 sm:px-5 lg:flex-row lg:items-center lg:justify-between">
               <div className="min-w-0">
                 <div className="flex items-center gap-2">
-                  <span className="rounded-full bg-[#e8f8f9] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-[#0f8f98]">
+                  <span className="rounded-full bg-[#e8f8f9] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-[#1e737b]">
                     CRM
                   </span>
                   <span className="hidden text-[11px] text-slate-400 sm:inline">/</span>
@@ -65,8 +65,8 @@ export default function CrmDesktop() {
                       onClick={() => setActiveTab(tab.key)}
                       className={`inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-sm font-medium transition ${
                         isActive
-                          ? "border-[#19b3bc] bg-[#19b3bc] text-white shadow-sm"
-                          : "border-slate-200 bg-slate-50 text-slate-600 hover:border-[#19b3bc]/35 hover:bg-white hover:text-[#0f8f98]"
+                          ? "border-[#50c9d5] bg-[#50c9d5] text-[#080b04] shadow-sm"
+                          : "border-slate-200 bg-slate-50 text-slate-600 hover:border-[#50c9d5]/35 hover:bg-white hover:text-[#1e737b]"
                       }`}
                     >
                       <Icon className="h-4 w-4" strokeWidth={2} />

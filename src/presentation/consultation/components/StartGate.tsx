@@ -63,7 +63,7 @@ export default function StartGate(props: Props) {
   return (
     <div className="animate-rise-in mx-auto w-full max-w-3xl">
       <div className="overflow-hidden rounded-3xl border border-slate-100 bg-white shadow-xl shadow-slate-900/5">
-        <div className="relative bg-gradient-to-br from-[#19b3bc] to-[#0f8f98] px-8 py-9 text-white">
+        <div className="relative bg-gradient-to-br from-[#50c9d5] to-[#84d9e1] px-8 py-9 text-white">
           <div className="absolute inset-0 opacity-10 [background-image:radial-gradient(circle_at_20%_20%,white_1px,transparent_1px)] [background-size:22px_22px]" />
 
           <div className="relative flex flex-wrap items-center gap-5">
@@ -133,7 +133,7 @@ export default function StartGate(props: Props) {
                 <BadgeCheck size={13} /> {history.totalVisits} atenciones previas
               </span>
             ) : (
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-[#19b3bc]/10 px-3 py-1 text-xs font-semibold text-[#0f8f98]">
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-[#50c9d5]/10 px-3 py-1 text-xs font-semibold text-[#1e737b]">
                 <BadgeCheck size={13} /> Primera atencion
               </span>
             )}
@@ -181,7 +181,7 @@ export default function StartGate(props: Props) {
                 type="button"
                 onClick={onStart}
                 disabled={starting}
-                className="group relative mt-6 flex w-full items-center justify-center gap-2.5 rounded-2xl bg-[#19b3bc] px-6 py-4 text-base font-semibold text-white shadow-lg shadow-[#19b3bc]/30 transition-all duration-200 hover:-translate-y-0.5 hover:bg-[#159ea7] hover:shadow-xl hover:shadow-[#19b3bc]/35 disabled:translate-y-0 disabled:cursor-wait disabled:bg-[#19b3bc]/60 disabled:shadow-none"
+                className="group relative mt-6 flex w-full items-center justify-center gap-2.5 rounded-2xl bg-[#50c9d5] px-6 py-4 text-base font-semibold text-[#080b04] shadow-lg shadow-[#50c9d5]/30 transition-all duration-200 hover:-translate-y-0.5 hover:bg-[#45bcc8] hover:shadow-xl hover:shadow-[#50c9d5]/35 disabled:translate-y-0 disabled:cursor-wait disabled:bg-[#50c9d5]/60 disabled:shadow-none"
               >
                 {starting ? (
                   <>

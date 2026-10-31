@@ -149,7 +149,7 @@ export default function SharedSessionSwitcher({ collapsed }: { collapsed: boolea
   };
 
   const baseBtn =
-    "flex w-full items-center gap-2.5 rounded-xl px-2.5 py-2.5 text-left text-[13px] font-medium leading-4 text-white/90 transition-colors hover:bg-white/10 hover:text-white";
+    "flex w-full items-center gap-2.5 rounded-2xl border border-transparent px-3 py-2 text-left text-[14px] font-medium leading-5 text-slate-600 transition-colors hover:bg-white/70 hover:text-slate-900";
 
   const current = info.profiles.find((p) => p.active);
 
@@ -167,7 +167,7 @@ export default function SharedSessionSwitcher({ collapsed }: { collapsed: boolea
             {!collapsed && (
               <span className="min-w-0 flex-1">
                 <span className="block">Cambiar de usuario</span>
-                <span className="block truncate text-[10px] text-white/70">{current?.name}</span>
+                <span className="block truncate text-[11px] text-slate-500">{current?.name}</span>
               </span>
             )}
           </button>
@@ -183,9 +183,9 @@ export default function SharedSessionSwitcher({ collapsed }: { collapsed: boolea
                       role="menuitem"
                       disabled={busy}
                       onClick={() => switchTo(profile)}
-                      className={`flex w-full items-center gap-2 rounded-xl px-2 py-2 text-left text-sm ${profile.active ? "bg-[#19b3bc]/10 text-[#0f8f98]" : "hover:bg-slate-50"}`}
+                      className={`flex w-full items-center gap-2 rounded-xl px-2 py-2 text-left text-sm ${profile.active ? "bg-[#50c9d5]/10 text-[#1e737b]" : "hover:bg-slate-50"}`}
                     >
-                      <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#19b3bc] text-[11px] font-semibold text-white">
+                      <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#50c9d5] text-[11px] font-semibold text-[#080b04]">
                         {profile.name.charAt(0).toUpperCase()}
                       </span>
                       <span className="min-w-0 flex-1">
@@ -302,8 +302,8 @@ function Modal({ title, onClose, children }: { title: string; onClose: () => voi
   );
 }
 
-const inputClass = "h-10 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-800 outline-none focus:border-[#19b3bc]";
-const primaryClass = "h-10 w-full rounded-xl bg-[#19b3bc] text-sm font-semibold text-white hover:bg-[#159ea7] disabled:opacity-50";
+const inputClass = "h-10 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-800 outline-none focus:border-[#50c9d5]";
+const primaryClass = "h-10 w-full rounded-xl bg-[#50c9d5] text-sm font-semibold text-[#080b04] hover:bg-[#45bcc8] disabled:opacity-50";
 
 function ActivateForm({ busy, error, onSubmit }: { busy: boolean; error: string | null; onSubmit: (password: string) => void }) {
   const [accepted, setAccepted] = useState(false);

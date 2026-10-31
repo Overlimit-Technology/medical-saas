@@ -23,7 +23,7 @@ const stage = CONSULTATION_STAGES[1];
 
 const BMI_TONES = {
   low: "border-sky-200 bg-sky-50 text-sky-700",
-  normal: "border-[#19b3bc]/30 bg-[#19b3bc]/[0.06] text-[#0f8f98]",
+  normal: "border-[#50c9d5]/30 bg-[#50c9d5]/[0.06] text-[#1e737b]",
   warn: "border-amber-200 bg-amber-50 text-amber-700",
   high: "border-rose-200 bg-rose-50 text-rose-700",
 } as const;
@@ -54,7 +54,7 @@ export default function StageVitals({
           <button
             type="button"
             onClick={onCopyPrevious}
-            className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-white px-3.5 py-2 text-xs font-semibold text-slate-600 transition-all duration-200 hover:-translate-y-px hover:border-[#19b3bc]/50 hover:text-[#0f8f98]"
+            className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-white px-3.5 py-2 text-xs font-semibold text-slate-600 transition-all duration-200 hover:-translate-y-px hover:border-[#50c9d5]/50 hover:text-[#1e737b]"
           >
             <CopyPlus size={13} />
             Traer los ultimos valores

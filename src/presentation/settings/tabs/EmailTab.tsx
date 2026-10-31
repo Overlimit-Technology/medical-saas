@@ -239,7 +239,7 @@ export default function EmailTab() {
   if (loading) {
     return (
       <div className="flex items-center justify-center rounded-2xl border border-slate-200 bg-white p-12">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-[#19b3bc]/20 border-t-[#19b3bc]" />
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-[#50c9d5]/20 border-t-[#50c9d5]" />
       </div>
     );
   }
@@ -273,7 +273,7 @@ export default function EmailTab() {
             onClick={() => setPreviewMode((v) => !v)}
             className={`flex items-center gap-1.5 rounded-xl border px-3 py-2 text-xs font-medium transition-all ${
               previewMode
-                ? "border-[#19b3bc] bg-[#19b3bc]/10 text-[#19b3bc]"
+                ? "border-[#50c9d5] bg-[#50c9d5]/10 text-[#1e737b]"
                 : "border-slate-200 text-slate-500 hover:bg-slate-50"
             }`}
           >
@@ -345,7 +345,7 @@ export default function EmailTab() {
             type="button"
             onClick={handleSave}
             disabled={saving}
-            className="rounded-2xl bg-[#19b3bc] px-5 py-3 text-sm font-medium text-white transition-colors hover:bg-[#159ea7] disabled:cursor-not-allowed disabled:bg-[#19b3bc]/45"
+            className="rounded-2xl bg-[#50c9d5] px-5 py-3 text-sm font-medium text-[#080b04] transition-colors hover:bg-[#45bcc8] disabled:cursor-not-allowed disabled:bg-[#50c9d5]/45"
           >
             {saving ? "Guardando..." : "Guardar"}
           </button>
@@ -446,7 +446,7 @@ export default function EmailTab() {
                         </span>
                       )}
                       {isCustomized && isEnabled && (
-                        <span className="rounded-full bg-[#19b3bc]/10 px-2 py-0.5 text-[10px] font-medium text-[#19b3bc]">
+                        <span className="rounded-full bg-[#50c9d5]/10 px-2 py-0.5 text-[10px] font-medium text-[#1e737b]">
                           Personalizado
                         </span>
                       )}
@@ -455,7 +455,7 @@ export default function EmailTab() {
                     <button
                       type="button"
                       onClick={() => openEditor(eventType)}
-                      className="mt-0.5 flex items-center gap-0.5 text-[11px] font-medium text-[#19b3bc] hover:text-[#159ea7]"
+                      className="mt-0.5 flex items-center gap-0.5 text-[11px] font-medium text-[#1e737b] hover:text-[#1e737b]"
                     >
                       Personalizar mensaje
                       <ChevronRight className="h-3 w-3" />
@@ -470,7 +470,7 @@ export default function EmailTab() {
                     title={isEnabled ? "Desactivar" : "Activar"}
                   >
                     {isEnabled ? (
-                      <ToggleRight className="h-7 w-7 text-[#19b3bc]" />
+                      <ToggleRight className="h-7 w-7 text-[#1e737b]" />
                     ) : (
                       <ToggleLeft className="h-7 w-7 text-slate-300" />
                     )}

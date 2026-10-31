@@ -112,7 +112,7 @@ export default function ClinicTab() {
   if (loading) {
     return (
       <div className="flex items-center justify-center rounded-2xl border border-slate-200 bg-white p-12">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-[#19b3bc]/20 border-t-[#19b3bc]" />
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-[#50c9d5]/20 border-t-[#50c9d5]" />
       </div>
     );
   }
@@ -135,14 +135,14 @@ export default function ClinicTab() {
                 className="h-24 w-24 rounded-2xl object-contain"
               />
             ) : (
-              <div className="flex h-24 w-24 items-center justify-center rounded-2xl bg-[#19b3bc]/10 text-3xl font-semibold text-[#19b3bc]">
+              <div className="flex h-24 w-24 items-center justify-center rounded-2xl bg-[#50c9d5]/10 text-3xl font-semibold text-[#1e737b]">
                 {form.name.charAt(0).toUpperCase() || "C"}
               </div>
             )}
             <h2 className="mt-4 text-lg font-semibold text-slate-900">{form.name || "Mi clinica"}</h2>
             <p className="mt-1 text-sm text-slate-500">{form.city || "Ciudad"}</p>
             {(form.openingTime || form.closingTime) && (
-              <div className="mt-3 rounded-full bg-[#19b3bc]/10 px-3 py-1 text-xs font-medium text-[#0f8f98]">
+              <div className="mt-3 rounded-full bg-[#50c9d5]/10 px-3 py-1 text-xs font-medium text-[#1e737b]">
                 {form.openingTime} - {form.closingTime}
               </div>
             )}
@@ -238,7 +238,7 @@ export default function ClinicTab() {
               <button
                 type="submit"
                 disabled={saving}
-                className="rounded-2xl bg-[#19b3bc] px-5 py-3 text-sm font-medium text-white transition-colors hover:bg-[#159ea7] disabled:cursor-not-allowed disabled:bg-[#19b3bc]/45"
+                className="rounded-2xl bg-[#50c9d5] px-5 py-3 text-sm font-medium text-[#080b04] transition-colors hover:bg-[#45bcc8] disabled:cursor-not-allowed disabled:bg-[#50c9d5]/45"
               >
                 {saving ? "Guardando..." : "Guardar"}
               </button>
@@ -375,7 +375,7 @@ function TeamCategoryManager() {
           type="button"
           onClick={() => void handleCreate()}
           disabled={creating || !newName.trim()}
-          className="flex items-center gap-1.5 rounded-2xl bg-[#19b3bc] px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-[#159ea7] disabled:cursor-not-allowed disabled:bg-[#19b3bc]/45"
+          className="flex items-center gap-1.5 rounded-2xl bg-[#50c9d5] px-4 py-2.5 text-sm font-medium text-[#080b04] transition-colors hover:bg-[#45bcc8] disabled:cursor-not-allowed disabled:bg-[#50c9d5]/45"
         >
           <Plus className="h-4 w-4" />
           {creating ? "Creando..." : "Agregar"}
@@ -384,7 +384,7 @@ function TeamCategoryManager() {
 
       {loadingTeams ? (
         <div className="mt-4 flex justify-center py-4">
-          <div className="h-5 w-5 animate-spin rounded-full border-2 border-[#19b3bc]/20 border-t-[#19b3bc]" />
+          <div className="h-5 w-5 animate-spin rounded-full border-2 border-[#50c9d5]/20 border-t-[#50c9d5]" />
         </div>
       ) : teams.length > 0 ? (
         <div className="mt-4 divide-y divide-slate-100 rounded-2xl border border-slate-200">

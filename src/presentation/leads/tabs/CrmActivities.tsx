@@ -71,7 +71,7 @@ export default function CrmActivities() {
               type="button"
               onClick={() => setFilter(item.key)}
               className={`rounded-full px-3 py-1.5 text-xs font-medium transition ${
-                filter === item.key ? "bg-[#19b3bc] text-white" : "bg-slate-100 text-slate-500 hover:bg-slate-200"
+                filter === item.key ? "bg-[#50c9d5] text-[#080b04]" : "bg-slate-100 text-slate-500 hover:bg-slate-200"
               }`}
             >
               {item.label}

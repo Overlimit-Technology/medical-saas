@@ -123,7 +123,7 @@ export default function Liquidaciones() {
                   type="month"
                   value={state.month}
                   onChange={(event) => actions.setMonth(event.target.value)}
-                  className="h-10 min-w-[180px] rounded-xl border border-slate-200 bg-white px-3.5 text-[14px] text-slate-700 outline-none transition focus:border-[#19b3bc] focus:ring-2 focus:ring-[#19b3bc]/10"
+                  className="h-10 min-w-[180px] rounded-xl border border-slate-200 bg-white px-3.5 text-[14px] text-slate-700 outline-none transition focus:border-[#50c9d5] focus:ring-2 focus:ring-[#50c9d5]/10"
                 />
               </label>
 
@@ -155,7 +155,7 @@ export default function Liquidaciones() {
                   void actions.sendEmails();
                 }}
                 disabled={state.loading || state.sendingEmails || !state.rows.length}
-                className="inline-flex h-10 items-center justify-center gap-2 rounded-xl bg-[#0f9ea8] px-4 text-[13px] font-semibold text-white transition hover:bg-[#0b8e97] disabled:cursor-not-allowed disabled:bg-[#19b3bc]/45 whitespace-nowrap"
+                className="inline-flex h-10 items-center justify-center gap-2 rounded-xl bg-[#0f9ea8] px-4 text-[13px] font-semibold text-white transition hover:bg-[#0b8e97] disabled:cursor-not-allowed disabled:bg-[#50c9d5]/45 whitespace-nowrap"
               >
                 <Mail className="h-4 w-4" />
                 {state.sendingEmails ? "Enviando..." : "Cerrar mes y avisar a profesionales"}
@@ -179,7 +179,7 @@ export default function Liquidaciones() {
                       className={`h-8 w-24 rounded-lg border bg-white px-2.5 text-[13px] text-slate-800 outline-none transition ${
                         state.clinicPercentageError
                           ? "border-rose-300 focus:border-rose-400 focus:ring-2 focus:ring-rose-100"
-                          : "border-slate-200 focus:border-[#19b3bc] focus:ring-2 focus:ring-[#19b3bc]/10"
+                          : "border-slate-200 focus:border-[#50c9d5] focus:ring-2 focus:ring-[#50c9d5]/10"
                       }`}
                     />
                   </label>
@@ -198,7 +198,7 @@ export default function Liquidaciones() {
                       className={`h-8 w-24 rounded-lg border bg-white px-2.5 text-[13px] text-slate-800 outline-none transition ${
                         state.siiPercentageError
                           ? "border-rose-300 focus:border-rose-400 focus:ring-2 focus:ring-rose-100"
-                          : "border-slate-200 focus:border-[#19b3bc] focus:ring-2 focus:ring-[#19b3bc]/10"
+                          : "border-slate-200 focus:border-[#50c9d5] focus:ring-2 focus:ring-[#50c9d5]/10"
                       }`}
                     />
                   </label>
@@ -225,7 +225,7 @@ export default function Liquidaciones() {
                     void actions.saveSettings();
                   }}
                   disabled={state.saveDisabled}
-                  className="inline-flex items-center gap-2 rounded-xl bg-[#0f9ea8] px-3.5 py-2 text-[12px] font-semibold text-white transition hover:bg-[#0b8e97] disabled:cursor-not-allowed disabled:bg-[#19b3bc]/45"
+                  className="inline-flex items-center gap-2 rounded-xl bg-[#0f9ea8] px-3.5 py-2 text-[12px] font-semibold text-white transition hover:bg-[#0b8e97] disabled:cursor-not-allowed disabled:bg-[#50c9d5]/45"
                 >
                   <Save className="h-3.5 w-3.5" />
                   {state.saving ? "Guardando..." : "Guardar"}

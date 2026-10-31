@@ -54,7 +54,7 @@ type Props = {
 const stage = CONSULTATION_STAGES[5];
 
 const fieldClassName =
-  "w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm text-slate-700 transition-all duration-200 focus:border-[#19b3bc] focus:outline-none focus:ring-2 focus:ring-[#19b3bc]/15 disabled:bg-slate-50";
+  "w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm text-slate-700 transition-all duration-200 focus:border-[#50c9d5] focus:outline-none focus:ring-2 focus:ring-[#50c9d5]/15 disabled:bg-slate-50";
 
 const FOLLOW_UP_OPTIONS: Array<{ mode: FollowUpMode; label: string; caption: string; icon: typeof Repeat }> = [
   { mode: "none", label: "Sin control", caption: "Alta o sin proxima cita", icon: CalendarX2 },
@@ -84,12 +84,12 @@ function SegmentedOption({
       onClick={onClick}
       className={`flex-1 rounded-2xl border p-3.5 text-left transition-all duration-200 disabled:cursor-not-allowed ${
         active
-          ? "border-[#19b3bc] bg-[#19b3bc]/[0.06] shadow-sm shadow-[#19b3bc]/10"
-          : "border-slate-200 bg-white hover:border-[#19b3bc]/40"
+          ? "border-[#50c9d5] bg-[#50c9d5]/[0.06] shadow-sm shadow-[#50c9d5]/10"
+          : "border-slate-200 bg-white hover:border-[#50c9d5]/40"
       }`}
     >
       <span
-        className={`flex items-center gap-2 text-sm font-semibold ${active ? "text-[#0f8f98]" : "text-slate-600"}`}
+        className={`flex items-center gap-2 text-sm font-semibold ${active ? "text-[#1e737b]" : "text-slate-600"}`}
       >
         <Icon size={15} />
         {label}
@@ -184,14 +184,14 @@ export default function StageClosure({
                 Nada de esto es obligatorio: es tu resumen antes de firmar.
               </p>
             </div>
-            <span className="text-2xl font-semibold tabular-nums text-[#0f8f98]">
+            <span className="text-2xl font-semibold tabular-nums text-[#1e737b]">
               {completion}%
             </span>
           </div>
 
           <div className="mt-3 h-2 overflow-hidden rounded-full bg-slate-100">
             <div
-              className="h-full rounded-full bg-gradient-to-r from-[#19b3bc] to-[#0f8f98] transition-[width] duration-700 ease-out"
+              className="h-full rounded-full bg-gradient-to-r from-[#50c9d5] to-[#84d9e1] transition-[width] duration-700 ease-out"
               style={{ width: `${completion}%` }}
             />
           </div>
@@ -291,7 +291,7 @@ export default function StageClosure({
                             type="button"
                             disabled={locked}
                             onClick={() => onApplyPreset(preset.days)}
-                            className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-600 transition-all duration-200 hover:-translate-y-px hover:border-[#19b3bc]/50 hover:text-[#0f8f98] disabled:cursor-not-allowed"
+                            className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-600 transition-all duration-200 hover:-translate-y-px hover:border-[#50c9d5]/50 hover:text-[#1e737b] disabled:cursor-not-allowed"
                           >
                             {preset.label}
                           </button>
@@ -353,8 +353,8 @@ export default function StageClosure({
                                 onClick={() => onUpdate("planFrequency", String(preset.days))}
                                 className={`rounded-full border px-2.5 py-1 text-[11px] font-medium transition-all duration-200 disabled:cursor-not-allowed ${
                                   closure.planFrequency === String(preset.days)
-                                    ? "border-[#19b3bc] bg-[#19b3bc]/10 text-[#0f8f98]"
-                                    : "border-slate-200 bg-white text-slate-500 hover:border-[#19b3bc]/40"
+                                    ? "border-[#50c9d5] bg-[#50c9d5]/10 text-[#1e737b]"
+                                    : "border-slate-200 bg-white text-slate-500 hover:border-[#50c9d5]/40"
                                 }`}
                               >
                                 {preset.label}
@@ -384,8 +384,8 @@ export default function StageClosure({
                                   onClick={() => onTogglePlanTreatment(treatment.id)}
                                   className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition-all duration-200 disabled:cursor-not-allowed ${
                                     selected
-                                      ? "border-[#19b3bc] bg-[#19b3bc]/10 text-[#0f8f98]"
-                                      : "border-slate-200 bg-white text-slate-600 hover:border-[#19b3bc]/40"
+                                      ? "border-[#50c9d5] bg-[#50c9d5]/10 text-[#1e737b]"
+                                      : "border-slate-200 bg-white text-slate-600 hover:border-[#50c9d5]/40"
                                   }`}
                                 >
                                   {selected && <Check size={12} strokeWidth={3} />}
@@ -461,7 +461,7 @@ export default function StageClosure({
                         </select>
                         <ChevronDown
                           size={15}
-                          className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[#19b3bc]"
+                          className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[#1e737b]"
                         />
                       </div>
                     </div>
@@ -483,15 +483,15 @@ export default function StageClosure({
                   </div>
 
                   {planPreview.length > 0 && (
-                    <div className="rounded-2xl border border-[#19b3bc]/20 bg-[#19b3bc]/[0.04] px-4 py-3">
-                      <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#0f8f98]">
+                    <div className="rounded-2xl border border-[#50c9d5]/20 bg-[#50c9d5]/[0.04] px-4 py-3">
+                      <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#1e737b]">
                         Se agendaran {planPreview.length} sesiones
                       </p>
                       <div className="mt-2 flex flex-wrap gap-1.5">
                         {planPreview.slice(0, 8).map((date, index) => (
                           <span
                             key={date.toISOString()}
-                            className="animate-pop-in rounded-lg bg-white px-2 py-1 text-[11px] font-medium text-slate-600 ring-1 ring-[#19b3bc]/15"
+                            className="animate-pop-in rounded-lg bg-white px-2 py-1 text-[11px] font-medium text-slate-600 ring-1 ring-[#50c9d5]/15"
                             style={{ animationDelay: `${index * 40}ms` }}
                           >
                             {formatDate(date)}
@@ -517,7 +517,7 @@ export default function StageClosure({
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
                   <p className="flex items-center gap-2 text-sm font-semibold text-slate-800">
-                    <Wallet size={15} className="text-[#19b3bc]" /> Cobro de la atencion
+                    <Wallet size={15} className="text-[#1e737b]" /> Cobro de la atencion
                   </p>
                   <p className="mt-0.5 text-xs text-slate-400">
                     Se registra en la caja del dia junto con el tratamiento realizado.
@@ -533,7 +533,7 @@ export default function StageClosure({
                     className="peer sr-only"
                   />
                   <span className="relative inline-flex h-6 w-11 items-center">
-                    <span className="absolute inset-0 rounded-full bg-slate-200 transition-colors peer-checked:bg-[#19b3bc]" />
+                    <span className="absolute inset-0 rounded-full bg-slate-200 transition-colors peer-checked:bg-[#50c9d5]" />
                     <span className="absolute left-0.5 h-5 w-5 rounded-full bg-white shadow-sm transition-transform peer-checked:translate-x-5" />
                   </span>
                 </label>
@@ -571,7 +571,7 @@ export default function StageClosure({
                         </select>
                         <ChevronDown
                           size={15}
-                          className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[#19b3bc]"
+                          className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[#1e737b]"
                         />
                       </div>
                     </div>
@@ -609,8 +609,8 @@ export default function StageClosure({
                         onClick={() => onUpdate("chargeStatus", option.value)}
                         className={`rounded-full border px-3.5 py-1.5 text-xs font-semibold transition-all duration-200 disabled:cursor-not-allowed ${
                           closure.chargeStatus === option.value
-                            ? "border-[#19b3bc] bg-[#19b3bc]/10 text-[#0f8f98]"
-                            : "border-slate-200 bg-white text-slate-500 hover:border-[#19b3bc]/40"
+                            ? "border-[#50c9d5] bg-[#50c9d5]/10 text-[#1e737b]"
+                            : "border-slate-200 bg-white text-slate-500 hover:border-[#50c9d5]/40"
                         }`}
                       >
                         {option.label}
@@ -669,10 +669,10 @@ export default function StageClosure({
                 type="button"
                 onClick={onClose}
                 disabled={closing}
-                className={`inline-flex items-center justify-center gap-2 rounded-full px-5 py-3 text-sm font-semibold text-white shadow-lg transition-all duration-200 hover:-translate-y-0.5 disabled:translate-y-0 disabled:cursor-wait disabled:opacity-60 sm:flex-1 ${
+                className={`inline-flex items-center justify-center gap-2 rounded-full px-5 py-3 text-sm font-semibold shadow-lg transition-all duration-200 hover:-translate-y-0.5 disabled:translate-y-0 disabled:cursor-wait disabled:opacity-60 sm:flex-1 ${
                   isNoShow
-                    ? "bg-rose-600 shadow-rose-600/25 hover:bg-rose-700"
-                    : "bg-[#19b3bc] shadow-[#19b3bc]/30 hover:bg-[#159ea7]"
+                    ? "bg-rose-600 text-white shadow-rose-600/25 hover:bg-rose-700"
+                    : "bg-[#50c9d5] text-[#080b04] shadow-[#50c9d5]/30 hover:bg-[#45bcc8]"
                 }`}
               >
                 {closing ? (

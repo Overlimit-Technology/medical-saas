@@ -124,13 +124,13 @@ export default function AppointmentFormModal({
 }: Props) {
   const shouldShowPatientResults = !isRegisteringNewPatient && !form.patientId && normalizeId(form.patientRun).length >= 3;
   const fieldClassName =
-    "w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm text-slate-700 transition-all duration-200 focus:border-[#19b3bc] focus:outline-none focus:ring-2 focus:ring-[#19b3bc]/15";
+    "w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm text-slate-700 transition-all duration-200 focus:border-[#50c9d5] focus:outline-none focus:ring-2 focus:ring-[#50c9d5]/15";
   const dropdownTriggerClassName =
-    "flex w-full items-center justify-between rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-left text-sm text-slate-700 transition-all duration-200 hover:border-[#19b3bc]/40 focus:outline-none";
+    "flex w-full items-center justify-between rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-left text-sm text-slate-700 transition-all duration-200 hover:border-[#50c9d5]/40 focus:outline-none";
   const dropdownPanelClassName =
-    "animate-fade-in absolute left-0 right-0 top-[calc(100%+8px)] z-20 overflow-hidden rounded-2xl border border-[#19b3bc]/20 bg-white shadow-xl shadow-[#19b3bc]/10";
+    "animate-fade-in absolute left-0 right-0 top-[calc(100%+8px)] z-20 overflow-hidden rounded-2xl border border-[#50c9d5]/20 bg-white shadow-xl shadow-[#50c9d5]/10";
   const dropdownItemClassName =
-    "flex w-full items-center justify-between px-4 py-3 text-left text-sm transition-colors duration-200 hover:bg-[#19b3bc]/5";
+    "flex w-full items-center justify-between px-4 py-3 text-left text-sm transition-colors duration-200 hover:bg-[#50c9d5]/5";
   const [openDropdown, setOpenDropdown] = useState<"doctor" | "box" | "date" | "start" | "end" | "planTreatments" | null>(null);
   const [calendarMonth, setCalendarMonth] = useState(() => toMonthStart(form.date));
   const doctorDropdownRef = useRef<HTMLDivElement | null>(null);
@@ -239,7 +239,7 @@ export default function AppointmentFormModal({
             />
 
             {shouldShowPatientResults && (
-              <div className="animate-fade-in absolute left-0 right-0 top-[calc(100%+8px)] z-20 overflow-hidden rounded-2xl border border-[#19b3bc]/20 bg-white shadow-xl shadow-[#19b3bc]/10">
+              <div className="animate-fade-in absolute left-0 right-0 top-[calc(100%+8px)] z-20 overflow-hidden rounded-2xl border border-[#50c9d5]/20 bg-white shadow-xl shadow-[#50c9d5]/10">
                 {patientSearchLoading ? (
                   <div className="px-4 py-3 text-sm text-slate-500">Buscando pacientes...</div>
                 ) : patients.length > 0 ? (
@@ -249,7 +249,7 @@ export default function AppointmentFormModal({
                         key={patient.id}
                         type="button"
                         onClick={() => onPatientSelect(patient.id)}
-                        className="flex w-full items-start justify-between gap-3 border-b border-[#19b3bc]/10 px-4 py-3 text-left transition-colors duration-200 last:border-b-0 hover:bg-[#19b3bc]/5"
+                        className="flex w-full items-start justify-between gap-3 border-b border-[#50c9d5]/10 px-4 py-3 text-left transition-colors duration-200 last:border-b-0 hover:bg-[#50c9d5]/5"
                       >
                         <div className="min-w-0">
                           <p className="truncate text-sm font-medium text-slate-900">
@@ -273,7 +273,7 @@ export default function AppointmentFormModal({
                     <button
                       type="button"
                       onClick={onStartRegisterNewPatient}
-                      className="flex w-full items-center gap-2 border-t border-[#19b3bc]/10 px-4 py-3 text-sm font-medium text-[#19b3bc] transition-colors hover:bg-[#19b3bc]/5"
+                      className="flex w-full items-center gap-2 border-t border-[#50c9d5]/10 px-4 py-3 text-sm font-medium text-[#1e737b] transition-colors hover:bg-[#50c9d5]/5"
                     >
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
                       Registrar paciente nuevo
@@ -332,7 +332,7 @@ export default function AppointmentFormModal({
                 onClick={() => setOpenDropdown((current) => (current === "doctor" ? null : "doctor"))}
                 className={`${dropdownTriggerClassName} ${
                   openDropdown === "doctor"
-                    ? "border-[#19b3bc] ring-2 ring-[#19b3bc]/15"
+                    ? "border-[#50c9d5] ring-2 ring-[#50c9d5]/15"
                     : ""
                 }`}
               >
@@ -340,7 +340,7 @@ export default function AppointmentFormModal({
                   {selectedDoctorLabel}
                 </span>
                 <span
-                  className={`text-[#19b3bc] transition-transform duration-200 ${
+                  className={`text-[#1e737b] transition-transform duration-200 ${
                     openDropdown === "doctor" ? "rotate-180" : ""
                   }`}
                 >
@@ -358,7 +358,7 @@ export default function AppointmentFormModal({
                           setOpenDropdown(null);
                         }}
                       className={`${dropdownItemClassName} ${
-                        !form.doctorId ? "bg-[#19b3bc]/10 text-[#0f8f98]" : "text-slate-600"
+                        !form.doctorId ? "bg-[#50c9d5]/10 text-[#1e737b]" : "text-slate-600"
                       }`}
                     >
                       <span>Profesional</span>
@@ -375,12 +375,12 @@ export default function AppointmentFormModal({
                             setOpenDropdown(null);
                           }}
                           className={`${dropdownItemClassName} ${
-                            selected ? "bg-[#19b3bc]/10 text-[#0f8f98]" : "text-slate-700"
+                            selected ? "bg-[#50c9d5]/10 text-[#1e737b]" : "text-slate-700"
                           }`}
                         >
                           <span className="truncate">{label || "Profesional"}</span>
                           {selected ? (
-                            <span className="text-[#19b3bc]">
+                            <span className="text-[#1e737b]">
                               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
                             </span>
                           ) : null}
@@ -397,7 +397,7 @@ export default function AppointmentFormModal({
                 onClick={() => setOpenDropdown((current) => (current === "box" ? null : "box"))}
                 className={`${dropdownTriggerClassName} ${
                   openDropdown === "box"
-                    ? "border-[#19b3bc] ring-2 ring-[#19b3bc]/15"
+                    ? "border-[#50c9d5] ring-2 ring-[#50c9d5]/15"
                     : ""
                 }`}
               >
@@ -405,7 +405,7 @@ export default function AppointmentFormModal({
                   {selectedBoxLabel}
                 </span>
                 <span
-                  className={`text-[#19b3bc] transition-transform duration-200 ${
+                  className={`text-[#1e737b] transition-transform duration-200 ${
                     openDropdown === "box" ? "rotate-180" : ""
                   }`}
                 >
@@ -423,7 +423,7 @@ export default function AppointmentFormModal({
                           setOpenDropdown(null);
                         }}
                       className={`${dropdownItemClassName} ${
-                        !form.boxId ? "bg-[#19b3bc]/10 text-[#0f8f98]" : "text-slate-600"
+                        !form.boxId ? "bg-[#50c9d5]/10 text-[#1e737b]" : "text-slate-600"
                       }`}
                     >
                       <span>Box</span>
@@ -439,12 +439,12 @@ export default function AppointmentFormModal({
                             setOpenDropdown(null);
                           }}
                           className={`${dropdownItemClassName} ${
-                            selected ? "bg-[#19b3bc]/10 text-[#0f8f98]" : "text-slate-700"
+                            selected ? "bg-[#50c9d5]/10 text-[#1e737b]" : "text-slate-700"
                           }`}
                         >
                           <span className="truncate">{box.name}</span>
                           {selected ? (
-                            <span className="text-[#19b3bc]">
+                            <span className="text-[#1e737b]">
                               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
                             </span>
                           ) : null}
@@ -463,7 +463,7 @@ export default function AppointmentFormModal({
                 onClick={() => setOpenDropdown((current) => (current === "date" ? null : "date"))}
                 className={`${dropdownTriggerClassName} ${
                   openDropdown === "date"
-                    ? "border-[#19b3bc] ring-2 ring-[#19b3bc]/15"
+                    ? "border-[#50c9d5] ring-2 ring-[#50c9d5]/15"
                     : ""
                 }`}
               >
@@ -471,7 +471,7 @@ export default function AppointmentFormModal({
                   {selectedDateLabel}
                 </span>
                 <span
-                  className={`text-[#19b3bc] transition-transform duration-200 ${
+                  className={`text-[#1e737b] transition-transform duration-200 ${
                     openDropdown === "date" ? "rotate-180" : ""
                   }`}
                 >
@@ -480,7 +480,7 @@ export default function AppointmentFormModal({
               </button>
 
               {openDropdown === "date" && (
-                <div className="animate-fade-in absolute bottom-[calc(100%+8px)] left-0 right-0 z-20 overflow-hidden rounded-2xl border border-[#19b3bc]/20 bg-white p-4 shadow-xl shadow-[#19b3bc]/10">
+                <div className="animate-fade-in absolute bottom-[calc(100%+8px)] left-0 right-0 z-20 overflow-hidden rounded-2xl border border-[#50c9d5]/20 bg-white p-4 shadow-xl shadow-[#50c9d5]/10">
                   <div className="flex items-center justify-between">
                     <button
                       type="button"
@@ -489,7 +489,7 @@ export default function AppointmentFormModal({
                           (current) => new Date(current.getFullYear(), current.getMonth() - 1, 1),
                         )
                       }
-                      className="flex h-9 w-9 items-center justify-center rounded-full text-[#19b3bc] transition-colors hover:bg-[#19b3bc]/10"
+                      className="flex h-9 w-9 items-center justify-center rounded-full text-[#1e737b] transition-colors hover:bg-[#50c9d5]/10"
                     >
                       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6" /></svg>
                     </button>
@@ -503,7 +503,7 @@ export default function AppointmentFormModal({
                           (current) => new Date(current.getFullYear(), current.getMonth() + 1, 1),
                         )
                       }
-                      className="flex h-9 w-9 items-center justify-center rounded-full text-[#19b3bc] transition-colors hover:bg-[#19b3bc]/10"
+                      className="flex h-9 w-9 items-center justify-center rounded-full text-[#1e737b] transition-colors hover:bg-[#50c9d5]/10"
                     >
                       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6" /></svg>
                     </button>
@@ -537,10 +537,10 @@ export default function AppointmentFormModal({
                           }}
                           className={`flex h-10 w-10 items-center justify-center rounded-xl text-sm font-medium transition-all duration-200 ${
                             isSelected
-                              ? "bg-[#19b3bc] text-white shadow-lg shadow-[#19b3bc]/25"
+                              ? "bg-[#50c9d5] text-[#080b04] shadow-lg shadow-[#50c9d5]/25"
                               : isToday
-                                ? "bg-[#19b3bc]/10 text-[#0f8f98]"
-                                : "text-slate-600 hover:bg-[#19b3bc]/8 hover:text-[#0f8f98]"
+                                ? "bg-[#50c9d5]/10 text-[#1e737b]"
+                                : "text-slate-600 hover:bg-[#50c9d5]/8 hover:text-[#1e737b]"
                           }`}
                         >
                           {calendarDay.getDate()}
@@ -558,7 +558,7 @@ export default function AppointmentFormModal({
                   onClick={() => setOpenDropdown((current) => (current === "start" ? null : "start"))}
                   className={`${dropdownTriggerClassName} ${
                     openDropdown === "start"
-                      ? "border-[#19b3bc] ring-2 ring-[#19b3bc]/15"
+                      ? "border-[#50c9d5] ring-2 ring-[#50c9d5]/15"
                       : ""
                   }`}
                 >
@@ -566,7 +566,7 @@ export default function AppointmentFormModal({
                     {form.start || "Hora inicio"}
                   </span>
                   <span
-                    className={`text-[#19b3bc] transition-transform duration-200 ${
+                    className={`text-[#1e737b] transition-transform duration-200 ${
                       openDropdown === "start" ? "rotate-180" : ""
                     }`}
                   >
@@ -588,12 +588,12 @@ export default function AppointmentFormModal({
                               setOpenDropdown(null);
                             }}
                             className={`${dropdownItemClassName} ${
-                              selected ? "bg-[#19b3bc]/10 text-[#0f8f98]" : "text-slate-700"
+                              selected ? "bg-[#50c9d5]/10 text-[#1e737b]" : "text-slate-700"
                             }`}
                           >
                             <span>{timeValue}</span>
                             {selected ? (
-                              <span className="text-[#19b3bc]">
+                              <span className="text-[#1e737b]">
                                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
                               </span>
                             ) : null}
@@ -610,7 +610,7 @@ export default function AppointmentFormModal({
                   onClick={() => setOpenDropdown((current) => (current === "end" ? null : "end"))}
                   className={`${dropdownTriggerClassName} ${
                     openDropdown === "end"
-                      ? "border-[#19b3bc] ring-2 ring-[#19b3bc]/15"
+                      ? "border-[#50c9d5] ring-2 ring-[#50c9d5]/15"
                       : ""
                   }`}
                 >
@@ -618,7 +618,7 @@ export default function AppointmentFormModal({
                     {form.end || "Hora fin"}
                   </span>
                   <span
-                    className={`text-[#19b3bc] transition-transform duration-200 ${
+                    className={`text-[#1e737b] transition-transform duration-200 ${
                       openDropdown === "end" ? "rotate-180" : ""
                     }`}
                   >
@@ -640,12 +640,12 @@ export default function AppointmentFormModal({
                               setOpenDropdown(null);
                             }}
                             className={`${dropdownItemClassName} ${
-                              selected ? "bg-[#19b3bc]/10 text-[#0f8f98]" : "text-slate-700"
+                              selected ? "bg-[#50c9d5]/10 text-[#1e737b]" : "text-slate-700"
                             }`}
                           >
                             <span>{timeValue}</span>
                             {selected ? (
-                              <span className="text-[#19b3bc]">
+                              <span className="text-[#1e737b]">
                                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
                               </span>
                             ) : null}
@@ -672,7 +672,7 @@ export default function AppointmentFormModal({
           </div>
 
           {!editingId && (
-            <div className="rounded-2xl border border-[#19b3bc]/20 bg-[#19b3bc]/[0.04] p-4">
+            <div className="rounded-2xl border border-[#50c9d5]/20 bg-[#50c9d5]/[0.04] p-4">
               <label className="flex cursor-pointer items-center justify-between gap-3">
                 <div>
                   <p className="text-sm font-semibold text-slate-800">Crear plan continuo</p>
@@ -687,7 +687,7 @@ export default function AppointmentFormModal({
                     onChange={(event) => onContinuousPlanEnabledChange(event.target.checked)}
                     className="peer sr-only"
                   />
-                  <span className="absolute inset-0 rounded-full bg-slate-200 transition-colors peer-checked:bg-[#19b3bc]" />
+                  <span className="absolute inset-0 rounded-full bg-slate-200 transition-colors peer-checked:bg-[#50c9d5]" />
                   <span className="absolute left-0.5 h-5 w-5 rounded-full bg-white shadow-sm transition-transform peer-checked:translate-x-5" />
                 </span>
               </label>
@@ -745,7 +745,7 @@ export default function AppointmentFormModal({
                           }
                           className={`${dropdownTriggerClassName} ${
                             openDropdown === "planTreatments"
-                              ? "border-[#19b3bc] ring-2 ring-[#19b3bc]/15"
+                              ? "border-[#50c9d5] ring-2 ring-[#50c9d5]/15"
                               : ""
                           }`}
                         >
@@ -757,7 +757,7 @@ export default function AppointmentFormModal({
                               : "Seleccionar tratamientos"}
                           </span>
                           <span
-                            className={`text-[#19b3bc] transition-transform duration-200 ${
+                            className={`text-[#1e737b] transition-transform duration-200 ${
                               openDropdown === "planTreatments" ? "rotate-180" : ""
                             }`}
                           >
@@ -786,8 +786,8 @@ export default function AppointmentFormModal({
                                     key={treatment.id}
                                     className={`flex cursor-pointer items-center justify-between gap-3 px-4 py-3 text-sm transition-colors ${
                                       selected
-                                        ? "bg-[#19b3bc]/10 text-[#0f8f98]"
-                                        : "text-slate-700 hover:bg-[#19b3bc]/5"
+                                        ? "bg-[#50c9d5]/10 text-[#1e737b]"
+                                        : "text-slate-700 hover:bg-[#50c9d5]/5"
                                     }`}
                                   >
                                     <span className="truncate">{treatment.name}</span>
@@ -795,7 +795,7 @@ export default function AppointmentFormModal({
                                       type="checkbox"
                                       checked={selected}
                                       onChange={() => onContinuousPlanTreatmentToggle(treatment.id)}
-                                      className="h-4 w-4 rounded border-slate-300 text-[#19b3bc] focus:ring-[#19b3bc]/40"
+                                      className="h-4 w-4 rounded border-slate-300 text-[#1e737b] focus:ring-[#50c9d5]/40"
                                     />
                                   </label>
                                 );
@@ -829,7 +829,7 @@ export default function AppointmentFormModal({
             </button>
             <button
               type="submit"
-              className="rounded-full bg-[#19b3bc] px-5 py-2.5 text-sm font-semibold text-white transition-all hover:bg-[#159ea7] hover:shadow-lg hover:shadow-[#19b3bc]/20"
+              className="rounded-full bg-[#50c9d5] px-5 py-2.5 text-sm font-semibold text-[#080b04] transition-all hover:bg-[#45bcc8] hover:shadow-lg hover:shadow-[#50c9d5]/20"
             >
               {isRegisteringNewPatient ? "Guardar paciente y cita" : "Guardar"}
             </button>

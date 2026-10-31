@@ -18,9 +18,9 @@ function resolveToneStyles(tone: NotificationPanelTone) {
       // Paleta de marca: se usa para avisos que exigen accion inmediata
       // (paciente en sala). Es el unico tono que resalta la tarjeta completa.
       return {
-        dot: "bg-[#19b3bc]",
-        icon: "bg-[#e8f8f9] text-[#0f8f98]",
-        container: "border border-[#19b3bc]/30 bg-[#e8f8f9]",
+        dot: "bg-[#50c9d5]",
+        icon: "bg-[#e8f8f9] text-[#1e737b]",
+        container: "border border-[#50c9d5]/30 bg-[#e8f8f9]",
       };
     case "info":
       return {

@@ -41,12 +41,12 @@ function RailSection({
         onClick={() => setOpen((value) => !value)}
         className="flex w-full items-center gap-2 px-4 py-3 text-left"
       >
-        <Icon size={14} className="shrink-0 text-[#19b3bc]" />
+        <Icon size={14} className="shrink-0 text-[#1e737b]" />
         <span className="flex-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">
           {title}
         </span>
         {badge !== undefined && (
-          <span className="rounded-full bg-[#19b3bc]/10 px-2 py-0.5 text-[10px] font-bold text-[#0f8f98]">
+          <span className="rounded-full bg-[#50c9d5]/10 px-2 py-0.5 text-[10px] font-bold text-[#1e737b]">
             {badge}
           </span>
         )}
@@ -147,7 +147,7 @@ export default function ContextRail({ bootstrap }: Props) {
               >
                 <span
                   className={`absolute -left-[21px] top-1.5 h-2 w-2 rounded-full ring-2 ring-white ${
-                    index === 0 ? "bg-[#19b3bc]" : "bg-slate-300"
+                    index === 0 ? "bg-[#50c9d5]" : "bg-slate-300"
                   }`}
                 />
                 <p className="text-xs font-semibold text-slate-600">
@@ -171,8 +171,8 @@ export default function ContextRail({ bootstrap }: Props) {
           </ol>
 
           {lastVisit?.indications && (
-            <div className="mt-3 rounded-xl border border-[#19b3bc]/15 bg-[#19b3bc]/[0.04] px-3 py-2.5">
-              <p className="text-[10px] font-semibold uppercase tracking-wide text-[#0f8f98]">
+            <div className="mt-3 rounded-xl border border-[#50c9d5]/15 bg-[#50c9d5]/[0.04] px-3 py-2.5">
+              <p className="text-[10px] font-semibold uppercase tracking-wide text-[#1e737b]">
                 Indicaciones de la vez anterior
               </p>
               <p className="mt-1 whitespace-pre-line text-xs leading-relaxed text-slate-600">
@@ -201,7 +201,7 @@ export default function ContextRail({ bootstrap }: Props) {
                     <span
                       className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold ${
                         plan.status === "ACTIVE"
-                          ? "bg-[#19b3bc]/15 text-[#0f8f98]"
+                          ? "bg-[#50c9d5]/15 text-[#1e737b]"
                           : "bg-slate-200 text-slate-500"
                       }`}
                     >
@@ -211,7 +211,7 @@ export default function ContextRail({ bootstrap }: Props) {
 
                   <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-slate-200">
                     <div
-                      className="h-full rounded-full bg-[#19b3bc] transition-[width] duration-700 ease-out"
+                      className="h-full rounded-full bg-[#50c9d5] transition-[width] duration-700 ease-out"
                       style={{ width: `${percent}%` }}
                     />
                   </div>
@@ -288,7 +288,7 @@ export default function ContextRail({ bootstrap }: Props) {
                     {record.templateName}
                   </p>
                   {record.belongsToThisAppointment && (
-                    <span className="shrink-0 rounded-full bg-[#19b3bc]/15 px-1.5 py-0.5 text-[9px] font-bold uppercase text-[#0f8f98]">
+                    <span className="shrink-0 rounded-full bg-[#50c9d5]/15 px-1.5 py-0.5 text-[9px] font-bold uppercase text-[#1e737b]">
                       Hoy
                     </span>
                   )}

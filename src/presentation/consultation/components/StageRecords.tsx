@@ -85,7 +85,7 @@ export default function StageRecords({
                     key={template.id}
                     type="button"
                     onClick={() => actions.openCreateForm(template.id)}
-                    className="animate-rise-in inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-white px-3.5 py-2 text-sm font-medium text-slate-600 transition-all duration-200 hover:-translate-y-px hover:border-[#19b3bc]/50 hover:text-[#0f8f98] hover:shadow-sm"
+                    className="animate-rise-in inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-white px-3.5 py-2 text-sm font-medium text-slate-600 transition-all duration-200 hover:-translate-y-px hover:border-[#50c9d5]/50 hover:text-[#1e737b] hover:shadow-sm"
                     style={{ animationDelay: `${index * 45}ms` }}
                   >
                     <FilePlus2 size={14} />

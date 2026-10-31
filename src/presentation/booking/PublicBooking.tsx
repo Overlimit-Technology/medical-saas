@@ -192,7 +192,7 @@ export default function PublicBooking({ bookingKey }: { bookingKey: string }) {
   };
 
   const inputClass =
-    "h-11 w-full rounded-xl border border-slate-300 bg-white px-3.5 text-[15px] text-slate-900 outline-none transition focus:border-[#19b3bc] focus:ring-2 focus:ring-[#19b3bc]/20";
+    "h-11 w-full rounded-xl border border-slate-300 bg-white px-3.5 text-[15px] text-slate-900 outline-none transition focus:border-[#50c9d5] focus:ring-2 focus:ring-[#50c9d5]/20";
 
   if (loadError) {
     return (
@@ -300,7 +300,7 @@ export default function PublicBooking({ bookingKey }: { bookingKey: string }) {
                 type="button"
                 onClick={() => void ask()}
                 disabled={asking || !input.trim()}
-                className="inline-flex h-11 shrink-0 items-center gap-2 rounded-xl bg-[#0f9ea8] px-4 text-[14px] font-semibold text-white transition hover:bg-[#0b8e97] disabled:bg-[#19b3bc]/45"
+                className="inline-flex h-11 shrink-0 items-center gap-2 rounded-xl bg-[#0f9ea8] px-4 text-[14px] font-semibold text-white transition hover:bg-[#0b8e97] disabled:bg-[#50c9d5]/45"
               >
                 <Send className="h-4 w-4" />
                 {asking ? "Buscando..." : "Buscar"}
@@ -356,7 +356,7 @@ export default function PublicBooking({ bookingKey }: { bookingKey: string }) {
                             setSelected(slot);
                             setFormError(null);
                           }}
-                          className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-left text-[13px] transition hover:border-[#19b3bc] hover:bg-[#f2fbfb]"
+                          className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-left text-[13px] transition hover:border-[#50c9d5] hover:bg-[#f2fbfb]"
                         >
                           <span className="block text-[15px] font-semibold text-slate-900">{slot.time}</span>
                           <span className="block text-slate-500">
@@ -436,7 +436,7 @@ export default function PublicBooking({ bookingKey }: { bookingKey: string }) {
             type="button"
             onClick={() => void submit()}
             disabled={submitting}
-            className="mt-4 h-12 w-full rounded-xl bg-[#0f9ea8] text-[15px] font-semibold text-white transition hover:bg-[#0b8e97] disabled:bg-[#19b3bc]/45"
+            className="mt-4 h-12 w-full rounded-xl bg-[#0f9ea8] text-[15px] font-semibold text-white transition hover:bg-[#0b8e97] disabled:bg-[#50c9d5]/45"
           >
             {submitting ? "Reservando..." : "Confirmar reserva"}
           </button>

@@ -678,7 +678,7 @@ export default function AgendaGrid({
 
   if (columns.length === 0) {
     return (
-      <div className="mt-5 rounded-2xl border border-dashed border-[#19b3bc]/20 bg-[#19b3bc]/[0.03] px-6 py-10 text-center text-sm text-slate-500">
+      <div className="mt-5 rounded-2xl border border-dashed border-[#50c9d5]/20 bg-[#50c9d5]/[0.03] px-6 py-10 text-center text-sm text-slate-500">
         No hay elementos disponibles para esta vista del calendario.
       </div>
     );
@@ -710,7 +710,7 @@ export default function AgendaGrid({
           >
             <span
               className={`text-[11px] uppercase tracking-wider ${
-                column.isToday ? "font-semibold text-[#19b3bc]" : "text-slate-400"
+                column.isToday ? "font-semibold text-[#1e737b]" : "text-slate-400"
               }`}
             >
               {column.caption}
@@ -719,14 +719,14 @@ export default function AgendaGrid({
               <span
                 className={`mt-1 inline-flex max-w-full items-center rounded-full px-3 py-1 text-sm font-semibold ${
                   column.isToday
-                    ? "bg-[#19b3bc]/10 text-[#0f8f98]"
+                    ? "bg-[#50c9d5]/10 text-[#1e737b]"
                     : "bg-slate-100 text-slate-700"
                 }`}
               >
                 <span className="truncate">{column.label}</span>
               </span>
             ) : column.isToday ? (
-              <span className="mt-0.5 flex h-7 min-w-7 items-center justify-center rounded-full bg-[#19b3bc] px-2 text-sm font-bold text-white shadow-sm shadow-[#19b3bc]/30">
+              <span className="mt-0.5 flex h-7 min-w-7 items-center justify-center rounded-full bg-[#50c9d5] px-2 text-sm font-bold text-[#080b04] shadow-sm shadow-[#50c9d5]/30">
                 {column.label}
               </span>
             ) : (
@@ -768,13 +768,13 @@ export default function AgendaGrid({
                 style={{ gridColumnStart: col, gridRowStart: row }}
                 className={`relative transition-colors duration-150 ${
                   isHourBoundary ? "border-t border-slate-100" : ""
-                } ${isHighlightedColumn ? "bg-[#19b3bc]/[0.08]" : "bg-white"} ${
+                } ${isHighlightedColumn ? "bg-[#50c9d5]/[0.08]" : "bg-white"} ${
                   columnIndex > 0 ? "border-l border-l-slate-50" : ""
                 } ${
                   isUnavailable
                     ? "cursor-not-allowed"
                     : canSelectSlots
-                      ? "hover:bg-[#19b3bc]/10"
+                      ? "hover:bg-[#50c9d5]/10"
                       : ""
                 }`}
                 data-slot={slot}
@@ -817,8 +817,8 @@ export default function AgendaGrid({
                     className={`mx-0.5 h-full rounded-md border border-dashed transition-colors duration-150 ${
                       isDropAllowed
                         ? isActiveTarget
-                          ? "border-[#19b3bc] bg-[#19b3bc]/20"
-                          : "border-transparent bg-[#19b3bc]/10"
+                          ? "border-[#50c9d5] bg-[#50c9d5]/20"
+                          : "border-transparent bg-[#50c9d5]/10"
                         : isActiveTarget
                           ? "border-rose-300 bg-rose-100/60"
                           : "border-transparent bg-rose-100/20"
@@ -838,9 +838,9 @@ export default function AgendaGrid({
               gridRowEnd: Math.max(selection.startSlot, selection.endSlot) + 3,
             }}
           >
-            <div className="relative mx-0.5 h-full rounded-xl border-2 border-[#19b3bc]/40 bg-[#19b3bc]/15 p-2 text-[11px] text-[#0f8f98] backdrop-blur-sm">
+            <div className="relative mx-0.5 h-full rounded-xl border-2 border-[#50c9d5]/40 bg-[#50c9d5]/15 p-2 text-[11px] text-[#1e737b] backdrop-blur-sm">
               <div className="font-semibold">Nueva cita</div>
-              <div className="mt-0.5 text-[#19b3bc]">
+              <div className="mt-0.5 text-[#1e737b]">
                 {formatTimeLabel(
                   slotToDate(
                     selection.columnIndex,
@@ -855,7 +855,7 @@ export default function AgendaGrid({
                   )
                 )}
               </div>
-              <div className="text-[#19b3bc]/80">
+              <div className="text-[#1e737b]/80">
                 {minutesToLabel(
                   (Math.abs(selection.endSlot - selection.startSlot) + 1) * SLOT_MINUTES
                 )}
@@ -875,9 +875,9 @@ export default function AgendaGrid({
             }}
           >
             <div className="relative h-full">
-              <div className="absolute left-0 right-0 top-1/2 h-[2px] rounded-full bg-[#19b3bc]/70" />
-              <div className="absolute -left-1.5 top-1/2 h-3 w-3 -translate-y-1/2 rounded-full bg-[#19b3bc] shadow-sm shadow-[#19b3bc]/30" />
-              <div className="absolute -left-[58px] top-1/2 -translate-y-1/2 rounded-md border border-[#19b3bc]/20 bg-[#e8f8f9] px-1.5 py-0.5 text-[10px] font-semibold text-[#0f8f98]">
+              <div className="absolute left-0 right-0 top-1/2 h-[2px] rounded-full bg-[#50c9d5]/70" />
+              <div className="absolute -left-1.5 top-1/2 h-3 w-3 -translate-y-1/2 rounded-full bg-[#50c9d5] shadow-sm shadow-[#50c9d5]/30" />
+              <div className="absolute -left-[58px] top-1/2 -translate-y-1/2 rounded-md border border-[#50c9d5]/20 bg-[#e8f8f9] px-1.5 py-0.5 text-[10px] font-semibold text-[#1e737b]">
                 {formatTimeLabel(now)}
               </div>
             </div>

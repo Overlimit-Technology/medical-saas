@@ -55,7 +55,7 @@ export default function WysiwygEditor({
     editorProps: {
       attributes: {
         class:
-          "prose prose-sm max-w-none min-h-[220px] px-4 py-3 outline-none focus:outline-none text-slate-900 [&_p]:my-1 [&_h2]:text-base [&_h2]:font-semibold [&_h2]:mt-3 [&_h2]:mb-1 [&_h3]:text-sm [&_h3]:font-semibold [&_h3]:mt-2 [&_h3]:mb-1 [&_ul]:my-1 [&_ol]:my-1 [&_li]:my-0 [&_a]:text-[#19b3bc] [&_a]:underline",
+          "prose prose-sm max-w-none min-h-[220px] px-4 py-3 outline-none focus:outline-none text-slate-900 [&_p]:my-1 [&_h2]:text-base [&_h2]:font-semibold [&_h2]:mt-3 [&_h2]:mb-1 [&_h3]:text-sm [&_h3]:font-semibold [&_h3]:mt-2 [&_h3]:mb-1 [&_ul]:my-1 [&_ol]:my-1 [&_li]:my-0 [&_a]:text-[#1e737b] [&_a]:underline",
       },
     },
   });
@@ -182,13 +182,13 @@ export default function WysiwygEditor({
                   setLinkUrl("");
                 }
               }}
-              className="rounded border border-slate-200 px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-[#19b3bc]"
+              className="rounded border border-slate-200 px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-[#50c9d5]"
               autoFocus
             />
             <button
               type="button"
               onClick={applyLink}
-              className="rounded bg-[#19b3bc] px-2 py-1 text-xs font-medium text-white hover:bg-[#159ea7]"
+              className="rounded bg-[#50c9d5] px-2 py-1 text-xs font-medium text-[#080b04] hover:bg-[#45bcc8]"
             >
               ✓
             </button>
@@ -239,7 +239,7 @@ export default function WysiwygEditor({
                 type="button"
                 onClick={() => insertVariable(v.key)}
                 title={`Ejemplo: ${v.example}`}
-                className="rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-xs font-medium text-slate-600 transition hover:border-[#19b3bc] hover:bg-[#19b3bc]/5 hover:text-[#19b3bc]"
+                className="rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-xs font-medium text-slate-600 transition hover:border-[#50c9d5] hover:bg-[#50c9d5]/5 hover:text-[#1e737b]"
               >
                 {v.label}
               </button>
@@ -272,7 +272,7 @@ function ToolbarButton({
       title={title}
       className={`flex h-8 w-8 items-center justify-center rounded-lg transition-colors ${
         active
-          ? "bg-[#19b3bc]/10 text-[#19b3bc]"
+          ? "bg-[#50c9d5]/10 text-[#1e737b]"
           : "text-slate-500 hover:bg-slate-100 hover:text-slate-700"
       } ${disabled ? "cursor-not-allowed opacity-30" : ""}`}
     >

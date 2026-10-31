@@ -11,13 +11,13 @@ export const STATUS_LABELS: Record<string, string> = {
 export const STATUS_COLORS: Record<string, string> = {
   SCHEDULED: "bg-cyan-50 text-cyan-700",
   CONFIRMED: "bg-teal-50 text-teal-700",
-  COMPLETED: "bg-[#e8f8f9] text-[#0f8f98]",
+  COMPLETED: "bg-[#e8f8f9] text-[#1e737b]",
   CANCELLED: "bg-slate-100 text-slate-500",
   NO_SHOW: "bg-red-50 text-red-600",
 };
 
 export const PAYMENT_COLORS: Record<string, string> = {
-  PAID: "text-[#0f8f98]",
+  PAID: "text-[#1e737b]",
   PENDING: "text-cyan-700",
   WAIVED: "text-slate-400",
 };
@@ -45,7 +45,7 @@ export function formatPaymentLabel(status: string) {
 
 export function DeltaBadge({
   value,
-  positiveClassName = "text-[#0f8f98]",
+  positiveClassName = "text-[#1e737b]",
   negativeClassName = "text-red-500",
 }: {
   value: string;
@@ -86,7 +86,7 @@ export function StatCard({
     <div
       className={`animate-card-in rounded-2xl p-5 shadow-sm ${
         highlighted
-          ? "border border-[#19b3bc] bg-gradient-to-br from-[#19b3bc] to-[#0f8f98] text-white"
+          ? "border border-[#50c9d5] bg-gradient-to-br from-[#50c9d5] to-[#84d9e1] text-white"
           : "border border-slate-100 bg-white"
       }`}
       style={{ animationDelay: `${delay}ms` }}
@@ -114,7 +114,7 @@ export function StatCard({
         <div className="mt-1">
           <DeltaBadge
             value={delta}
-            positiveClassName={highlighted ? "text-white" : "text-[#0f8f98]"}
+            positiveClassName={highlighted ? "text-white" : "text-[#1e737b]"}
             negativeClassName={highlighted ? "text-white/85" : "text-red-500"}
           />
           <span className={`ml-1 text-[10px] ${highlighted ? "text-white/70" : "text-slate-400"}`}>

@@ -45,7 +45,7 @@ function CopyButton({ value }: { value: string }) {
       type="button"
       onClick={() => void copy()}
       disabled={!value}
-      className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2.5 text-[12px] font-medium text-slate-600 transition hover:border-[#19b3bc] hover:text-[#0f9ea8] disabled:cursor-not-allowed disabled:opacity-50"
+      className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2.5 text-[12px] font-medium text-slate-600 transition hover:border-[#50c9d5] hover:text-[#0f9ea8] disabled:cursor-not-allowed disabled:opacity-50"
     >
       {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
       {copied ? "Copiado" : "Copiar"}
@@ -201,7 +201,7 @@ export default function AsistenteIa() {
               type="button"
               onClick={() => void startRecording()}
               disabled={loading}
-              className="inline-flex h-10 items-center gap-2 rounded-xl bg-[#0f9ea8] px-4 text-[13px] font-semibold text-white transition hover:bg-[#0b8e97] disabled:cursor-not-allowed disabled:bg-[#19b3bc]/45"
+              className="inline-flex h-10 items-center gap-2 rounded-xl bg-[#0f9ea8] px-4 text-[13px] font-semibold text-white transition hover:bg-[#0b8e97] disabled:cursor-not-allowed disabled:bg-[#50c9d5]/45"
             >
               <Mic className="h-4 w-4" />
               Grabar consulta
@@ -248,14 +248,14 @@ export default function AsistenteIa() {
           rows={6}
           maxLength={4000}
           placeholder="Escribe tus notas tal como las tomas, sin identificar al paciente."
-          className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-3.5 py-3 text-[14px] text-slate-800 outline-none transition focus:border-[#19b3bc] focus:ring-2 focus:ring-[#19b3bc]/10"
+          className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-3.5 py-3 text-[14px] text-slate-800 outline-none transition focus:border-[#50c9d5] focus:ring-2 focus:ring-[#50c9d5]/10"
         />
         <div className="mt-3 flex flex-wrap items-center gap-2">
           <button
             type="button"
             onClick={() => void generateFromNotes()}
             disabled={loading || recording || notes.trim().length < 10}
-            className="inline-flex h-10 items-center gap-2 rounded-xl bg-[#0f9ea8] px-4 text-[13px] font-semibold text-white transition hover:bg-[#0b8e97] disabled:cursor-not-allowed disabled:bg-[#19b3bc]/45"
+            className="inline-flex h-10 items-center gap-2 rounded-xl bg-[#0f9ea8] px-4 text-[13px] font-semibold text-white transition hover:bg-[#0b8e97] disabled:cursor-not-allowed disabled:bg-[#50c9d5]/45"
           >
             <Sparkles className="h-4 w-4" />
             {loading ? "Generando..." : "Generar borrador"}

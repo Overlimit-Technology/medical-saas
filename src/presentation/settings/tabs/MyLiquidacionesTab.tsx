@@ -78,7 +78,7 @@ export default function MyLiquidacionesTab() {
               type="month"
               value={month}
               onChange={(e) => setMonth(e.target.value)}
-              className="h-10 rounded-xl border border-slate-200 bg-white px-3.5 text-sm text-slate-700 outline-none focus:border-[#19b3bc]"
+              className="h-10 rounded-xl border border-slate-200 bg-white px-3.5 text-sm text-slate-700 outline-none focus:border-[#50c9d5]"
             />
             <button
               type="button"
@@ -100,7 +100,7 @@ export default function MyLiquidacionesTab() {
 
       {loading && !data && (
         <div className="flex items-center justify-center rounded-2xl border border-slate-200 bg-white p-12">
-          <div className="h-8 w-8 animate-spin rounded-full border-4 border-[#19b3bc]/20 border-t-[#19b3bc]" />
+          <div className="h-8 w-8 animate-spin rounded-full border-4 border-[#50c9d5]/20 border-t-[#50c9d5]" />
         </div>
       )}
 
@@ -187,7 +187,7 @@ function SummaryCard({
     <div
       className={`rounded-2xl border p-4 shadow-sm ${
         emphasized
-          ? "border-[#19b3bc]/20 bg-[#f2fbfb]"
+          ? "border-[#50c9d5]/20 bg-[#f2fbfb]"
           : "border-slate-200 bg-white"
       }`}
     >

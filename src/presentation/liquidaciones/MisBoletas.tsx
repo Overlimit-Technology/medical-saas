@@ -43,7 +43,7 @@ function CopyButton({ value, label }: { value: string; label: string }) {
       onClick={() => void handleCopy()}
       disabled={!value}
       aria-label={`Copiar ${label}`}
-      className="inline-flex h-8 shrink-0 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2.5 text-[12px] font-medium text-slate-600 transition hover:border-[#19b3bc] hover:text-[#0f9ea8] disabled:cursor-not-allowed disabled:opacity-50"
+      className="inline-flex h-8 shrink-0 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2.5 text-[12px] font-medium text-slate-600 transition hover:border-[#50c9d5] hover:text-[#0f9ea8] disabled:cursor-not-allowed disabled:opacity-50"
     >
       {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
       {copied ? "Copiado" : "Copiar"}
@@ -185,7 +185,7 @@ function InvoiceCard({
               onChange={(event) => setInvoiceNumber(event.target.value.replace(/\D/g, "").slice(0, 10))}
               placeholder="N° de boleta"
               disabled={closed || busy}
-              className="h-10 min-w-0 flex-1 rounded-xl border border-slate-200 bg-white px-3.5 text-[14px] text-slate-700 outline-none transition focus:border-[#19b3bc] focus:ring-2 focus:ring-[#19b3bc]/10 disabled:bg-slate-50"
+              className="h-10 min-w-0 flex-1 rounded-xl border border-slate-200 bg-white px-3.5 text-[14px] text-slate-700 outline-none transition focus:border-[#50c9d5] focus:ring-2 focus:ring-[#50c9d5]/10 disabled:bg-slate-50"
             />
             <button
               type="button"
@@ -226,7 +226,7 @@ function InvoiceCard({
               min={today}
               value={delegationDate}
               onChange={(event) => setDelegationDate(event.target.value)}
-              className="h-9 rounded-xl border border-slate-200 bg-white px-3 text-[13px] text-slate-700 outline-none focus:border-[#19b3bc]"
+              className="h-9 rounded-xl border border-slate-200 bg-white px-3 text-[13px] text-slate-700 outline-none focus:border-[#50c9d5]"
             />
             <button
               type="button"
@@ -308,7 +308,7 @@ export default function MisBoletas() {
             type="month"
             value={month}
             onChange={(event) => setMonth(event.target.value)}
-            className="h-10 rounded-xl border border-slate-200 bg-white px-3.5 text-[14px] text-slate-700 outline-none focus:border-[#19b3bc]"
+            className="h-10 rounded-xl border border-slate-200 bg-white px-3.5 text-[14px] text-slate-700 outline-none focus:border-[#50c9d5]"
           />
           <button
             type="button"

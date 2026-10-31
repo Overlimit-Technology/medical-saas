@@ -111,7 +111,7 @@ export default function CrmTab() {
   if (loading) {
     return (
       <div className="flex items-center justify-center rounded-2xl border border-slate-200 bg-white p-12">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-[#19b3bc]/20 border-t-[#19b3bc]" />
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-[#50c9d5]/20 border-t-[#50c9d5]" />
       </div>
     );
   }
@@ -240,7 +240,7 @@ export default function CrmTab() {
           <button
             type="submit"
             disabled={saving}
-            className="rounded-2xl bg-[#19b3bc] px-5 py-3 text-sm font-medium text-white transition-colors hover:bg-[#159ea7] disabled:cursor-not-allowed disabled:bg-[#19b3bc]/45"
+            className="rounded-2xl bg-[#50c9d5] px-5 py-3 text-sm font-medium text-[#080b04] transition-colors hover:bg-[#45bcc8] disabled:cursor-not-allowed disabled:bg-[#50c9d5]/45"
           >
             {saving ? "Guardando..." : "Guardar"}
           </button>

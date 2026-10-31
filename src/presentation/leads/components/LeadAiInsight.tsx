@@ -75,7 +75,7 @@ export default function LeadAiInsight({ lead }: { lead: Lead }) {
           type="button"
           onClick={() => void analyze()}
           disabled={loading || lead.converted}
-          className="rounded-lg border border-slate-200 bg-white px-2 py-1 text-[11px] font-medium text-slate-600 transition hover:border-[#19b3bc] hover:text-[#0f9ea8] disabled:opacity-50"
+          className="rounded-lg border border-slate-200 bg-white px-2 py-1 text-[11px] font-medium text-slate-600 transition hover:border-[#50c9d5] hover:text-[#0f9ea8] disabled:opacity-50"
         >
           {loading ? "Analizando..." : hasInsight ? "Reanalizar" : "Analizar con IA"}
         </button>

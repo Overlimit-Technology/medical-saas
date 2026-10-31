@@ -230,7 +230,7 @@ export default function ConsultationConsole({ appointmentId }: Props) {
               type="button"
               onClick={actions.goNext}
               disabled={isLastStage}
-              className="inline-flex items-center gap-1.5 rounded-full bg-[#19b3bc] px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition-all duration-200 hover:translate-x-0.5 hover:bg-[#159ea7] hover:shadow-lg hover:shadow-[#19b3bc]/25 disabled:pointer-events-none disabled:bg-slate-200 disabled:shadow-none"
+              className="inline-flex items-center gap-1.5 rounded-full bg-[#50c9d5] px-5 py-2.5 text-sm font-semibold text-[#080b04] shadow-sm transition-all duration-200 hover:translate-x-0.5 hover:bg-[#45bcc8] hover:shadow-lg hover:shadow-[#50c9d5]/25 disabled:pointer-events-none disabled:bg-slate-200 disabled:shadow-none"
             >
               {state.saveState === "saving" ? (
                 <Loader2 size={15} className="animate-spin" />

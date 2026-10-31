@@ -523,7 +523,7 @@ export default function PatientDetail() {
       <div className="rounded-2xl border border-slate-100 bg-white px-6 py-5 shadow-sm">
         <div className="flex items-center gap-4">
           {/* Avatar */}
-          <div className="flex h-14 w-14 flex-shrink-0 items-center justify-center rounded-2xl bg-[#19b3bc]/10 text-lg font-bold text-[#19b3bc]">
+          <div className="flex h-14 w-14 flex-shrink-0 items-center justify-center rounded-2xl bg-[#50c9d5]/10 text-lg font-bold text-[#1e737b]">
             {patient.firstName.charAt(0).toUpperCase()}
             {patient.lastName.charAt(0).toUpperCase()}
           </div>

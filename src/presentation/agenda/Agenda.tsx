@@ -17,7 +17,7 @@ export default function Agenda() {
     return (
       <div className="flex min-h-[420px] items-center justify-center rounded-2xl border border-slate-100 bg-white shadow-sm">
         <div
-          className="h-12 w-12 animate-spin rounded-full border-4 border-[#19b3bc]/20 border-t-[#19b3bc]"
+          className="h-12 w-12 animate-spin rounded-full border-4 border-[#50c9d5]/20 border-t-[#50c9d5]"
           aria-label="Cargando agenda"
         />
       </div>

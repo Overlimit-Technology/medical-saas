@@ -35,7 +35,7 @@ export default function StageRail({
       {/* Riel de fondo y avance, centrados en la fila de circulos. */}
       <div className="pointer-events-none absolute left-0 right-0 top-[22px] hidden h-0.5 bg-slate-100 md:block">
         <div
-          className="h-full rounded-full bg-gradient-to-r from-[#19b3bc] to-[#0f8f98] transition-[width] duration-500 ease-out"
+          className="h-full rounded-full bg-gradient-to-r from-[#50c9d5] to-[#84d9e1] transition-[width] duration-500 ease-out"
           style={{ width: `${lineProgress}%` }}
         />
       </div>
@@ -64,12 +64,12 @@ export default function StageRail({
                 <span
                   className={`relative flex h-11 w-11 shrink-0 items-center justify-center rounded-full border-2 bg-white transition-all duration-300 ${
                     isCurrent
-                      ? "animate-pulse-ring scale-110 border-[#19b3bc] text-[#19b3bc] shadow-lg shadow-[#19b3bc]/25"
+                      ? "animate-pulse-ring scale-110 border-[#50c9d5] text-[#1e737b] shadow-lg shadow-[#50c9d5]/25"
                       : isCovered
-                        ? "border-[#19b3bc] bg-[#19b3bc] text-white"
+                        ? "border-[#50c9d5] bg-[#50c9d5] text-[#080b04]"
                         : isPast
                           ? "border-slate-300 text-slate-400"
-                          : "border-slate-200 text-slate-300 group-hover:border-[#19b3bc]/40 group-hover:text-[#19b3bc]/60"
+                          : "border-slate-200 text-slate-300 group-hover:border-[#50c9d5]/40 group-hover:text-[#1e737b]/60"
                   }`}
                 >
                   {isCovered && !isCurrent ? (
@@ -86,7 +86,7 @@ export default function StageRail({
                 <span className="min-w-0 text-center">
                   <span
                     className={`block truncate text-[11px] font-semibold uppercase tracking-wide transition-colors duration-200 md:text-xs ${
-                      isCurrent ? "text-[#0f8f98]" : isCovered ? "text-slate-700" : "text-slate-400"
+                      isCurrent ? "text-[#1e737b]" : isCovered ? "text-slate-700" : "text-slate-400"
                     }`}
                   >
                     {stage.label}

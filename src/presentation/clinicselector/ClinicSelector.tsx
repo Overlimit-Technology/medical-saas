@@ -18,7 +18,7 @@ export default function ClinicSelector() {
         {/* Separacion vertical del logo respecto a la tarjeta: cambia mb-8. */}
         <div className="mb-8 text-center">
           {/* Espacio lateral/logo pill: cambia px-8 y py-4 para mas/menos aire. */}
-          <div className="inline-flex items-center justify-center rounded-full bg-white/80 px-8 py-4 shadow-sm shadow-[#19b3bc]/10">
+          <div className="inline-flex items-center justify-center rounded-full bg-white/80 px-8 py-4 shadow-sm shadow-[#50c9d5]/10">
             <Image
               src="/images/branding/Zensya.png"
               alt="Zensya"
@@ -31,7 +31,7 @@ export default function ClinicSelector() {
           </div>
         </div>
 
-        <div className="rounded-3xl border border-[#19b3bc]/20 bg-[#19b3bc] px-8 py-10 text-white shadow-lg shadow-[#19b3bc]/25">
+        <div className="rounded-3xl border border-[#50c9d5]/20 bg-[#50c9d5] px-8 py-10 text-[#080b04] shadow-lg shadow-[#50c9d5]/25">
           <div className="mb-6 text-center">
             <h1 className="text-xl font-semibold text-white">Selecciona tu sede</h1>
             <p className="mt-1 text-sm text-white/80">
@@ -95,7 +95,7 @@ export default function ClinicSelector() {
         </div>
 
         <div className="mt-6 text-center">
-          <p className="text-[11px] text-[#0f8f98]/70">
+          <p className="text-[11px] text-[#1e737b]/70">
             © {new Date().getFullYear()} Zensya. Todos los derechos reservados.
           </p>
         </div>
