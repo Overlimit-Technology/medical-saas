@@ -151,9 +151,9 @@ export default function AdminOverview() {
   return (
     <View label="Vista general">
       <PageHead
-        tag={today}
-        title="Vista general"
-        accent={data?.clinic.name ? `· ${data.clinic.name}` : undefined}
+        tag={data?.clinic.name ? `${today} · ${data.clinic.name}` : today}
+        title="Vista"
+        accent="general"
         lead="Lo importante de tu clínica hoy: citas, pacientes, leads e ingresos."
         actions={
           <>

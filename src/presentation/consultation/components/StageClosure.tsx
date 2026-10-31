@@ -176,47 +176,70 @@ export default function StageClosure({
     <StagePanel stage={stage}>
       <div className="space-y-6">
         {/* ------------------------------------------------ estado de la ficha */}
-        <div className="animate-rise-in rounded-2xl border border-slate-100 bg-white p-5">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <p className="text-sm font-semibold text-slate-800">Completitud de la atencion</p>
-              <p className="text-xs text-slate-400">
-                Nada de esto es obligatorio: es tu resumen antes de firmar.
-              </p>
+        <div className="animate-rise-in rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <div className="flex flex-wrap items-center gap-5">
+            <div className="relative h-[88px] w-[88px] shrink-0" aria-label={`${completion}% completo`}>
+              <svg viewBox="0 0 88 88" className="h-full w-full -rotate-90">
+                <circle cx="44" cy="44" r="36" fill="none" strokeWidth="8" className="stroke-slate-100" />
+                <circle
+                  cx="44"
+                  cy="44"
+                  r="36"
+                  fill="none"
+                  strokeWidth="8"
+                  strokeLinecap="round"
+                  className="stroke-[#50c9d5] transition-[stroke-dashoffset] duration-700 ease-out"
+                  strokeDasharray={226}
+                  strokeDashoffset={226 * (1 - completion / 100)}
+                />
+              </svg>
+              <span className="absolute inset-0 grid place-items-center font-display text-xl font-bold tabular-nums text-slate-900">
+                {completion}%
+              </span>
             </div>
-            <span className="text-2xl font-semibold tabular-nums text-[#1e737b]">
-              {completion}%
-            </span>
+            <div className="min-w-0 flex-1">
+              <p className="font-display text-[17px] font-bold tracking-[-0.3px] text-slate-900">
+                {completion === 100 ? "Todo listo para firmar" : "Antes de firmar, revisa lo que falta"}
+              </p>
+              <p className="text-[13px] text-slate-500">Nada es obligatorio: es tu resumen de la atención.</p>
+              {checklist.some((item) => item.done) ? (
+                <ul className="mt-2.5 flex flex-wrap gap-1.5">
+                  {checklist
+                    .filter((item) => item.done)
+                    .map((item) => (
+                      <li
+                        key={item.label}
+                        className="inline-flex items-center gap-1 rounded-full bg-[#50c9d5]/[0.08] px-2.5 py-1 text-[12px] font-medium text-[#1e737b]"
+                      >
+                        <Check size={12} strokeWidth={3} />
+                        {item.label}
+                      </li>
+                    ))}
+                </ul>
+              ) : null}
+            </div>
           </div>
 
-          <div className="mt-3 h-2 overflow-hidden rounded-full bg-slate-100">
-            <div
-              className="h-full rounded-full bg-gradient-to-r from-[#50c9d5] to-[#84d9e1] transition-[width] duration-700 ease-out"
-              style={{ width: `${completion}%` }}
-            />
-          </div>
-
-          <ul className="mt-4 grid gap-1.5 sm:grid-cols-2">
-            {checklist.map((item, index) => (
-              <li key={item.label}>
-                <button
-                  type="button"
-                  onClick={() => onGoToStage(item.stage)}
-                  className="animate-rise-in flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left text-sm transition-colors hover:bg-slate-50"
-                  style={{ animationDelay: `${index * 35}ms` }}
-                >
-                  {item.done ? (
-                    <Check size={14} strokeWidth={3} className="shrink-0 text-emerald-500" />
-                  ) : (
-                    <CircleDashed size={14} className="shrink-0 text-slate-300" />
-                  )}
-                  <span className={item.done ? "text-slate-700" : "text-slate-400"}>
-                    {item.label}
-                  </span>
-                </button>
-              </li>
-            ))}
-          </ul>
+          {checklist.some((item) => !item.done) ? (
+            <ul className="mt-4 grid gap-2 border-t border-slate-200 pt-4 sm:grid-cols-2">
+              {checklist
+                .filter((item) => !item.done)
+                .map((item, index) => (
+                  <li key={item.label}>
+                    <button
+                      type="button"
+                      onClick={() => onGoToStage(item.stage)}
+                      className="animate-rise-in group flex w-full items-center gap-2.5 rounded-xl border border-[#e8a020]/30 bg-[#e8a020]/[0.06] px-3 py-2 text-left text-sm transition-colors hover:border-[#e8a020]/60"
+                      style={{ animationDelay: `${index * 35}ms` }}
+                    >
+                      <CircleDashed size={15} className="shrink-0 text-[#8a5a0b]" />
+                      <span className="flex-1 text-slate-900">Falta: {item.label}</span>
+                      <span className="text-[12px] font-semibold text-[#8a5a0b] group-hover:underline">Completar</span>
+                    </button>
+                  </li>
+                ))}
+            </ul>
+          ) : null}
         </div>
 
         {/* ------------------------------------------------------ no asistio */}
@@ -257,8 +280,8 @@ export default function StageClosure({
         {!isNoShow && (
           <>
             {/* ------------------------------------------------ proximo control */}
-            <div className="animate-rise-in rounded-2xl border border-slate-100 bg-white p-5">
-              <p className="text-sm font-semibold text-slate-800">Proximo control</p>
+            <div className="animate-rise-in rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+              <p className="font-display text-[17px] font-bold tracking-[-0.3px] text-slate-900">Proximo control</p>
               <p className="mt-0.5 text-xs text-slate-400">
                 Lo que elijas aca se agenda de verdad al cerrar la consulta.
               </p>
@@ -513,7 +536,7 @@ export default function StageClosure({
             </div>
 
             {/* -------------------------------------------------------- cobro */}
-            <div className="animate-rise-in rounded-2xl border border-slate-100 bg-white p-5">
+            <div className="animate-rise-in rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
                   <p className="flex items-center gap-2 text-sm font-semibold text-slate-800">
@@ -634,7 +657,7 @@ export default function StageClosure({
         )}
 
         {/* --------------------------------------------------- nota interna */}
-        <div className="animate-rise-in rounded-2xl border border-slate-100 bg-white p-5">
+        <div className="animate-rise-in rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
           <SectionField
             sectionKey="privateNote"
             value={draft.sections.privateNote ?? ""}

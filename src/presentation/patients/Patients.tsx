@@ -880,8 +880,8 @@ export default function Patients() {
                             </div>
                           </div>
                         </td>
-                        <td className="px-4 py-3 text-slate-500">{patient.run}</td>
-                        <td className="px-4 py-3 text-slate-500">{patient.phone ?? "-"}</td>
+                        <td className="whitespace-nowrap px-4 py-3 tabular-nums text-slate-500">{patient.run}</td>
+                        <td className="whitespace-nowrap px-4 py-3 tabular-nums text-slate-500">{patient.phone ?? "-"}</td>
                         <td className="px-4 py-3">
                           <span className="text-slate-400">{formatRelativeDate(patient.createdAt)}</span>
                         </td>

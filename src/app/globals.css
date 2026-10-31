@@ -24,6 +24,14 @@ body {
     font-family: var(--zs-font-display), "Segoe UI", system-ui, sans-serif;
     letter-spacing: -0.02em;
   }
+  /* Sin color propio, los campos toman el "field" del sistema: en Windows con tema oscuro
+     salen negros. La app es clara, como el portal del paciente. */
+  :root {
+    color-scheme: light;
+  }
+  :where(input:not([type="checkbox"], [type="radio"], [type="range"], [type="color"]), select, textarea) {
+    background-color: #ffffff;
+  }
   :focus-visible {
     outline-color: #50c9d5;
   }

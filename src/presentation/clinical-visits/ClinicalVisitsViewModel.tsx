@@ -26,6 +26,7 @@ export function useClinicalVisitsViewModel() {
   const qsPatientId = searchParams.get("patientId");
 
   const [role, setRole] = useState<string | null>(null);
+  const [userId, setUserId] = useState<string | null>(null);
   const [patients, setPatients] = useState<Patient[]>([]);
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [visits, setVisits] = useState<ClinicalVisit[]>([]);
@@ -60,6 +61,7 @@ export function useClinicalVisitsViewModel() {
       try {
         const session = await getCurrentSessionUseCase.execute();
         setRole(session.role);
+        setUserId(session.userId);
       } catch {
         setRole(null);
       }
@@ -143,6 +145,7 @@ export function useClinicalVisitsViewModel() {
   return {
     state: {
       role,
+      userId,
       patients,
       visits,
       patientId,
