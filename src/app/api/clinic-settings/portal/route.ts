@@ -27,6 +27,8 @@ async function readSettings(clinicId: string, origin: string) {
     select: { name: true, settings: { select: { portalEnabled: true, portalSlug: true } } },
   });
   const slug = clinic?.settings?.portalSlug ?? null;
+  // Con PORTAL_ROOT_DOMAIN el enlace es el subdominio (revitamed.zensya.cl); sin el, la ruta /portal/{slug}.
+  const root = process.env.PORTAL_ROOT_DOMAIN?.trim().toLowerCase();
   const [accounts, patients] = await Promise.all([
     prisma.patientAccount.count({ where: { clinicId } }),
     prisma.patient.count({ where: { clinicId, isActive: true } }),
@@ -35,7 +37,7 @@ async function readSettings(clinicId: string, origin: string) {
     enabled: clinic?.settings?.portalEnabled ?? false,
     slug,
     suggestedSlug: suggestSlug(clinic?.name ?? ""),
-    url: slug ? `${origin}/portal/${slug}` : null,
+    url: slug ? (root ? `https://${slug}.${root}` : `${origin}/portal/${slug}`) : null,
     accounts,
     patients,
   };
@@ -64,7 +66,7 @@ export async function PATCH(req: Request) {
     if (slug !== undefined) {
       if (!isValidPortalSlug(slug)) {
         return NextResponse.json(
-          { ok: false, error: "Usa de 3 a 40 letras minusculas, numeros o guiones, sin empezar ni terminar con guion." },
+          { ok: false, error: "Usa de 3 a 40 letras minusculas, numeros o guiones, sin empezar ni terminar con guion (y que no sea app, www, api, admin, staging, preview ni dev)." },
           { status: 400 }
         );
       }

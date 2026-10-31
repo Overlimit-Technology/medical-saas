@@ -1039,6 +1039,8 @@ model PatientPortalCode {
   firstName     String?
   lastName      String?
   phone         String?
+  // SIGNUP: crear la cuenta. RESET: recuperar la contrasena.
+  purpose       String    @default("SIGNUP")
   codeHash      String
   attempts      Int       @default(0)
   expiresAt     DateTime

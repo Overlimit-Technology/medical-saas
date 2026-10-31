@@ -126,6 +126,38 @@ const PROTECTED_PREFIXES = [
   "/portal-paciente",
 ];
 
+const APP_ROUTES = ["/", "/login", "/change-password", "/select-clinic"];
+
+function isAppRoute(pathname: string) {
+  return (
+    APP_ROUTES.includes(pathname) ||
+    PROTECTED_PREFIXES.some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`))
+  );
+}
+
+// Subdominios que nunca son un portal de clinica.
+const RESERVED_SUBDOMAINS = new Set(["app", "www", "api", "admin", "staging", "preview", "dev"]);
+
+/**
+ * Portal por subdominio: revitamed.zensya.cl/citas se sirve desde /portal/revitamed/citas.
+ * Solo se activa si PORTAL_ROOT_DOMAIN esta definido (por ejemplo "zensya.cl").
+ * En un subdominio de portal la app del equipo no existe: todo cae dentro del portal.
+ */
+function portalSubdomainResponse(req: NextRequest) {
+  const root = process.env.PORTAL_ROOT_DOMAIN?.trim().toLowerCase();
+  if (!root) return null;
+  const host = (req.headers.get("host") ?? "").split(":")[0].toLowerCase();
+  if (!host.endsWith(`.${root}`)) return null;
+  const subdomain = host.slice(0, -(root.length + 1));
+  if (!subdomain || subdomain.includes(".") || RESERVED_SUBDOMAINS.has(subdomain)) return null;
+
+  const { pathname } = req.nextUrl;
+  if (pathname.startsWith("/portal/")) return NextResponse.next();
+  const url = req.nextUrl.clone();
+  url.pathname = `/portal/${subdomain}${pathname === "/" ? "" : pathname}`;
+  return NextResponse.rewrite(url);
+}
+
 function getPermissions(value: unknown) {
   return Array.isArray(value) ? value.filter((item): item is string => typeof item === "string") : [];
 }
@@ -167,7 +199,12 @@ function shouldRedirectToLegacy(payload: SignedPayload | null) {
 }
 
 export async function middleware(req: NextRequest) {
+  const portalResponse = portalSubdomainResponse(req);
+  if (portalResponse) return portalResponse;
+
   const { pathname } = req.nextUrl;
+  // El matcher toma todas las paginas por los subdominios; el resto de reglas es solo para la app.
+  if (!isAppRoute(pathname)) return NextResponse.next();
 
   const secret = process.env.SESSION_SECRET;
   if (!secret) return NextResponse.next();
@@ -447,37 +484,6 @@ export async function middleware(req: NextRequest) {
 }
 
 export const config = {
-  matcher: [
-    "/",
-    "/login",
-    "/change-password",
-    "/select-clinic",
-    "/super-admin/:path*",
-    "/dashboard/:path*",
-    "/clinic-dashboard/:path*",
-    "/configuracion/:path*",
-    "/seguimiento/:path*",
-    "/liquidaciones/:path*",
-    "/mis-boletas/:path*",
-    "/asistente-ia/:path*",
-    "/vacaciones/:path*",
-    "/agenda/:path*",
-    "/chat/:path*",
-    "/chat-meta/:path*",
-    "/formulario-chat/:path*",
-    "/crm/:path*",
-    "/leads/:path*",
-    "/profile/:path*",
-    "/notifications/:path*",
-    "/patients/:path*",
-    "/usuarios/:path*",
-    "/doctors/:path*",
-    "/treatments/:path*",
-    "/boxes/:path*",
-    "/appointments/:path*",
-    "/clinical-visits/:path*",
-    "/consultation/:path*",
-    "/form-templates/:path*",
-    "/portal-paciente/:path*",
-  ],
+  // Todas las paginas (no API ni archivos estaticos): los subdominios de portal pueden pedir cualquier ruta.
+  matcher: ["/((?!api/|_next/|favicon\\.ico|.*\\.[a-zA-Z0-9]+$).*)"],
 };

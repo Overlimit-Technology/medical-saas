@@ -25,6 +25,24 @@ Límites del registro:
 
 En la base de datos solo se guarda el hash del código y de la contraseña.
 
+## Recuperar la contraseña
+
+1. En `/portal/{enlace}/recuperar` (enlace "¿Olvidaste tu contraseña?" en el ingreso) el paciente escribe su RUT o su correo.
+2. Si tiene cuenta, le llega un código de 6 números al correo de la cuenta. La pantalla dice lo mismo exista o no la cuenta, para no revelar quién tiene cuenta.
+3. Escribe el código y su contraseña nueva. Queda guardada y entra de inmediato.
+
+Usa los mismos límites que el registro. Los códigos llevan un propósito (`SIGNUP` o `RESET`) que también entra en el hash, así que un código de registro no sirve para cambiar una contraseña.
+
+## Subdominios por clínica
+
+Con la variable `PORTAL_ROOT_DOMAIN=zensya.cl`, `revitamed.zensya.cl` muestra el portal de la sede con enlace `revitamed`. El middleware reescribe `revitamed.zensya.cl/citas` a `/portal/revitamed/citas`. En un subdominio de portal la app del equipo no responde: cualquier ruta cae dentro del portal.
+
+Para activarlo en producción:
+1. En Vercel → proyecto → Settings → Domains, agrega `*.zensya.cl`. Vercel pide que el dominio use sus nameservers para emitir el certificado comodín.
+2. En Vercel → Environment Variables (Production), agrega `PORTAL_ROOT_DOMAIN=zensya.cl` y vuelve a desplegar.
+
+Sin la variable todo sigue funcionando por ruta (`app.zensya.cl/portal/revitamed`). Los subdominios `app`, `www`, `api`, `admin`, `staging`, `preview` y `dev` nunca son portales y no se pueden usar como enlace.
+
 ## Secciones
 
 Cada sección es una página propia y el menú marca en cuál está el paciente.
@@ -55,15 +73,18 @@ No hay variables nuevas obligatorias. El portal usa las que ya existen:
 | `SESSION_SECRET` | Firma de la sesión del paciente y de los códigos (con una llave derivada) |
 | `GMAIL_USER`, `APP_PASSWORD_GMAIL` | Envío del código por correo |
 | `PATIENT_PORTAL_SECRET` (opcional) | Si se define, reemplaza a `SESSION_SECRET` como base de la llave del portal |
+| `PORTAL_ROOT_DOMAIN` (opcional) | Dominio de los subdominios de portal, por ejemplo `zensya.cl`. No es una clave |
 
 ## Migración
 
-`prisma/migrations/20261101120000_add_patient_portal` hace tres cambios:
+Son dos migraciones. `prisma/migrations/20261101120000_add_patient_portal` hace tres cambios:
 - agrega `portalSlug` y `portalEnabled` a `ClinicSettings`;
 - crea `PatientAccount`;
 - crea `PatientPortalCode`.
 
-**Hay que aplicarla en cada base antes de desplegar el código** (ver `docs/ENTORNOS.md`). Varias rutas existentes leen la fila completa de `ClinicSettings` y fallarían si la columna nueva no existe.
+`20261101130000_portal_code_purpose` agrega la columna `purpose` a `PatientPortalCode` para recuperar la contraseña.
+
+**Hay que aplicarlas en cada base antes de desplegar el código** (ver `docs/ENTORNOS.md`). Varias rutas existentes leen la fila completa de `ClinicSettings` y fallarían si la columna nueva no existe.
 
 ```bash
 npx prisma migrate deploy
@@ -71,6 +92,6 @@ npx prisma migrate deploy
 
 ## Pendiente
 
-- **Subdominios por clínica** (`revitamed.zensya.cl`). Falta un comodín DNS `*.zensya.cl` en Vercel y una regla en el middleware o en `next.config.mjs` que reescriba el host a `/portal/{enlace}`.
-- **Recuperar la contraseña por correo.** Puede reutilizar `PatientPortalCode`.
+- **Subdominios en producción.** El código ya está. Falta el dominio comodín en Vercel y la variable `PORTAL_ROOT_DOMAIN` (ver arriba).
+- **Cerrar otras sesiones al cambiar la contraseña.** La sesión es una cookie firmada de 7 días; hoy una sesión abierta en otro equipo sigue viva hasta que vence.
 - **Recetas, consentimientos y ejercicios.** Hoy no hay tablas para estos datos. Por eso no aparecen en el menú.

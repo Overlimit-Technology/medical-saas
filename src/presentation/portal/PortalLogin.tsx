@@ -46,6 +46,9 @@ export default function PortalLogin({ slug }: { slug: string }) {
       <div className="field">
         <label htmlFor="lg-pass">Contraseña</label>
         <input className="input" id="lg-pass" type="password" autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} />
+        <Link className="link small" href={`/portal/${slug}/recuperar`} style={{ alignSelf: "flex-end" }}>
+          ¿Olvidaste tu contraseña?
+        </Link>
       </div>
       {error ? (
         <p className="small" role="alert" style={{ color: "var(--zs-err-text)" }}>
