@@ -314,6 +314,8 @@ model Clinic {
   teamCategories  TeamCategory[]
   professions     Profession[]
   professionalInvoices ProfessionalInvoice[]
+  patientAccounts PatientAccount[]
+  patientPortalCodes PatientPortalCode[]
 }
 
 model ClinicSettings {
@@ -330,6 +332,9 @@ model ClinicSettings {
   bookingKey                         String?  @unique
   bookingEnabled                     Boolean  @default(false)
   bookingSlotMinutes                 Int      @default(30)
+  // Portal del paciente: /portal/{portalSlug}
+  portalSlug                         String?  @unique
+  portalEnabled                      Boolean  @default(false)
   // Sesiones multiples en equipos compartidos (opt-in)
   sharedSessionsEnabled              Boolean  @default(false)
   sharedIdleLockMinutes              Int      @default(10)
@@ -414,6 +419,7 @@ model Patient {
   clinicalRecords ClinicalRecord[]
   treatmentPlans  TreatmentPlan[]
   patientImaging  PatientImaging[]
+  portalAccount   PatientAccount?
 
   @@index([clinicId, isActive])
   @@unique([clinicId, runNormalized])
@@ -1002,4 +1008,44 @@ model PlatformCost {
   createdAt   DateTime @default(now())
 
   @@index([month])
+}
+
+// --- Portal del paciente ------------------------------------------------------
+
+// Cuenta del paciente para entrar al portal de su sede (RUT o correo + contrasena).
+model PatientAccount {
+  id              String    @id @default(cuid())
+  clinicId        String
+  patientId       String    @unique
+  email           String
+  passwordHash    String
+  emailVerifiedAt DateTime
+  lastLoginAt     DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  clinic  Clinic  @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+  patient Patient @relation(fields: [patientId], references: [id], onDelete: Cascade)
+
+  @@unique([clinicId, email])
+}
+
+// Codigo de 6 digitos enviado por correo para crear la cuenta. Se guarda solo su hash.
+model PatientPortalCode {
+  id            String    @id @default(cuid())
+  clinicId      String
+  runNormalized String
+  email         String
+  firstName     String?
+  lastName      String?
+  phone         String?
+  codeHash      String
+  attempts      Int       @default(0)
+  expiresAt     DateTime
+  consumedAt    DateTime?
+  createdAt     DateTime  @default(now())
+
+  clinic Clinic @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+
+  @@index([clinicId, runNormalized, createdAt])
 }

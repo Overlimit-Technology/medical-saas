@@ -18,7 +18,7 @@ function createPrismaClient(adapter: PrismaPg) {
     adapter,
     // Seguridad: passwordHash nunca se devuelve por defecto (ni con include ni por relaciones).
     // Solo el login y el cambio de contrasena lo leen, con select explicito.
-    omit: { user: { passwordHash: true } },
+    omit: { user: { passwordHash: true }, patientAccount: { passwordHash: true } },
     // log: ["query", "error", "warn"], // opcional para debug
   });
 }

@@ -6,6 +6,8 @@ const LIMITS = {
   read: { windowMs: 60_000, max: 60 },
   book: { windowMs: 10 * 60_000, max: 5 },
   assistant: { windowMs: 60_000, max: 8 },
+  // Portal del paciente: ingreso, codigos por correo y verificacion.
+  portalAuth: { windowMs: 10 * 60_000, max: 12 },
 } as const;
 
 export type PublicAction = keyof typeof LIMITS;
