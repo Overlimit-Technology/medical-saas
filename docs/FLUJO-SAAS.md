@@ -86,7 +86,8 @@ No hay notas propias en el flujo. Usa la base nueva y el encabezado de Recepció
 Hay tres migraciones nuevas en esta rama, además de las dos del portal del paciente. Hay que aplicarlas antes de desplegar:
 
 - `20261101140000_treatment_fonasa_code`: agrega `Treatment.fonasaCode`;
-- `20261101150000_clinic_map`: agrega `ClinicSettings.clinicMap`.
+- `20261101150000_clinic_map`: agrega `ClinicSettings.clinicMap`;
+- `20261102120000_dashboard_layout`: agrega `ClinicMembership.dashboardLayout`, para el panel personalizable del admin (ver `docs/DASHBOARD-PERSONALIZABLE.md`).
 
 ```bash
 npx prisma migrate deploy

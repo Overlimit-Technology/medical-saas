@@ -14,7 +14,7 @@ function LoadingState() {
       {Array.from({ length: 6 }).map((_, index) => (
         <div
           key={index}
-          className="h-14 animate-pulse rounded-[18px] bg-white/75"
+          className="h-14 animate-pulse rounded-[18px] bg-white/60"
         />
       ))}
     </div>
@@ -24,7 +24,7 @@ function LoadingState() {
 function EmptyState({ message }: { message: string }) {
   return (
     <div className="px-3 py-3">
-      <div className="rounded-[22px] bg-white px-4 py-5 text-left shadow-[0_18px_40px_-36px_rgba(15,23,42,0.35)]">
+      <div className="zs-glass-inner rounded-[22px] px-4 py-5 text-left">
         <div className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-100 text-slate-500">
           <Inbox className="h-4 w-4" />
         </div>
@@ -55,7 +55,7 @@ function SidebarHeader({
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <div className="flex items-center gap-2">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-[#50c9d5]/30 bg-gradient-to-br from-[#50c9d5]/20 to-[#50c9d5]/[0.06] text-[#1e737b]">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-[#50c9d5]/30 bg-gradient-to-br from-[#50c9d5]/20 to-[#50c9d5]/[0.06] text-[#17656c]">
               <Bell className="h-4 w-4" />
             </div>
             <h2 className="font-display text-[15px] font-bold tracking-[-0.3px] text-slate-900">
@@ -76,7 +76,7 @@ function SidebarHeader({
           <button
             type="button"
             onClick={onRefresh}
-            className="flex h-7 w-7 items-center justify-center rounded-full bg-white text-slate-400 transition hover:bg-slate-100 hover:text-slate-700"
+            className="flex h-7 w-7 items-center justify-center rounded-full border border-white/80 bg-white/70 text-slate-500 shadow-sm transition hover:bg-white hover:text-slate-900 active:scale-95"
             aria-label="Actualizar notificaciones"
           >
             <RefreshCw className={`h-3 w-3 ${refreshing ? "animate-spin" : ""}`} />
@@ -86,7 +86,7 @@ function SidebarHeader({
             <button
               type="button"
               onClick={onCollapse}
-              className="flex h-7 w-7 items-center justify-center rounded-full bg-white text-slate-400 transition hover:bg-slate-100 hover:text-slate-700"
+              className="flex h-7 w-7 items-center justify-center rounded-full border border-white/80 bg-white/70 text-slate-500 shadow-sm transition hover:bg-white hover:text-slate-900 active:scale-95"
               aria-label="Ocultar sidebar de notificaciones"
             >
               <ChevronRight className="h-3 w-3" />
@@ -97,7 +97,7 @@ function SidebarHeader({
             <button
               type="button"
               onClick={onClose}
-              className="flex h-7 w-7 items-center justify-center rounded-full bg-white text-slate-400 transition hover:bg-slate-100 hover:text-slate-700"
+              className="flex h-7 w-7 items-center justify-center rounded-full border border-white/80 bg-white/70 text-slate-500 shadow-sm transition hover:bg-white hover:text-slate-900 active:scale-95"
               aria-label="Cerrar panel"
             >
               <X className="h-3 w-3" />
@@ -131,7 +131,7 @@ function SidebarSection({
       </div>
 
       {items.length > 0 ? (
-        <div className="space-y-0.5 rounded-[24px] bg-white/70 px-1.5 py-1.5 shadow-[0_20px_48px_-42px_rgba(15,23,42,0.32)] backdrop-blur-sm">
+        <div className="zs-glass-inner space-y-0.5 rounded-[24px] px-1.5 py-1.5">
           {items.map((item, index) => (
             <NotificationSidebarListItem
               key={item.id}
@@ -147,7 +147,7 @@ function SidebarSection({
           ))}
         </div>
       ) : (
-        <div className="rounded-[20px] bg-white px-3.5 py-3 text-[11px] leading-5 text-slate-500 shadow-[0_16px_32px_-30px_rgba(15,23,42,0.24)]">
+        <div className="zs-glass-inner rounded-[20px] px-3.5 py-3 text-[11px] leading-5 text-slate-600">
           {emptyMessage}
         </div>
       )}
@@ -197,7 +197,7 @@ function SidebarContent({
         onCollapse={onCollapse}
       />
 
-      <div className="min-h-0 flex-1 overflow-y-auto bg-[#f4f7f9] pb-2">
+      <div className="sidebar-scrollbar min-h-0 flex-1 overflow-y-auto pb-2">
         {loading ? (
           <LoadingState />
         ) : !hasVisibleAlerts && error ? (
@@ -322,8 +322,8 @@ export default function NotificationsSidebar() {
       />
 
       <aside
-        className={`fixed right-0 top-0 z-50 flex h-screen w-[292px] max-w-[calc(100vw-14px)] flex-col border-l border-slate-200/60 bg-[linear-gradient(180deg,#f7fbfd_0%,#f4f8fb_100%)] shadow-[0_30px_90px_-40px_rgba(15,23,42,0.32)] transition-transform duration-300 xl:hidden ${
-          isOpen ? "translate-x-0" : "translate-x-full"
+        className={`zs-glass-strong fixed bottom-3 right-3 top-3 z-50 flex w-[292px] max-w-[calc(100vw-24px)] flex-col overflow-hidden rounded-[28px] transition-transform duration-[400ms] [transition-timing-function:cubic-bezier(.22,1,.36,1)] xl:hidden ${
+          isOpen ? "translate-x-0" : "translate-x-[calc(100%+24px)]"
         }`}
         aria-hidden={!isOpen}
       >
@@ -348,7 +348,7 @@ export default function NotificationsSidebar() {
         <button
           type="button"
           onClick={() => setIsDesktopCollapsed(false)}
-          className="fixed right-4 top-24 z-40 hidden h-9 w-9 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-600 shadow-[0_18px_40px_-28px_rgba(15,23,42,0.28)] transition hover:border-slate-300 hover:text-slate-900 xl:flex"
+          className="zs-glass zs-press fixed right-4 top-24 z-40 hidden h-9 w-9 items-center justify-center rounded-full text-slate-600 transition hover:text-slate-900 xl:flex"
           aria-label="Mostrar sidebar de notificaciones"
         >
           <ChevronLeft className="h-3.5 w-3.5" />
@@ -356,15 +356,13 @@ export default function NotificationsSidebar() {
       ) : null}
 
       <aside
-        className={`hidden h-screen shrink-0 overflow-hidden bg-white transition-[width,border-color] duration-300 xl:flex xl:flex-col ${
-          isDesktopCollapsed
-            ? "w-0 border-l border-transparent"
-            : "w-[292px] border-l border-slate-200/60 bg-[linear-gradient(180deg,#f7fbfd_0%,#f4f8fb_100%)]"
+        className={`hidden h-screen shrink-0 overflow-hidden transition-[width,padding] duration-[400ms] [transition-timing-function:cubic-bezier(.22,1,.36,1)] xl:flex xl:flex-col ${
+          isDesktopCollapsed ? "w-0 p-0" : "w-[316px] py-3 pr-3"
         }`}
         aria-hidden={isDesktopCollapsed}
       >
         <div
-          className={`flex h-full min-h-0 flex-col transition-opacity duration-200 ${
+          className={`zs-glass flex h-full min-h-0 flex-col overflow-hidden rounded-[28px] transition-opacity duration-200 ${
             isDesktopCollapsed ? "pointer-events-none opacity-0" : "opacity-100"
           }`}
         >
@@ -398,7 +396,7 @@ export default function NotificationsSidebar() {
         }
 
         .notifications-sidebar-item {
-          animation: notificationsSidebarItemIn 280ms ease-out both;
+          animation: notificationsSidebarItemIn 320ms cubic-bezier(0.22, 1, 0.36, 1) backwards;
         }
       `}</style>
     </>

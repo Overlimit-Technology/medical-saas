@@ -114,3 +114,26 @@ export async function uploadImagingAsset(fileBuffer: Buffer, userId: string, mim
 
   return result.secure_url;
 }
+
+/** True cuando las tres variables de Cloudinary estan definidas (en local suelen faltar). */
+export function isCloudinaryConfigured() {
+  return Boolean(
+    process.env.CLOUDINARY_CLOUD_NAME?.trim() && process.env.CLOUDINARY_API_KEY?.trim() && process.env.CLOUDINARY_API_SECRET?.trim()
+  );
+}
+
+/** Firma para que el navegador suba directo a la carpeta de archivos del panel de una sede. */
+export function generateDashboardUploadSignature(clinicId: string) {
+  ensureCloudinaryConfig();
+  const timestamp = Math.round(Date.now() / 1000);
+  const folder = `medigest/dashboard/${clinicId}`;
+  const signature = cloudinary.utils.api_sign_request({ timestamp, folder }, process.env.CLOUDINARY_API_SECRET!);
+  return { timestamp, signature, folder, cloudName: process.env.CLOUDINARY_CLOUD_NAME!, apiKey: process.env.CLOUDINARY_API_KEY! };
+}
+
+/** Borra un archivo del panel; solo dentro de la carpeta de esa sede. */
+export async function deleteDashboardAsset(clinicId: string, publicId: string, resourceType: "image" | "raw" | "video") {
+  ensureCloudinaryConfig();
+  if (!publicId.startsWith(`medigest/dashboard/${clinicId}/`)) throw new Error("Archivo no válido.");
+  await cloudinary.uploader.destroy(publicId, { resource_type: resourceType, invalidate: true });
+}

@@ -159,7 +159,7 @@ export default function ClinicDashboard() {
                 />
               ) : (
                 <div className="flex h-20 w-40 items-center justify-center rounded-lg border-2 border-dashed border-slate-300 bg-slate-50">
-                  <span className="text-xs text-slate-400">Sin logo</span>
+                  <span className="text-xs text-slate-500">Sin logo</span>
                 </div>
               )}
               {profileEditing && (
@@ -179,7 +179,7 @@ export default function ClinicDashboard() {
                     type="button"
                     disabled={logoUploading}
                     onClick={() => fileInputRef.current?.click()}
-                    className="text-xs text-[#1e737b] hover:underline disabled:opacity-50"
+                    className="text-xs text-[#17656c] hover:underline disabled:opacity-50"
                   >
                     {logoUploading ? "Subiendo..." : clinicProfile.logoUrl ? "Cambiar logo" : "Subir logo"}
                   </button>
@@ -193,7 +193,7 @@ export default function ClinicDashboard() {
                       Quitar logo
                     </button>
                   )}
-                  <p className="text-center text-[10px] text-slate-400">PNG, JPG, WebP o SVG · máx. 2 MB</p>
+                  <p className="text-center text-[10px] text-slate-500">PNG, JPG, WebP o SVG · máx. 2 MB</p>
                 </>
               )}
             </div>
@@ -220,7 +220,7 @@ export default function ClinicDashboard() {
                       />
                     ) : (
                       <p className="text-[15px] text-slate-900">
-                        {clinicProfile[key] || <span className="italic text-slate-400">—</span>}
+                        {clinicProfile[key] || <span className="italic text-slate-500">—</span>}
                       </p>
                     )}
                   </div>

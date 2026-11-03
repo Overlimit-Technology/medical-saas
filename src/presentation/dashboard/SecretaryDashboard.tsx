@@ -53,13 +53,13 @@ const WAITING_ROOM_STATUS_LABELS: Record<WaitingRoomStatus, string> = {
 
 const WAITING_ROOM_STATUS_STYLES: Record<WaitingRoomStatus, string> = {
   waiting: "border-slate-200 bg-slate-50 text-slate-600",
-  ready: "border-[#50c9d5]/20 bg-[#e8f8f9] text-[#1e737b]",
+  ready: "border-[#50c9d5]/20 bg-[#e8f8f9] text-[#17656c]",
   delayed: "border-amber-200 bg-amber-50 text-amber-700",
 };
 
 const CARD_BUTTON_STYLES: Record<WaitingRoomStatus, string> = {
   waiting: "bg-[#50c9d5] text-[#080b04] hover:bg-[#45bcc8]",
-  ready: "bg-[#e8f8f9] text-[#1e737b]",
+  ready: "bg-[#e8f8f9] text-[#17656c]",
   delayed: "bg-amber-100 text-amber-800 hover:bg-amber-200",
 };
 
@@ -148,8 +148,8 @@ function QuickPaymentModal({
     status === "PAID" && new Date(entry.appointment.startAt).getTime() <= Date.now();
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 px-4">
-      <div className="animate-modal-in w-full max-w-md rounded-2xl border border-slate-100 bg-white p-6 shadow-lg">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#0d1b2a]/30 backdrop-blur-[2px] zs-overlay-in px-4">
+      <div className="animate-modal-in w-full max-w-md zs-glass-strong rounded-[var(--radius-card)] p-6 ">
         <div className="flex items-start justify-between gap-3">
           <div>
             <p className="text-sm font-semibold text-slate-900">Cobrar cita</p>
@@ -160,7 +160,7 @@ function QuickPaymentModal({
           </div>
           <button
             onClick={onClose}
-            className="rounded-lg p-1 text-slate-400 transition hover:bg-slate-50 hover:text-slate-600"
+            className="rounded-lg p-1 text-slate-500 transition hover:bg-white hover:text-slate-600"
             aria-label="Cerrar"
           >
             <X size={16} />
@@ -173,7 +173,7 @@ function QuickPaymentModal({
             <select
               value={treatmentId}
               onChange={(event) => handleTreatmentChange(event.target.value)}
-              className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-[#50c9d5]"
+              className="mt-1 w-full rounded-xl border border-white/80 bg-white/75 px-3 py-2 text-sm shadow-[inset_0_1px_2px_rgba(13,27,42,.06)] focus:bg-white focus:ring-[3px] focus:ring-[#50c9d5]/25 text-slate-900 outline-none transition focus:border-[#50c9d5]"
             >
               <option value="">Selecciona un tratamiento</option>
               {treatments.map((treatment) => (
@@ -192,7 +192,7 @@ function QuickPaymentModal({
               value={amount}
               onChange={(event) => setAmount(event.target.value)}
               placeholder="0"
-              className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm tabular-nums text-slate-900 outline-none transition focus:border-[#50c9d5]"
+              className="mt-1 w-full rounded-xl border border-white/80 bg-white/75 px-3 py-2 text-sm shadow-[inset_0_1px_2px_rgba(13,27,42,.06)] focus:bg-white focus:ring-[3px] focus:ring-[#50c9d5]/25 tabular-nums text-slate-900 outline-none transition focus:border-[#50c9d5]"
             />
           </div>
 
@@ -206,7 +206,7 @@ function QuickPaymentModal({
                   className={`flex-1 rounded-lg px-3 py-2 text-xs font-semibold transition ${
                     status === option
                       ? "bg-[#50c9d5] text-[#080b04]"
-                      : "border border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
+                      : "border border-white/80 bg-white/70 text-slate-600 hover:bg-white"
                   }`}
                 >
                   {formatPaymentLabel(option)}
@@ -223,7 +223,7 @@ function QuickPaymentModal({
               rows={2}
               onChange={(event) => setNotes(event.target.value)}
               placeholder="Opcional"
-              className="mt-1 w-full resize-none rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-[#50c9d5]"
+              className="mt-1 w-full resize-none rounded-xl border border-white/80 bg-white/75 px-3 py-2 text-sm shadow-[inset_0_1px_2px_rgba(13,27,42,.06)] focus:bg-white focus:ring-[3px] focus:ring-[#50c9d5]/25 text-slate-900 outline-none transition focus:border-[#50c9d5]"
             />
           </div>
 
@@ -241,7 +241,7 @@ function QuickPaymentModal({
         <div className="mt-5 flex justify-end gap-2">
           <button
             onClick={onClose}
-            className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-600 transition hover:bg-slate-50"
+            className="zs-press rounded-full border border-white/80 bg-white/70 px-3 py-2 text-xs font-semibold text-slate-600 transition hover:bg-white"
           >
             Cancelar
           </button>
@@ -333,7 +333,7 @@ export default function SecretaryDashboard() {
       <div className="flex flex-col items-center justify-center gap-4 py-20 text-slate-500">
         <AlertCircle size={40} className="text-rose-400" />
         <p className="text-sm">{error}</p>
-        <button onClick={fetchData} className="text-sm text-[#1e737b] underline hover:text-[#1e737b]">
+        <button onClick={fetchData} className="text-sm text-[#17656c] underline hover:text-[#17656c]">
           Reintentar
         </button>
       </div>
@@ -399,12 +399,12 @@ export default function SecretaryDashboard() {
           <button
             onClick={fetchData}
             disabled={loading}
-            className="inline-flex items-center gap-1.5 rounded-full bg-white border border-slate-200 px-3 py-1.5 text-xs text-slate-600 shadow-sm hover:bg-slate-50 transition disabled:opacity-50"
+            className="inline-flex items-center gap-1.5 zs-press rounded-full border border-white/80 bg-white/70 px-3 py-1.5 text-xs text-slate-600 shadow-sm backdrop-blur-md transition hover:bg-white disabled:opacity-50"
           >
             <RefreshCw size={12} className={loading ? "animate-spin" : ""} />
             Actualizar
           </button>
-          <span className="inline-flex items-center gap-1.5 rounded-full border border-[#50c9d5]/15 bg-[#50c9d5]/10 px-3 py-1.5 text-xs font-medium text-[#1e737b]">
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-[#50c9d5]/15 bg-[#50c9d5]/10 px-3 py-1.5 text-xs font-medium text-[#17656c]">
             Panel Recepción
           </span>
         </div>
@@ -413,14 +413,14 @@ export default function SecretaryDashboard() {
       {/* Resumen de sala */}
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
         {[
-          { label: "En sala", value: waitingRoomSummary.ready, icon: CheckCircle2, color: "text-[#1e737b]" },
+          { label: "En sala", value: waitingRoomSummary.ready, icon: CheckCircle2, color: "text-[#17656c]" },
           { label: "En espera", value: waitingRoomSummary.waiting, icon: Clock, color: "text-cyan-700" },
           { label: "Con demora", value: waitingRoomSummary.delayed, icon: CircleAlert, color: "text-amber-600" },
-          { label: "Avisos enviados", value: waitingRoomSummary.notified, icon: BellRing, color: "text-[#1e737b]" },
+          { label: "Avisos enviados", value: waitingRoomSummary.notified, icon: BellRing, color: "text-[#17656c]" },
         ].map((item, i) => (
           <div
             key={item.label}
-            className="rounded-xl bg-white border border-slate-100 p-4 shadow-sm animate-card-in"
+            className="zs-glass rounded-[20px] p-4 animate-card-in"
             style={{ animationDelay: `${i * 40}ms` }}
           >
             <item.icon size={16} className={`${item.color} mb-2`} />
@@ -432,36 +432,36 @@ export default function SecretaryDashboard() {
 
       {/* Caja del dia: mismos datos que /agenda, no una copia paralela */}
       <div
-        className="rounded-2xl bg-gradient-to-br from-[#50c9d5] to-[#84d9e1] p-6 text-white shadow-sm animate-card-in lg:flex lg:items-center lg:justify-between lg:gap-6"
+        className="rounded-[var(--radius-card)] border border-white/70 bg-gradient-to-br from-[#50c9d5] to-[#84d9e1] p-6 text-[#080b04] shadow-[0_14px_32px_-12px_rgba(80,201,213,.55)] animate-card-in lg:flex lg:items-center lg:justify-between lg:gap-6"
         style={{ animationDelay: "160ms" }}
       >
         <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/15">
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/35">
             <Wallet size={16} />
           </div>
           <div>
-            <p className="text-sm font-medium text-white/80">Caja del día</p>
-            <p className="text-xs text-white/70">
+            <p className="text-sm font-medium text-[#080b04]/80">Caja del día</p>
+            <p className="text-xs text-[#080b04]/70">
               Los cobros que registres aquí aparecen en la caja de la agenda.
             </p>
           </div>
         </div>
         <div className="mt-4 flex flex-wrap items-center gap-3 lg:mt-0">
-          <div className="rounded-xl border border-white/20 bg-white/10 px-4 py-2">
-            <p className="text-[10px] font-medium uppercase tracking-wider text-white/70">
+          <div className="rounded-xl border border-white/50 bg-white/30 px-4 py-2">
+            <p className="text-[10px] font-medium uppercase tracking-wider text-[#080b04]/70">
               Cobrado hoy
             </p>
             <p className="text-lg font-bold tabular-nums">{formatCurrency(collectedToday)}</p>
           </div>
-          <div className="rounded-xl border border-white/20 bg-white/10 px-4 py-2">
-            <p className="text-[10px] font-medium uppercase tracking-wider text-white/70">
+          <div className="rounded-xl border border-white/50 bg-white/30 px-4 py-2">
+            <p className="text-[10px] font-medium uppercase tracking-wider text-[#080b04]/70">
               Avisos enviados
             </p>
             <p className="text-lg font-bold tabular-nums">{waitingRoomSummary.notified}</p>
           </div>
           <Link
             href="/agenda"
-            className="inline-flex items-center gap-1.5 rounded-full border border-white/25 bg-white/10 px-3 py-1.5 text-xs font-medium text-white transition hover:bg-white/20"
+            className="inline-flex items-center gap-1.5 rounded-full border border-white/60 bg-white/30 px-3 py-1.5 text-xs font-medium text-[#080b04] transition hover:bg-white/50"
           >
             Ver caja completa
             <ArrowRight size={13} />
@@ -484,12 +484,12 @@ export default function SecretaryDashboard() {
 
       <div className="grid gap-4 xl:grid-cols-[300px_minmax(0,1fr)]">
         <div
-          className="rounded-2xl border border-slate-100 bg-white p-6 shadow-sm animate-card-in"
+          className="zs-glass rounded-[var(--radius-card)] p-6 animate-card-in"
           style={{ animationDelay: "200ms" }}
         >
           <div className="flex items-center justify-between gap-2">
             <div className="flex items-center gap-2.5">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#e8f8f9] text-[#1e737b]">
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#e8f8f9] text-[#17656c]">
                 <CalendarDays size={16} />
               </div>
               <div>
@@ -501,7 +501,7 @@ export default function SecretaryDashboard() {
 
           <div className="mt-3 space-y-2.5">
             {waitingRoomEntries.length === 0 ? (
-              <p className="py-8 text-center text-xs text-slate-400">
+              <p className="py-8 text-center text-xs text-slate-500">
                 No hay pacientes en la sala de espera
               </p>
             ) : (
@@ -510,7 +510,7 @@ export default function SecretaryDashboard() {
                 const busy = savingAppointmentId === appointment.id;
 
                 return (
-                  <div key={appointment.id} className="rounded-xl border border-slate-100 bg-white p-3">
+                  <div key={appointment.id} className="zs-glass-inner rounded-[var(--radius-inner)] p-3">
                     <div className="flex items-start justify-between gap-3">
                       <div>
                         <p className="text-sm font-semibold tabular-nums text-slate-900">
@@ -549,7 +549,7 @@ export default function SecretaryDashboard() {
                       <button
                         onClick={() => setPayingEntryId(appointment.id)}
                         disabled={busy}
-                        className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-semibold text-[#1e737b] transition hover:border-[#50c9d5] hover:bg-[#e8f8f9] disabled:opacity-50"
+                        className="inline-flex items-center gap-1 zs-press rounded-full border border-white/80 bg-white/70 px-2.5 py-1 text-[11px] font-semibold text-[#17656c] transition hover:border-[#50c9d5] hover:bg-[#e8f8f9] disabled:opacity-50"
                       >
                         <Wallet size={12} />
                         {appointment.payment ? "Editar cobro" : "Cobrar"}
@@ -563,12 +563,12 @@ export default function SecretaryDashboard() {
         </div>
 
         <div
-          className="rounded-2xl border border-slate-100 bg-white p-6 shadow-sm animate-card-in"
+          className="zs-glass rounded-[var(--radius-card)] p-6 animate-card-in"
           style={{ animationDelay: "260ms" }}
         >
           <div className="flex flex-col gap-2 border-b border-slate-100 pb-3 sm:flex-row sm:items-end sm:justify-between">
             <div className="flex items-center gap-2.5">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#e8f8f9] text-[#1e737b]">
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#e8f8f9] text-[#17656c]">
                 <Clock size={16} />
               </div>
               <div>
@@ -581,7 +581,7 @@ export default function SecretaryDashboard() {
           <div className="mt-1 overflow-x-auto">
             <table className="w-full min-w-[640px] text-left">
               <thead>
-                <tr className="border-b border-slate-100 text-[11px] uppercase tracking-wider text-slate-400">
+                <tr className="border-b border-slate-100 text-[11px] uppercase tracking-wider text-slate-500">
                   <th className="px-3 py-3 font-medium">Paciente</th>
                   <th className="px-3 py-3 font-medium">Estado</th>
                   <th className="px-3 py-3 font-medium">Espera</th>
@@ -597,7 +597,7 @@ export default function SecretaryDashboard() {
                   <tr key={appointment.id} className="border-b border-slate-100 text-xs last:border-b-0">
                     <td className="px-3 py-3.5">
                       <div className="flex items-center gap-2.5">
-                        <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#e8f8f9] text-xs font-semibold text-[#1e737b]">
+                        <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#e8f8f9] text-xs font-semibold text-[#17656c]">
                           {entry.initials}
                         </div>
                         <div>
@@ -615,7 +615,7 @@ export default function SecretaryDashboard() {
                         {WAITING_ROOM_STATUS_LABELS[entry.status]}
                       </span>
                       {appointment.arrivalNotifiedAt ? (
-                        <p className="mt-1 text-[10px] text-slate-400">
+                        <p className="mt-1 text-[10px] text-slate-500">
                           Avisado {formatTime(appointment.arrivalNotifiedAt)}
                         </p>
                       ) : null}
@@ -626,7 +626,7 @@ export default function SecretaryDashboard() {
                         <button
                           onClick={() => setPayingEntryId(appointment.id)}
                           disabled={busy}
-                          className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-[11px] font-semibold text-[#1e737b] transition hover:border-[#50c9d5] hover:bg-[#e8f8f9] disabled:opacity-50"
+                          className="inline-flex items-center gap-1 zs-press rounded-full border border-white/80 bg-white/70 px-3 py-1.5 text-[11px] font-semibold text-[#17656c] transition hover:border-[#50c9d5] hover:bg-[#e8f8f9] disabled:opacity-50"
                         >
                           <Wallet size={12} />
                           {appointment.payment ? "Editar cobro" : "Cobrar"}
@@ -641,7 +641,7 @@ export default function SecretaryDashboard() {
                         <button
                           onClick={() => markPatientAsDelayed(entry)}
                           disabled={busy}
-                          className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-[11px] font-semibold text-slate-700 transition hover:border-amber-200 hover:bg-amber-50 hover:text-amber-700 disabled:opacity-50"
+                          className="zs-press rounded-full border border-white/80 bg-white/70 px-3 py-1.5 text-[11px] font-semibold text-slate-700 transition hover:border-amber-200 hover:bg-amber-50 hover:text-amber-700 disabled:opacity-50"
                         >
                           Demorar
                         </button>
@@ -668,7 +668,7 @@ export default function SecretaryDashboard() {
           label="Completadas"
           value={kpis.todayCompleted}
           icon={CheckCircle2}
-          iconColor="bg-[#e8f8f9] text-[#1e737b]"
+          iconColor="bg-[#e8f8f9] text-[#17656c]"
           delay={60}
         />
         <StatCard
@@ -689,12 +689,12 @@ export default function SecretaryDashboard() {
 
       <div className="grid gap-4 lg:grid-cols-2">
         <div
-          className="rounded-2xl border border-slate-100 bg-white p-6 shadow-sm animate-card-in"
+          className="zs-glass rounded-[var(--radius-card)] p-6 animate-card-in"
           style={{ animationDelay: "240ms" }}
         >
           <p className="mb-4 text-sm font-semibold text-slate-900">Estado de citas de hoy</p>
           {appointmentsByStatus.length === 0 ? (
-            <p className="py-6 text-center text-xs text-slate-400">Sin citas hoy</p>
+            <p className="py-6 text-center text-xs text-slate-500">Sin citas hoy</p>
           ) : (
             <div className="space-y-3">
               {appointmentsByStatus
@@ -729,7 +729,7 @@ export default function SecretaryDashboard() {
         </div>
 
         <div
-          className="rounded-2xl border border-slate-100 bg-white p-6 shadow-sm animate-card-in"
+          className="zs-glass rounded-[var(--radius-card)] p-6 animate-card-in"
           style={{ animationDelay: "300ms" }}
         >
           <p className="mb-4 text-sm font-semibold text-slate-900">Tasa de asistencia hoy</p>
@@ -761,7 +761,7 @@ export default function SecretaryDashboard() {
             </div>
             <div className="space-y-2 text-sm">
               <div className="flex items-center gap-2">
-                <span className="h-2.5 w-2.5 rounded-full bg-[#1e737b]" />
+                <span className="h-2.5 w-2.5 rounded-full bg-[#17656c]" />
                 <span className="text-slate-600">Completadas: {kpis.todayCompleted}</span>
               </div>
               <div className="flex items-center gap-2">
@@ -783,19 +783,19 @@ export default function SecretaryDashboard() {
 
       {todayTreatments.length > 0 && (
         <div
-          className="rounded-2xl border border-slate-100 bg-white shadow-sm animate-card-in"
+          className="zs-glass rounded-[var(--radius-card)] animate-card-in"
           style={{ animationDelay: "360ms" }}
         >
           <div className="flex items-center justify-between px-6 pb-2 pt-6">
             <p className="text-sm font-semibold text-slate-900">Tratamientos realizados hoy</p>
-            <span className="text-[10px] uppercase tracking-wider text-slate-400">
+            <span className="text-[10px] uppercase tracking-wider text-slate-500">
               {todayTreatments.length} tratamientos
             </span>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm">
               <thead>
-                <tr className="border-b border-slate-100 text-[11px] uppercase tracking-wider text-slate-400">
+                <tr className="border-b border-slate-100 text-[11px] uppercase tracking-wider text-slate-500">
                   <th className="px-6 py-3 font-medium">Hora</th>
                   <th className="px-6 py-3 font-medium">Paciente</th>
                   <th className="px-6 py-3 font-medium">Tratamiento</th>
@@ -805,7 +805,7 @@ export default function SecretaryDashboard() {
                 {todayTreatments.map((treatment, index) => (
                   <tr
                     key={treatment.id}
-                    className="border-b border-slate-50 transition hover:bg-slate-50/50 animate-fade-in"
+                    className="border-b border-white/70 transition-colors duration-200 hover:bg-white/60 animate-fade-in"
                     style={{ animationDelay: `${420 + index * 40}ms` }}
                   >
                     <td className="whitespace-nowrap px-6 py-3 tabular-nums text-slate-600">
@@ -824,22 +824,22 @@ export default function SecretaryDashboard() {
       )}
 
       <div
-        className="rounded-2xl border border-slate-100 bg-white shadow-sm animate-card-in"
+        className="zs-glass rounded-[var(--radius-card)] animate-card-in"
         style={{ animationDelay: "420ms" }}
       >
         <div className="flex items-center justify-between px-6 pb-2 pt-6">
           <p className="text-sm font-semibold text-slate-900">Agenda de hoy</p>
-          <span className="text-[10px] uppercase tracking-wider text-slate-400">
+          <span className="text-[10px] uppercase tracking-wider text-slate-500">
             {kpis.todayAppointments} citas programadas
           </span>
         </div>
         {recentAppointments.length === 0 ? (
-          <p className="py-10 text-center text-xs text-slate-400">No hay citas programadas para hoy</p>
+          <p className="py-10 text-center text-xs text-slate-500">No hay citas programadas para hoy</p>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm">
               <thead>
-                <tr className="border-b border-slate-100 text-[11px] uppercase tracking-wider text-slate-400">
+                <tr className="border-b border-slate-100 text-[11px] uppercase tracking-wider text-slate-500">
                   <th className="px-6 py-3 font-medium">Hora</th>
                   <th className="px-6 py-3 font-medium">Paciente</th>
                   <th className="px-6 py-3 font-medium">Doctor</th>
@@ -852,7 +852,7 @@ export default function SecretaryDashboard() {
                 {recentAppointments.map((appointment, index) => (
                   <tr
                     key={appointment.id}
-                    className="border-b border-slate-50 transition hover:bg-slate-50/50 animate-fade-in"
+                    className="border-b border-white/70 transition-colors duration-200 hover:bg-white/60 animate-fade-in"
                     style={{ animationDelay: `${480 + index * 40}ms` }}
                   >
                     <td className="whitespace-nowrap px-6 py-3 tabular-nums text-slate-600">

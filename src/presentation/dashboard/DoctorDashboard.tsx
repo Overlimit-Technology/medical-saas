@@ -53,7 +53,7 @@ export default function DoctorDashboard() {
       <div className="flex flex-col items-center justify-center gap-4 py-20 text-slate-500">
         <AlertCircle size={40} className="text-rose-400" />
         <p className="text-sm">{error}</p>
-        <button onClick={fetchData} className="text-sm text-[#1e737b] underline hover:text-[#1e737b]">
+        <button onClick={fetchData} className="text-sm text-[#17656c] underline hover:text-[#17656c]">
           Reintentar
         </button>
       </div>
@@ -92,12 +92,12 @@ export default function DoctorDashboard() {
           <button
             onClick={fetchData}
             disabled={loading}
-            className="inline-flex items-center gap-1.5 rounded-full bg-white border border-slate-200 px-3 py-1.5 text-xs text-slate-600 shadow-sm hover:bg-slate-50 transition disabled:opacity-50"
+            className="inline-flex items-center gap-1.5 zs-press rounded-full border border-white/80 bg-white/70 px-3 py-1.5 text-xs text-slate-600 shadow-sm backdrop-blur-md transition hover:bg-white disabled:opacity-50"
           >
             <RefreshCw size={12} className={loading ? "animate-spin" : ""} />
             Actualizar
           </button>
-          <span className="inline-flex items-center gap-1.5 rounded-full border border-[#50c9d5]/15 bg-[#50c9d5]/10 px-3 py-1.5 text-xs font-medium text-[#1e737b]">
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-[#50c9d5]/15 bg-[#50c9d5]/10 px-3 py-1.5 text-xs font-medium text-[#17656c]">
             Panel Doctor
           </span>
         </div>
@@ -116,7 +116,7 @@ export default function DoctorDashboard() {
           label="Mis pacientes"
           value={kpis.totalPatients}
           icon={Users}
-          iconColor="bg-[#e8f8f9] text-[#1e737b]"
+          iconColor="bg-[#e8f8f9] text-[#17656c]"
           delay={60}
         />
         <StatCard
@@ -132,7 +132,7 @@ export default function DoctorDashboard() {
           value={formatCurrency(kpis.revenue)}
           delta={kpis.revenueDelta}
           icon={DollarSign}
-          iconColor="bg-[#e8f8f9] text-[#1e737b]"
+          iconColor="bg-[#e8f8f9] text-[#17656c]"
           delay={180}
           highlighted
         />
@@ -141,14 +141,14 @@ export default function DoctorDashboard() {
       {/* Second row: quick stats */}
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
         {[
-          { label: "Completadas hoy", value: kpis.todayCompleted, icon: CheckCircle2, color: "text-[#1e737b]" },
+          { label: "Completadas hoy", value: kpis.todayCompleted, icon: CheckCircle2, color: "text-[#17656c]" },
           { label: "Pendientes hoy", value: kpis.todayScheduled, icon: Clock, color: "text-cyan-700" },
           { label: "No asistieron", value: kpis.todayNoShow, icon: XCircle, color: "text-red-500" },
-          { label: "Asistencia hoy", value: `${kpis.attendanceRate}%`, icon: Activity, color: "text-[#1e737b]" },
+          { label: "Asistencia hoy", value: `${kpis.attendanceRate}%`, icon: Activity, color: "text-[#17656c]" },
         ].map((item, i) => (
           <div
             key={item.label}
-            className="rounded-xl bg-white border border-slate-100 p-4 shadow-sm animate-card-in"
+            className="zs-glass rounded-[20px] p-4 animate-card-in"
             style={{ animationDelay: `${240 + i * 40}ms` }}
           >
             <item.icon size={16} className={`${item.color} mb-2`} />
@@ -161,10 +161,10 @@ export default function DoctorDashboard() {
       {/* Middle row: status + treatments */}
       <div className="grid gap-4 lg:grid-cols-2">
         {/* Appointment status distribution */}
-        <div className="rounded-2xl bg-white border border-slate-100 p-6 shadow-sm animate-card-in" style={{ animationDelay: "300ms" }}>
+        <div className="zs-glass rounded-[var(--radius-card)] p-6 animate-card-in" style={{ animationDelay: "300ms" }}>
           <p className="text-sm font-semibold text-slate-900 mb-4">Mis citas del mes por estado</p>
           {appointmentsByStatus.length === 0 ? (
-            <p className="text-xs text-slate-400 py-6 text-center">Sin datos este mes</p>
+            <p className="text-xs text-slate-500 py-6 text-center">Sin datos este mes</p>
           ) : (
             <div className="space-y-3">
               {appointmentsByStatus
@@ -194,13 +194,13 @@ export default function DoctorDashboard() {
         </div>
 
         {/* Top treatments */}
-        <div className="rounded-2xl bg-white border border-slate-100 p-6 shadow-sm animate-card-in" style={{ animationDelay: "360ms" }}>
+        <div className="zs-glass rounded-[var(--radius-card)] p-6 animate-card-in" style={{ animationDelay: "360ms" }}>
           <div className="flex items-center justify-between mb-4">
             <p className="text-sm font-semibold text-slate-900">Mis tratamientos del mes</p>
-            <Pill size={14} className="text-slate-400" />
+            <Pill size={14} className="text-slate-500" />
           </div>
           {topTreatments.length === 0 ? (
-            <p className="text-xs text-slate-400 py-6 text-center">Sin datos este mes</p>
+            <p className="text-xs text-slate-500 py-6 text-center">Sin datos este mes</p>
           ) : (
             <div className="space-y-3">
               {topTreatments.map((treatment, i) => {
@@ -210,7 +210,7 @@ export default function DoctorDashboard() {
                   "bg-cyan-400",
                   "bg-teal-400",
                   "bg-[#7adbe1]",
-                  "bg-[#1e737b]",
+                  "bg-[#17656c]",
                 ];
                 return (
                   <div key={i} className="flex items-center justify-between">
@@ -218,12 +218,12 @@ export default function DoctorDashboard() {
                       <span className={`h-3 w-3 rounded-full shrink-0 ${colors[i % colors.length]}`} />
                       <div className="min-w-0">
                         <p className="text-sm text-slate-700 truncate">{treatment.name}</p>
-                        <p className="text-[10px] text-slate-400">{formatCurrency(treatment.price)}</p>
+                        <p className="text-[10px] text-slate-500">{formatCurrency(treatment.price)}</p>
                       </div>
                     </div>
                     <div className="text-right shrink-0 ml-2">
                       <p className="text-sm font-semibold text-slate-900">{treatment.count}</p>
-                      <p className="text-[10px] text-slate-400">{pct}%</p>
+                      <p className="text-[10px] text-slate-500">{pct}%</p>
                     </div>
                   </div>
                 );
@@ -234,20 +234,20 @@ export default function DoctorDashboard() {
       </div>
 
       {/* Today's schedule */}
-      <div className="rounded-2xl bg-white border border-slate-100 shadow-sm animate-card-in" style={{ animationDelay: "420ms" }}>
+      <div className="zs-glass rounded-[var(--radius-card)] animate-card-in" style={{ animationDelay: "420ms" }}>
         <div className="flex items-center justify-between px-6 pt-6 pb-2">
           <p className="text-sm font-semibold text-slate-900">Mi agenda de hoy</p>
-          <span className="text-[10px] text-slate-400 uppercase tracking-wider">
+          <span className="text-[10px] text-slate-500 uppercase tracking-wider">
             {kpis.todayAppointments} citas
           </span>
         </div>
         {todaySchedule.length === 0 ? (
-          <p className="text-xs text-slate-400 py-10 text-center">No tienes citas programadas para hoy</p>
+          <p className="text-xs text-slate-500 py-10 text-center">No tienes citas programadas para hoy</p>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm">
               <thead>
-                <tr className="border-b border-slate-100 text-[11px] uppercase tracking-wider text-slate-400">
+                <tr className="border-b border-slate-100 text-[11px] uppercase tracking-wider text-slate-500">
                   <th className="px-6 py-3 font-medium">Hora</th>
                   <th className="px-6 py-3 font-medium">Paciente</th>
                   <th className="px-6 py-3 font-medium">Box</th>
@@ -259,7 +259,7 @@ export default function DoctorDashboard() {
                 {todaySchedule.map((appt, i) => (
                   <tr
                     key={appt.id}
-                    className="border-b border-slate-50 hover:bg-slate-50/50 transition animate-fade-in"
+                    className="border-b border-white/70 transition-colors duration-200 hover:bg-white/60 animate-fade-in"
                     style={{ animationDelay: `${480 + i * 40}ms` }}
                   >
                     <td className="px-6 py-3 tabular-nums text-slate-600 whitespace-nowrap">
@@ -284,25 +284,25 @@ export default function DoctorDashboard() {
       </div>
 
       {/* Monthly summary card */}
-      <div className="rounded-2xl bg-gradient-to-br from-[#50c9d5] to-[#84d9e1] p-6 shadow-sm text-white animate-card-in" style={{ animationDelay: "480ms" }}>
-        <p className="text-sm font-medium text-white/80 mb-3">Mi resumen del mes</p>
+      <div className="rounded-[var(--radius-card)] border border-white/70 bg-gradient-to-br from-[#50c9d5] to-[#84d9e1] p-6 text-[#080b04] shadow-[0_14px_32px_-12px_rgba(80,201,213,.55)] animate-card-in" style={{ animationDelay: "480ms" }}>
+        <p className="text-sm font-medium text-[#080b04]/80 mb-3">Mi resumen del mes</p>
         <div className="grid grid-cols-3 gap-4">
           <div>
             <p className="text-2xl font-bold">{kpis.monthAppointments}</p>
-            <p className="text-xs text-white/70">Citas totales</p>
+            <p className="text-xs text-[#080b04]/70">Citas totales</p>
           </div>
           <div>
             <p className="text-2xl font-bold">{formatCurrency(kpis.revenue)}</p>
-            <p className="text-xs text-white/70">Ingresos</p>
+            <p className="text-xs text-[#080b04]/70">Ingresos</p>
           </div>
           <div>
             <p className="text-2xl font-bold">{kpis.totalPatients}</p>
-            <p className="text-xs text-white/70">Pacientes atendidos</p>
+            <p className="text-xs text-[#080b04]/70">Pacientes atendidos</p>
           </div>
         </div>
-        <div className="mt-4 pt-4 border-t border-white/20 flex items-center gap-2">
-          <TrendingUp size={14} className="text-white/70" />
-          <span className="text-xs text-white/70">
+        <div className="mt-4 pt-4 border-t border-white/50 flex items-center gap-2">
+          <TrendingUp size={14} className="text-[#080b04]/70" />
+          <span className="text-xs text-[#080b04]/70">
             {kpis.monthAppointmentsDelta} citas vs mes anterior · {kpis.revenueDelta} ingresos
           </span>
         </div>

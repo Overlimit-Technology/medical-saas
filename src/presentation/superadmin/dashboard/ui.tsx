@@ -4,12 +4,12 @@ import { useEffect, useRef, useState } from "react";
 import { MoreVertical, X } from "lucide-react";
 
 export const inputClass =
-  "w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-[#0e88ab] focus:ring-2 focus:ring-cyan-100 disabled:bg-slate-50";
+  "w-full rounded-xl border border-white/80 bg-white/75 px-3 py-2 text-sm text-slate-900 shadow-[inset_0_1px_2px_rgba(13,27,42,.06)] outline-none transition duration-200 focus:border-[#0e88ab] focus:bg-white focus:ring-[3px] focus:ring-[#50c9d5]/25 disabled:bg-white/40";
 
 export const btnPrimary =
   "inline-flex items-center justify-center gap-2 rounded-lg bg-[#0e88ab] px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-[#0b7897] disabled:cursor-not-allowed disabled:opacity-60";
 export const btnGhost =
-  "inline-flex items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60";
+  "inline-flex items-center justify-center gap-2 rounded-full border border-white/80 bg-white/70 px-3 py-2 text-sm font-semibold text-slate-700 shadow-sm backdrop-blur-md transition duration-200 hover:bg-white active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60";
 export const btnDanger =
   "inline-flex items-center justify-center gap-2 rounded-lg bg-rose-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-rose-700 disabled:cursor-not-allowed disabled:opacity-60";
 
@@ -41,11 +41,11 @@ export function Modal({
   }, [onClose]);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-slate-900/40 p-0 sm:items-center sm:p-4" role="dialog" aria-modal="true" aria-label={title}>
-      <div className={`max-h-[92vh] w-full overflow-y-auto rounded-t-2xl bg-white shadow-xl sm:rounded-2xl ${wide ? "sm:max-w-2xl" : "sm:max-w-md"}`}>
-        <div className="flex items-center justify-between border-b border-slate-100 px-5 py-4">
+    <div className="zs-overlay-in fixed inset-0 z-50 flex items-end justify-center bg-[#0d1b2a]/30 p-0 backdrop-blur-[2px] sm:items-center sm:p-4" role="dialog" aria-modal="true" aria-label={title}>
+      <div className={`zs-glass-strong zs-modal-in max-h-[92vh] w-full overflow-y-auto rounded-t-[28px] sm:rounded-[28px] ${wide ? "sm:max-w-2xl" : "sm:max-w-md"}`}>
+        <div className="flex items-center justify-between border-b border-white/70 px-5 py-4">
           <h2 className="text-base font-semibold text-slate-950">{title}</h2>
-          <button type="button" onClick={onClose} aria-label="Cerrar" className="rounded-lg p-1.5 text-slate-500 hover:bg-slate-100">
+          <button type="button" onClick={onClose} aria-label="Cerrar" className="rounded-lg p-1.5 text-slate-500 hover:bg-white/70">
             <X className="h-4 w-4" />
           </button>
         </div>
@@ -155,12 +155,12 @@ export function RowMenu({ items, label }: { items: MenuItem[]; label: string }) 
           const needed = visible.length * 38 + 12;
           setPos(window.innerHeight - r.bottom < needed ? { bottom: window.innerHeight - r.top + 4, right } : { top: r.bottom + 4, right });
         }}
-        className="rounded-lg p-1.5 text-slate-500 hover:bg-slate-100"
+        className="rounded-lg p-1.5 text-slate-500 hover:bg-white/70"
       >
         <MoreVertical className="h-4 w-4" />
       </button>
       {pos && (
-        <div role="menu" style={{ position: "fixed", ...pos }} className="z-50 w-56 rounded-lg border border-slate-200 bg-white py-1 shadow-lg">
+        <div role="menu" style={{ position: "fixed", ...pos }} className="zs-glass-strong zs-menu-in z-50 w-56 rounded-2xl p-1">
           {visible.map((item) => (
             <button
               key={item.label}
@@ -171,7 +171,7 @@ export function RowMenu({ items, label }: { items: MenuItem[]; label: string }) 
                 setPos(null);
                 item.onClick();
               }}
-              className={`block w-full px-3 py-2 text-left text-sm hover:bg-slate-50 ${item.danger ? "text-rose-600" : "text-slate-700"}`}
+              className={`block w-full px-3 py-2 text-left text-sm hover:bg-white/70 ${item.danger ? "text-rose-600" : "text-slate-700"}`}
             >
               {item.label}
             </button>

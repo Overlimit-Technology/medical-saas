@@ -86,7 +86,7 @@ export default function CostsModal({ onClose, onChanged }: { onClose: () => void
 
       <div className="mt-4 max-h-80 overflow-y-auto rounded-lg border border-slate-100">
         <table className="w-full text-left text-sm">
-          <thead className="sticky top-0 bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
+          <thead className="sticky top-0 bg-white/80 text-xs uppercase tracking-wide text-slate-600 backdrop-blur-md">
             <tr>
               <th className="px-3 py-2">Mes</th>
               <th className="px-3 py-2">Categoria</th>

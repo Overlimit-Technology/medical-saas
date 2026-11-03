@@ -40,7 +40,7 @@ export function PageHeader({
     <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
       <div>
         {eyebrow && (
-          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">{eyebrow}</p>
+          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">{eyebrow}</p>
         )}
         <h1 className="mt-1 text-3xl font-semibold tracking-normal text-slate-950">{title}</h1>
         {description && <p className="mt-2 max-w-2xl text-sm text-slate-500">{description}</p>}
@@ -74,7 +74,7 @@ export function StatTile({
   }[tone];
 
   return (
-    <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+    <div className="zs-glass rounded-[20px] p-5">
       <div className="flex items-start justify-between gap-3">
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.08em] text-slate-500">{label}</p>
@@ -132,7 +132,7 @@ export function ProgressBar({
   const safeValue = Math.max(0, Math.min(100, value));
 
   return (
-    <div className="h-2 overflow-hidden rounded-full bg-slate-100">
+    <div className="h-2 overflow-hidden rounded-full bg-white/70 shadow-[inset_0_1px_2px_rgba(15,23,42,.08)]">
       <div className={`h-full rounded-full ${barClass}`} style={{ width: `${safeValue}%` }} />
     </div>
   );
@@ -140,7 +140,7 @@ export function ProgressBar({
 
 export function EmptyState({ title, children }: { title: string; children?: React.ReactNode }) {
   return (
-    <div className="rounded-xl border border-dashed border-slate-200 bg-white px-6 py-10 text-center">
+    <div className="rounded-[20px] border border-dashed border-white bg-white/40 backdrop-blur-md px-6 py-10 text-center">
       <p className="text-sm font-semibold text-slate-700">{title}</p>
       {children && <div className="mt-1 text-sm text-slate-500">{children}</div>}
     </div>

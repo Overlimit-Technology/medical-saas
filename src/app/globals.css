@@ -99,6 +99,68 @@ body::-webkit-scrollbar-thumb:hover,
   background: #45bcc8;
 }
 
+/* Panel personalizable del admin: grilla de celdas, como los widgets del iPhone. Cada widget
+   ocupa de 1 a 4 columnas y de 1 a 4 filas (data-w y data-h), siempre en celdas enteras.
+   Las columnas siguen el ancho real del panel (container queries), no el de la ventana:
+   4 desde 880px de ancho util (escritorio), 2 en tablet y celular (con filas mas bajas) y 1 en anchos minimos.
+   Los atajos con nombre estan en PRESETS (src/lib/dashboard/catalog.ts). */
+.zs-dash-wrap {
+  container-type: inline-size;
+}
+.zs-dash-grid {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-auto-rows: 176px;
+  grid-auto-flow: row dense;
+  gap: 16px;
+}
+.zs-w[data-w="1"] { grid-column: span 1; }
+.zs-w[data-w="2"] { grid-column: span 2; }
+.zs-w[data-w="3"] { grid-column: span 3; }
+.zs-w[data-w="4"] { grid-column: 1 / -1; }
+.zs-w[data-h="1"] { grid-row: span 1; }
+.zs-w[data-h="2"] { grid-row: span 2; }
+.zs-w[data-h="3"] { grid-row: span 3; }
+.zs-w[data-h="4"] { grid-row: span 4; }
+/* Tablet: 2 columnas. Con 3, los widgets de 2 columnas dejarian un hueco cuando no hay uno pequeño al lado. */
+@container (max-width: 879px) {
+  .zs-dash-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  /* Con 2 columnas, los de 3 o 4 ocupan la fila completa. */
+  .zs-w[data-w="3"] { grid-column: 1 / -1; }
+}
+@container (max-width: 519px) {
+  .zs-dash-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); grid-auto-rows: 156px; gap: 12px; }
+}
+@container (max-width: 239px) {
+  .zs-dash-grid { grid-template-columns: minmax(0, 1fr); }
+  .zs-w[data-w] { grid-column: 1 / -1; }
+}
+/* Cada widget mide su propio cuerpo: las cifras y graficos se ajustan a su tamaño real. */
+.zs-w-body {
+  container-type: size;
+}
+
+/* Modo edicion: el leve temblor de los widgets del iPhone. */
+@keyframes zs-jiggle {
+  0% { transform: rotate(-0.35deg); }
+  50% { transform: rotate(0.35deg); }
+  100% { transform: rotate(-0.35deg); }
+}
+.zs-jiggle {
+  animation: zs-jiggle 0.32s ease-in-out infinite;
+}
+@keyframes zs-sheet-up {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+.zs-sheet {
+  animation: zs-sheet-up 0.36s cubic-bezier(0.22, 1, 0.36, 1);
+}
+@media (prefers-reduced-motion: reduce) {
+  .zs-jiggle, .zs-sheet { animation: none; }
+}
+
 @layer utilities {
   .text-balance {
     text-wrap: balance;
@@ -110,10 +172,10 @@ body::-webkit-scrollbar-thumb:hover,
     animation: grid-fade 280ms ease-out forwards;
   }
   .animate-modal-in {
-    animation: modal-in 220ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    animation: modal-in 320ms cubic-bezier(0.22, 1, 0.36, 1) backwards;
   }
   .animate-card-in {
-    animation: card-in 350ms ease-out both;
+    animation: zs-in 560ms cubic-bezier(0.22, 1, 0.36, 1) backwards;
   }
 }
 
@@ -140,7 +202,8 @@ body::-webkit-scrollbar-thumb:hover,
 @keyframes modal-in {
   from {
     opacity: 0;
-    transform: translateY(10px) scale(0.97);
+    transform: translateY(12px) scale(0.96);
+    filter: blur(6px);
   }
   to {
     opacity: 1;
@@ -169,7 +232,7 @@ body::-webkit-scrollbar-thumb:hover,
     animation: stage-in 320ms cubic-bezier(0.16, 1, 0.3, 1) both;
   }
   .animate-rise-in {
-    animation: rise-in 420ms cubic-bezier(0.16, 1, 0.3, 1) both;
+    animation: zs-in 560ms cubic-bezier(0.22, 1, 0.36, 1) backwards;
   }
   .animate-pop-in {
     animation: pop-in 320ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
@@ -297,4 +360,371 @@ body::-webkit-scrollbar-thumb:hover,
   .animate-pulse-ring::after {
     animation: none !important;
   }
+}
+
+/* ------------------------------------------------------------------ */
+/* Movimiento Zensya: entrada con desenfoque, graficos que se dibujan. */
+/* Ver la skill zensya-diseno, references/animaciones.md.              */
+/* ------------------------------------------------------------------ */
+
+:root {
+  --zs-ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --zs-step: 120ms;
+}
+
+/* Todas usan fill-mode backwards: al terminar no pisan hovers, arrastres ni transiciones. */
+
+/* Bloques y tarjetas: entran desde abajo, desenfocados, y se aclaran. */
+.zs-in {
+  animation: zs-in 900ms var(--zs-ease) backwards;
+  animation-delay: calc(var(--i, 0) * var(--zs-step));
+}
+.zs-stagger > * {
+  animation: zs-in 900ms var(--zs-ease) backwards;
+  animation-delay: calc(var(--i, 0) * var(--zs-step));
+}
+.zs-stagger > :nth-child(2) { --i: 1; }
+.zs-stagger > :nth-child(3) { --i: 2; }
+.zs-stagger > :nth-child(4) { --i: 3; }
+.zs-stagger > :nth-child(5) { --i: 4; }
+.zs-stagger > :nth-child(6) { --i: 5; }
+.zs-stagger > :nth-child(7) { --i: 6; }
+.zs-stagger > :nth-child(8) { --i: 7; }
+.zs-stagger > :nth-child(n + 9) { --i: 8; }
+
+@keyframes zs-in {
+  from {
+    opacity: 0;
+    transform: translateY(14px) scale(0.985);
+    filter: blur(8px);
+  }
+  60% {
+    filter: blur(0);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+    filter: none;
+  }
+}
+
+/* Los graficos arrancan cuando su tarjeta ya se ve: la tarjeta i entra a los i x step y --i se hereda.
+   Se define en el elemento (no en :root) para que tome el --i de su tarjeta. */
+.zs-grow-y,
+.zs-grow-x,
+.zs-reveal,
+.zs-ring,
+.zs-pop {
+  --zs-chart: calc(var(--zs-chart-base, 360ms) + var(--i, 0) * 90ms);
+}
+
+/* Al cambiar de datos (otro periodo) el grafico se vuelve a dibujar de inmediato, sin esperar la entrada. */
+.zs-refresh {
+  --zs-chart-base: 40ms;
+  --i: 0;
+}
+
+/* Barras verticales: crecen desde la base, una tras otra. */
+.zs-grow-y {
+  transform-box: fill-box;
+  transform-origin: 50% 100%;
+  animation: zs-grow-y 1100ms var(--zs-ease) backwards;
+  animation-delay: calc(var(--zs-chart) + var(--b, 0) * 70ms);
+}
+.zs-grow-y.zs-neg { transform-origin: 50% 0; }
+@keyframes zs-grow-y {
+  from { transform: scaleY(0); }
+}
+
+/* Barras horizontales y de avance: se llenan de izquierda a derecha. */
+.zs-grow-x {
+  transform-origin: 0 50%;
+  animation: zs-grow-x 1300ms var(--zs-ease) backwards;
+  animation-delay: calc(var(--zs-chart) + var(--b, 0) * 110ms);
+}
+@keyframes zs-grow-x {
+  from { transform: scaleX(0); }
+}
+
+/* Lineas y areas: se revelan de izquierda a derecha, como si se dibujaran. */
+.zs-reveal {
+  animation: zs-reveal 1700ms var(--zs-ease) backwards;
+  animation-delay: var(--zs-chart);
+}
+@keyframes zs-reveal {
+  from { clip-path: inset(0 100% 0 0); }
+  to { clip-path: inset(0 0 0 0); }
+}
+
+/* Anillos y donas (circle con pathLength=100): el trazo da la vuelta desde cero. */
+.zs-ring {
+  animation: zs-ring 1600ms var(--zs-ease) backwards;
+  animation-delay: calc(var(--zs-chart) + var(--b, 0) * 140ms);
+}
+@keyframes zs-ring {
+  from { stroke-dasharray: 0 100; }
+}
+
+/* Punto final de una linea, marcadores y puntos sueltos: aparecen con un pequeño rebote. */
+.zs-pop {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: zs-pop 600ms cubic-bezier(0.34, 1.56, 0.64, 1) backwards;
+  animation-delay: calc(var(--zs-chart) + var(--d, 1500ms));
+}
+@keyframes zs-pop {
+  from { opacity: 0; transform: scale(0); }
+}
+
+/* Pastilla activa de pestañas que se desliza entre opciones. */
+.zs-seg-pill {
+  transition: left 520ms var(--zs-ease), width 520ms var(--zs-ease);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .zs-in,
+  .zs-stagger > *,
+  .zs-grow-y,
+  .zs-grow-x,
+  .zs-reveal,
+  .zs-ring,
+  .zs-pop {
+    animation: none !important;
+  }
+  .zs-seg-pill { transition: none; }
+}
+
+/* Menu lateral de vidrio: al abrirse, el ancho crece primero y las etiquetas entran despues, en cascada. */
+.zs-label-in {
+  animation: zs-label-in 360ms var(--zs-ease) backwards;
+  animation-delay: calc(140ms + var(--n, 0) * 18ms);
+}
+@keyframes zs-label-in {
+  from { opacity: 0; transform: translateX(-6px); filter: blur(3px); }
+}
+
+/* Etiqueta del riel plegado: aparece junto al icono deslizandose desde la izquierda. */
+.zs-tip {
+  transform: translateY(-50%);
+  animation: zs-tip 260ms var(--zs-ease) backwards;
+}
+@keyframes zs-tip {
+  from { opacity: 0; transform: translate(-6px, -50%) scale(0.96); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .zs-label-in,
+  .zs-tip {
+    animation: none !important;
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/* Liquid Glass: tokens centralizados de la app del equipo.            */
+/* Ver la skill zensya-diseno, references/animaciones.md (vidrio).     */
+/* ------------------------------------------------------------------ */
+:root {
+  /* Lienzo y manchas difuminadas detras del vidrio: solo la familia turquesa de Zensya. */
+  --zs-canvas: #f4f7f9;
+  --zs-blob-turquesa: #50c9d5;
+  --zs-blob-aqua: #84d9e1;
+  --zs-blob-bruma: #c9eef2;
+
+  /* Vidrio */
+  /* Sobre el fondo limpio el vidrio va casi blanco, como la cabecera del panel. */
+  --glass-bg: rgba(255, 255, 255, 0.74);
+  --glass-bg-hover: rgba(255, 255, 255, 0.96);
+  --glass-bg-strong: rgba(255, 255, 255, 0.94);
+  --glass-bg-inner: rgba(244, 247, 249, 0.7);
+  /* Canto del vidrio: linea exterior marcada + brillo blanco interior, para separar cada panel. */
+  --glass-border: rgba(13, 27, 42, 0.13);
+  --glass-border-inner: rgba(13, 27, 42, 0.08);
+  --glass-rim: inset 0 0 0 1px rgba(255, 255, 255, 0.75);
+  /* Reflejo diagonal sutil, como la luz sobre un vidrio. */
+  --glass-sheen: linear-gradient(150deg, rgba(255, 255, 255, 0.55) 0%, rgba(255, 255, 255, 0) 38%, rgba(80, 201, 213, 0.06) 100%);
+  --glass-blur: 18px;
+  --glass-blur-strong: 28px;
+  --glass-highlight: inset 0 1px 0 rgba(255, 255, 255, 0.95);
+  --glass-shadow: var(--glass-highlight), var(--glass-rim), 0 2px 6px -2px rgba(13, 27, 42, 0.06), 0 18px 44px -24px rgba(13, 27, 42, 0.28);
+  --glass-shadow-hover: var(--glass-highlight), var(--glass-rim), 0 4px 10px -4px rgba(13, 27, 42, 0.08), 0 26px 56px -24px rgba(13, 27, 42, 0.36);
+  --glass-shadow-float: var(--glass-highlight), var(--glass-rim), 0 30px 80px -24px rgba(13, 27, 42, 0.42);
+
+  /* Radios */
+  --radius-card: 24px;
+  --radius-inner: 16px;
+  --radius-pill: 999px;
+
+  /* Acentos de Zensya (contraste AA medido sobre vidrio en el peor caso, sobre la mancha turquesa) */
+  --zs-turquesa: #50c9d5; /* boton principal, con texto #080b04 (10:1) */
+  --zs-turquesa-oscuro: #1e737b; /* acento fuerte, con texto blanco */
+  --zs-turquesa-texto: #17656c; /* enlaces y cifras destacadas */
+  --zs-aqua: #84d9e1;
+  --zs-marino: #0d1b2a; /* texto y acento oscuro */
+  --zs-texto: #0d1b2a;
+  --zs-texto-2: #4a5c6d;
+
+  /* Estados: fondo + texto (badges) */
+  /* Los mismos tonos del portal: turquesa (bien), ambar (aviso), rojo (error) y marino (neutro). */
+  --ok-bg: #d9f4f6;
+  --ok-text: #17656c;
+  --warn-bg: #fcefd6;
+  --warn-text: #8a5a0b;
+  --err-bg: #fde4e4;
+  --err-text: #b91c1c;
+  --info-bg: #e8edf1;
+  --info-text: #0d1b2a;
+  --soft-bg: #eef9fa;
+  --soft-text: #17656c;
+
+  /* Series de graficos: escala turquesa de Zensya, marino y los colores de estado. */
+  --chart-1: #1d9aa6;
+  --chart-2: #0d1b2a;
+  --chart-3: #50c9d5;
+  --chart-4: #1e737b;
+  --chart-5: #e8a020;
+  --chart-6: #84d9e1;
+  --chart-7: #e5484d;
+  --chart-8: #8c9aa8;
+
+  /* Movimiento de microinteracciones */
+  --dur-fast: 120ms;
+  --dur-micro: 200ms;
+  --dur-base: 280ms;
+  --dur-slow: 400ms;
+}
+
+/*
+ * Fondo limpio: lienzo gris azulado casi plano con un leve brillo blanco arriba, para que el
+ * contenido destaque (antes llevaba manchas celestes que restaban legibilidad).
+ */
+.zs-mesh {
+  background-color: var(--zs-canvas);
+  background-image: linear-gradient(180deg, rgba(255, 255, 255, 0.7) 0%, rgba(255, 255, 255, 0) 320px);
+}
+
+/* Superficie de vidrio: tarjetas, widgets, cabeceras, tablas y paneles laterales. */
+.zs-glass {
+  background: var(--glass-sheen), var(--glass-bg);
+  background-clip: padding-box;
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(160%);
+  backdrop-filter: blur(var(--glass-blur)) saturate(160%);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-shadow);
+}
+/* Vidrio denso: modales, hojas, menus desplegables y popovers. */
+.zs-glass-strong {
+  background: var(--glass-sheen), var(--glass-bg-strong);
+  background-clip: padding-box;
+  -webkit-backdrop-filter: blur(var(--glass-blur-strong)) saturate(170%);
+  backdrop-filter: blur(var(--glass-blur-strong)) saturate(170%);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-shadow-float);
+}
+/* Dentro de un vidrio no se vuelve a desenfocar (rendimiento y claridad): solo blanco translucido. */
+.zs-glass-inner {
+  background: var(--glass-bg-inner);
+  border: 1px solid var(--glass-border-inner);
+  box-shadow: var(--glass-highlight);
+}
+
+/* Microinteracciones: solo en lo que se puede usar. */
+.zs-lift {
+  transition: transform var(--dur-micro) var(--zs-ease), box-shadow var(--dur-micro) var(--zs-ease), background-color var(--dur-micro) var(--zs-ease);
+}
+.zs-lift:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--glass-shadow-hover);
+  background-color: var(--glass-bg-hover);
+}
+.zs-press {
+  transition: transform var(--dur-fast) var(--zs-ease);
+}
+.zs-press:active {
+  transform: scale(0.98);
+}
+
+/* Modales, hojas y menus: entran con escala, fade y desenfoque; el velo se funde. */
+.zs-overlay-in {
+  animation: zs-overlay-in var(--dur-micro) ease-out backwards;
+}
+@keyframes zs-overlay-in {
+  from { opacity: 0; }
+}
+.zs-modal-in {
+  animation: zs-modal-in var(--dur-base) var(--zs-ease) backwards;
+}
+@keyframes zs-modal-in {
+  from { opacity: 0; transform: translateY(10px) scale(0.96); filter: blur(6px); }
+}
+.zs-menu-in {
+  transform-origin: top right;
+  animation: zs-menu-in var(--dur-micro) var(--zs-ease) backwards;
+}
+@keyframes zs-menu-in {
+  from { opacity: 0; transform: translateY(-4px) scale(0.96); }
+}
+/* Visor del widget Archivos: el archivo nuevo entra con un fundido y una leve escala. */
+.zs-viewer-in {
+  animation: zs-viewer-in var(--dur-base) var(--zs-ease) backwards;
+}
+@keyframes zs-viewer-in {
+  from { opacity: 0; transform: scale(0.98); }
+}
+.zs-drawer-in {
+  animation: zs-drawer-in var(--dur-slow) var(--zs-ease) backwards;
+}
+@keyframes zs-drawer-in {
+  from { opacity: 0.4; transform: translateX(32px); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .zs-lift, .zs-press { transition: none; }
+  .zs-lift:hover, .zs-press:active { transform: none; }
+  .zs-overlay-in, .zs-modal-in, .zs-menu-in, .zs-drawer-in, .zs-viewer-in { animation: none !important; }
+}
+
+/*
+ * Vidrio para las tarjetas antiguas de la app del equipo (las que aun usan bg-white con esquinas
+ * redondeadas y borde o sombra), sin tocar cada pantalla: misma superficie, canto y sombra que
+ * .zs-glass. Los campos, botones y enlaces quedan fuera; el portal del paciente (.zp) tambien.
+ */
+:where(div, section, article, aside, header, form, li, details, table):not(.zp *)[class~="bg-white"]:is(
+    [class~="rounded-xl"],
+    [class~="rounded-2xl"],
+    [class~="rounded-3xl"],
+    [class~="rounded-[20px]"],
+    [class~="rounded-[22px]"],
+    [class~="rounded-[24px]"],
+    [class~="rounded-[28px]"]
+  ):is([class~="border"], [class~="shadow-sm"], [class~="shadow"], [class~="shadow-md"], [class~="shadow-lg"]) {
+  background: var(--glass-sheen), var(--glass-bg);
+  background-clip: padding-box;
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(160%);
+  backdrop-filter: blur(var(--glass-blur)) saturate(160%);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-shadow);
+}
+/* Modales y paneles flotantes antiguos (sombra grande): vidrio denso. */
+:where(div, section, aside, form):not(.zp *)[class~="bg-white"][class*="shadow-"]:is([class~="shadow-xl"], [class~="shadow-2xl"]):is(
+    [class~="rounded-xl"],
+    [class~="rounded-2xl"],
+    [class~="rounded-3xl"],
+    [class~="rounded-[24px]"],
+    [class~="rounded-[28px]"]
+  ) {
+  background: var(--glass-sheen), var(--glass-bg-strong);
+  background-clip: padding-box;
+  -webkit-backdrop-filter: blur(var(--glass-blur-strong)) saturate(170%);
+  backdrop-filter: blur(var(--glass-blur-strong)) saturate(170%);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-shadow-float);
+}
+/*
+ * Vidrio dentro de vidrio (tarjetas del kanban, filas dentro de un panel): sin desenfoque propio.
+ * El panel de afuera ya desenfoca; repetirlo no se nota y cuesta mucho al navegador.
+ */
+:is(.zs-glass, .zs-glass-strong, [class~="bg-white"][class*="rounded-"])
+  :where(div, section, article, aside, header, form, li, details, table)[class~="bg-white"][class*="rounded-"] {
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
 }

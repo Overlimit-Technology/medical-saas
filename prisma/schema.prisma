@@ -383,6 +383,8 @@ model ClinicMembership {
   userId    String
   clinicId  String
   status    ClinicMembershipStatus @default(ACTIVE)
+  // Panel personalizable del admin en esta sede (widgets, graficos, tamaños y periodo). Ver src/lib/dashboard/catalog.ts.
+  dashboardLayout Json?
   createdAt DateTime               @default(now())
   updatedAt DateTime               @updatedAt
 

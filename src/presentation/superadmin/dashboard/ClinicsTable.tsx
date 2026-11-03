@@ -79,7 +79,7 @@ export default function ClinicsTable({
   return (
     <div className="overflow-x-auto">
       <table className="w-full min-w-[960px] text-left text-sm">
-        <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
+        <thead className="bg-white/50 text-xs uppercase tracking-wide text-slate-600">
           <tr>
             {COLUMNS.map((c) => {
               const active = sort.key === c.key;
@@ -106,12 +106,12 @@ export default function ClinicsTable({
             </th>
           </tr>
         </thead>
-        <tbody className="divide-y divide-slate-100">
+        <tbody className="divide-y divide-white/70">
           {sorted.map((r) => (
             <tr
               key={r.id}
               onClick={() => onOpen(r.id)}
-              className={`cursor-pointer transition hover:bg-slate-50 ${selectedId === r.id ? "bg-cyan-50/60" : ""}`}
+              className={`cursor-pointer transition hover:bg-white/70 ${selectedId === r.id ? "bg-cyan-50/60" : ""}`}
             >
               <td className="px-4 py-3">
                 <button
@@ -133,11 +133,11 @@ export default function ClinicsTable({
                   {!r.isActive && <Badge tone="rose">Sin acceso</Badge>}
                 </div>
               </td>
-              <td className="px-4 py-3 text-right tabular-nums">{r.paying ? clp(r.monthlyPrice) : r.monthlyPrice > 0 ? <span className="text-slate-400">{clp(r.monthlyPrice)}</span> : "-"}</td>
+              <td className="px-4 py-3 text-right tabular-nums">{r.paying ? clp(r.monthlyPrice) : r.monthlyPrice > 0 ? <span className="text-slate-500">{clp(r.monthlyPrice)}</span> : "-"}</td>
               <td className="px-4 py-3 text-right tabular-nums">{num(r.patients)}</td>
               <td className="px-4 py-3 text-right tabular-nums">{num(r.appointmentsMonth)}</td>
               <td className="px-4 py-3 text-right tabular-nums" title="Activos / entraron en los ultimos 30 dias">
-                {r.activeUsers} <span className="text-xs text-slate-400">({r.activeUsers30d} en 30 d)</span>
+                {r.activeUsers} <span className="text-xs text-slate-500">({r.activeUsers30d} en 30 d)</span>
               </td>
               <td className="px-4 py-3 text-slate-600">
                 {r.billingStatus === "TRIAL" ? (

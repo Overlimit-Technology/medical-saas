@@ -37,7 +37,7 @@ const PLAN_COLORS = ["#0e88ab", "#8b5cf6", "#10b981", "#f59e0b", "#f43f5e", "#64
 
 function Card({ title, subtitle, children, className = "" }: { title: string; subtitle?: string; children: React.ReactNode; className?: string }) {
   return (
-    <section className={`rounded-xl border border-slate-200 bg-white p-5 shadow-sm ${className}`}>
+    <section className={`zs-glass rounded-[20px] p-5 ${className}`}>
       <div className="mb-3">
         <h2 className="text-base font-semibold text-slate-950">{title}</h2>
         {subtitle && <p className="text-xs text-slate-500">{subtitle}</p>}
@@ -53,7 +53,7 @@ function TopList({ rows, empty, value, sub, onOpen }: { rows: DashClinicRow[]; e
     <ol className="space-y-1">
       {rows.map((r, i) => (
         <li key={r.id}>
-          <button type="button" onClick={() => onOpen(r.id)} className="flex w-full items-center gap-3 rounded-lg px-2 py-2 text-left transition hover:bg-slate-50">
+          <button type="button" onClick={() => onOpen(r.id)} className="flex w-full items-center gap-3 rounded-lg px-2 py-2 text-left transition hover:bg-white/70">
             <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-slate-100 text-xs font-bold text-slate-600">{i + 1}</span>
             <span className="min-w-0 flex-1">
               <span className="block truncate text-sm font-semibold text-slate-900">{r.name}</span>
@@ -237,7 +237,7 @@ export default function SuperAdminDashboard() {
       )}
 
       {/* Filtros */}
-      <section className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm" aria-label="Filtros">
+      <section className="zs-glass rounded-[20px] p-4" aria-label="Filtros">
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-[auto_1fr_1fr_1fr_1.4fr_auto]">
           <div className="flex rounded-lg border border-slate-200 p-0.5" role="group" aria-label="Rango de meses">
             {([3, 6, 12] as const).map((m) => (
@@ -246,7 +246,7 @@ export default function SuperAdminDashboard() {
                 type="button"
                 aria-pressed={range === m}
                 onClick={() => setFilter("months", m)}
-                className={`flex-1 rounded-md px-3 py-1.5 text-sm font-semibold transition ${range === m ? "bg-[#0e88ab] text-white" : "text-slate-600 hover:bg-slate-100"}`}
+                className={`flex-1 rounded-md px-3 py-1.5 text-sm font-semibold transition ${range === m ? "bg-[#0e88ab] text-white" : "text-slate-600 hover:bg-white/70"}`}
               >
                 {m} meses
               </button>
@@ -277,7 +277,7 @@ export default function SuperAdminDashboard() {
             ))}
           </select>
           <div className="relative">
-            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
             <input
               type="search"
               aria-label="Buscar sede por nombre"
@@ -302,7 +302,7 @@ export default function SuperAdminDashboard() {
       {!data ? (
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4" aria-busy="true" aria-label="Cargando">
           {Array.from({ length: 8 }, (_, i) => (
-            <div key={i} className="h-28 animate-pulse rounded-xl bg-white shadow-sm" />
+            <div key={i} className="h-28 animate-pulse rounded-[20px] bg-white/50" />
           ))}
         </div>
       ) : data.totals.allClinics === 0 ? (
@@ -471,7 +471,7 @@ export default function SuperAdminDashboard() {
           </div>
 
           {/* Tabla */}
-          <section className="rounded-xl border border-slate-200 bg-white shadow-sm">
+          <section className="zs-glass rounded-[20px]">
             <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 px-5 py-4">
               <div>
                 <h2 className="text-base font-semibold text-slate-950">Sedes y clientes</h2>

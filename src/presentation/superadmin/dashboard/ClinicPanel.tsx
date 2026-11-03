@@ -88,9 +88,9 @@ export default function ClinicPanel({
   const actions = actionMenu(target, onPick).filter((a) => !a.hidden);
 
   return (
-    <div className="fixed inset-0 z-40 flex justify-end bg-slate-900/30" onClick={onClose}>
+    <div className="zs-overlay-in fixed inset-0 z-40 flex justify-end bg-[#0d1b2a]/30 p-3 backdrop-blur-[2px]" onClick={onClose}>
       <aside
-        className="flex h-full w-full max-w-md flex-col overflow-y-auto bg-white shadow-2xl"
+        className="zs-glass-strong zs-drawer-in flex h-full w-full max-w-md flex-col overflow-y-auto rounded-[28px]"
         role="dialog"
         aria-label={`Detalle de ${row.name}`}
         onClick={(e) => e.stopPropagation()}
@@ -105,7 +105,7 @@ export default function ClinicPanel({
               <Badge tone="slate">{row.plan}</Badge>
             </div>
           </div>
-          <button type="button" onClick={onClose} aria-label="Cerrar detalle" className="rounded-lg p-1.5 text-slate-500 hover:bg-slate-100">
+          <button type="button" onClick={onClose} aria-label="Cerrar detalle" className="rounded-lg p-1.5 text-slate-500 hover:bg-white/70">
             <X className="h-5 w-5" />
           </button>
         </div>
@@ -127,7 +127,7 @@ export default function ClinicPanel({
                 ["Usuarios activos", `${row.activeUsers} de ${row.users}`],
                 ["Entraron en 30 dias", num(row.activeUsers30d)],
               ].map(([k, v]) => (
-                <div key={k} className="rounded-lg bg-slate-50 px-3 py-2">
+                <div key={k} className="zs-glass-inner rounded-xl px-3 py-2">
                   <dt className="text-xs text-slate-500">{k}</dt>
                   <dd className="font-semibold text-slate-900">{v}</dd>
                 </div>

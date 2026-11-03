@@ -1,6 +1,37 @@
 "use client";
 
+import type { CSSProperties, ReactNode } from "react";
+import { CalendarCheck, HeartPulse, TrendingUp, Users, type LucideIcon } from "lucide-react";
+import { CountText } from "@/presentation/ui/motion";
 import { useInfoBannerViewModel } from "./InfoBannerViewModel";
+
+/** Tonos de Zensya para las cifras: turquesa, marino, aqua y turquesa oscuro. */
+const TONES = {
+  turquesa: { box: "bg-[#50c9d5] text-[#080b04]", glow: "rgba(80,201,213,.35)" },
+  marino: { box: "bg-[#0d1b2a] text-white", glow: "rgba(13,27,42,.22)" },
+  aqua: { box: "bg-[#84d9e1] text-[#0d1b2a]", glow: "rgba(132,217,225,.45)" },
+  oscuro: { box: "bg-[#1e737b] text-white", glow: "rgba(30,115,123,.30)" },
+} as const;
+
+function StatTile({ icon: Icon, tone, label, index, children }: { icon: LucideIcon; tone: keyof typeof TONES; label: string; index: number; children: ReactNode }) {
+  const t = TONES[tone];
+  return (
+    <div
+      className="zs-glass-inner zs-lift zs-in relative min-w-0 overflow-hidden rounded-[20px] p-4"
+      style={{ "--i": index } as CSSProperties}
+    >
+      {/* Brillo del color de la cifra en la esquina */}
+      <span aria-hidden="true" className="pointer-events-none absolute -right-6 -top-8 h-24 w-24 rounded-full blur-2xl" style={{ background: t.glow }} />
+      <div className="relative flex items-center gap-3">
+        <span className={`grid h-10 w-10 shrink-0 place-items-center rounded-2xl shadow-[inset_0_1px_0_rgba(255,255,255,.35)] ${t.box}`}>
+          <Icon className="h-[18px] w-[18px]" strokeWidth={1.9} />
+        </span>
+        <span className="text-[12.5px] font-medium text-slate-600">{label}</span>
+      </div>
+      <div className="relative mt-3">{children}</div>
+    </div>
+  );
+}
 
 export default function InfoBanner() {
   const { state } = useInfoBannerViewModel();
@@ -8,8 +39,8 @@ export default function InfoBanner() {
 
   if (loading) {
     return (
-      <div className="animate-pulse rounded-2xl border border-slate-100 bg-white px-6 py-5 shadow-sm">
-        <div className="h-24 rounded-xl bg-slate-50" />
+      <div className="zs-glass animate-pulse rounded-[var(--radius-card)] px-6 py-5">
+        <div className="h-24 rounded-xl bg-white/50" />
       </div>
     );
   }
@@ -19,7 +50,7 @@ export default function InfoBanner() {
   const isDoctor = data.mode === "doctor";
 
   return (
-    <div className="rounded-2xl border border-slate-100 bg-white px-6 py-5 shadow-sm">
+    <div className="zs-glass rounded-[var(--radius-card)] px-6 py-5">
       {/* Fila superior: identidad */}
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="flex items-center gap-3">
@@ -29,7 +60,7 @@ export default function InfoBanner() {
           </div>
           <div>
             <h2 className="text-lg font-semibold text-slate-900">{data.name}</h2>
-            <div className="flex flex-wrap items-center gap-3 text-xs text-slate-400">
+            <div className="flex flex-wrap items-center gap-3 text-xs text-slate-500">
               {isDoctor && (
                 <>
                   <span className="flex items-center gap-1">
@@ -69,41 +100,44 @@ export default function InfoBanner() {
         </div>
       </div>
 
-      {/* Fila inferior: estadísticas */}
-      <div className="mt-4 flex flex-wrap items-end gap-0">
-        {/* Pacientes */}
-        <div className="flex flex-col border-r border-slate-100 pr-5">
-          <span className="text-xs text-slate-400">Pacientes</span>
-          <span className="text-2xl font-bold text-slate-900">{data.totalPatients}</span>
-        </div>
+      {/* Fila inferior: cifras con icono de color */}
+      <div className="mt-5 grid grid-cols-4 gap-3 max-lg:grid-cols-2 max-sm:grid-cols-1">
+        <StatTile icon={Users} tone="turquesa" label="Pacientes" index={0}>
+          <b className="font-display text-[28px] font-bold leading-none tracking-[-1px] text-slate-900 tabular-nums">
+            <CountText text={String(data.totalPatients)} />
+          </b>
+        </StatTile>
 
-        {/* En tratamiento */}
-        <div className="flex flex-col border-r border-slate-100 px-5">
-          <span className="text-xs text-slate-400">En Tratamiento</span>
-          <span className="text-2xl font-bold text-slate-900">{data.inTreatment}</span>
-        </div>
+        <StatTile icon={HeartPulse} tone="marino" label="En tratamiento" index={1}>
+          <b className="font-display text-[28px] font-bold leading-none tracking-[-1px] text-slate-900 tabular-nums">
+            <CountText text={String(data.inTreatment)} />
+          </b>
+        </StatTile>
 
-        {/* Proyección de ganancias / Progreso */}
-        <div className="flex flex-1 flex-wrap items-end gap-5 pl-5">
-          <div className="min-w-0">
-            <span className="text-xs font-medium text-slate-500">Progreso diario</span>
-            <div className="mt-1 flex items-center gap-2">
-              <span className="inline-flex rounded-full border border-[#50c9d5]/20 bg-[#50c9d5]/10 px-2.5 py-0.5 text-xs font-semibold text-[#1e737b]">
-                En progreso
-              </span>
-              <span className="text-sm font-semibold text-[#1e737b]">{progressPercent}%</span>
-            </div>
+        <StatTile icon={TrendingUp} tone="aqua" label="Progreso diario" index={2}>
+          <div className="flex items-baseline justify-between gap-2">
+            <b className="font-display text-[28px] font-bold leading-none tracking-[-1px] text-[#17656c] tabular-nums">
+              <CountText text={`${progressPercent} %`} />
+            </b>
+            <span className="rounded-full bg-[var(--ok-bg)] px-2.5 py-0.5 text-[11.5px] font-semibold text-[var(--ok-text)]">
+              {progressPercent >= 100 ? "Completo" : "En progreso"}
+            </span>
           </div>
-
-          <div className="border-l border-slate-100 pl-5">
-            <span className="text-xs text-slate-400">Pacientes de hoy</span>
-            <div className="mt-0.5 text-lg font-bold text-slate-900">
-              <span className="text-[#1e737b]">{data.completedToday}</span>
-              <span className="text-slate-300"> / </span>
-              {totalToday}
-            </div>
+          <div className="mt-3 h-2 overflow-hidden rounded-full bg-white/80 shadow-[inset_0_1px_2px_rgba(13,27,42,.08)]">
+            <div className="zs-grow-x h-full rounded-full bg-gradient-to-r from-[#1e737b] to-[#50c9d5]" style={{ width: `${Math.max(2, progressPercent)}%` }} />
           </div>
-        </div>
+        </StatTile>
+
+        <StatTile icon={CalendarCheck} tone="oscuro" label="Pacientes de hoy" index={3}>
+          <div className="font-display text-[28px] font-bold leading-none tracking-[-1px] text-slate-900 tabular-nums">
+            <span className="text-[#17656c]">
+              <CountText text={String(data.completedToday)} />
+            </span>
+            <span className="text-slate-500"> / </span>
+            {totalToday}
+          </div>
+          <span className="mt-1.5 block text-[12px] text-slate-500">atendidos de los agendados</span>
+        </StatTile>
       </div>
     </div>
   );

@@ -175,7 +175,7 @@ export default function SuperAdminUserManagement() {
     <div className="space-y-8">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <span className="inline-flex rounded-full bg-[#50c9d5]/10 px-3 py-1 text-xs font-semibold text-[#1e737b]">
+          <span className="inline-flex rounded-full bg-[#50c9d5]/10 px-3 py-1 text-xs font-semibold text-[#17656c]">
             Solo Super Admin
           </span>
           <h1 className="mt-3 text-2xl font-bold text-slate-900">Gestionar Usuarios</h1>
@@ -249,7 +249,7 @@ export default function SuperAdminUserManagement() {
                       <p className="text-base font-semibold text-slate-900">{clinic.name}</p>
                       <p className="mt-1 text-sm text-slate-500">{clinic.city}</p>
                     </div>
-                    <ArrowRight className={selected ? "text-[#1e737b]" : "text-slate-300"} size={18} />
+                    <ArrowRight className={selected ? "text-[#17656c]" : "text-slate-300"} size={18} />
                   </div>
                   <div className="mt-5 grid grid-cols-3 gap-2">
                     <MiniStat label="Total" value={clinic.totalUsers} />

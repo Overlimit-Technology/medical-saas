@@ -85,7 +85,7 @@ export default function CreateClinicModal({
           <div className="rounded-lg border border-amber-200 bg-amber-50 p-3">
             <p className="font-medium text-amber-900">Clave temporal (se muestra una sola vez)</p>
             <div className="mt-2 flex items-center gap-2">
-              <code className="flex-1 rounded bg-white px-3 py-2 font-mono text-base text-slate-900 select-all">{created.temporaryPassword}</code>
+              <code className="zs-glass-inner flex-1 rounded-lg px-3 py-2 font-mono text-base text-slate-900 select-all">{created.temporaryPassword}</code>
               <button
                 type="button"
                 className={btnGhost}

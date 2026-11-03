@@ -2,7 +2,7 @@
 
 // Graficas SVG propias (sin librerias): linea, barras agrupadas y donut.
 // Todas tienen tooltip al pasar el mouse y leyenda clicable (oculta/muestra una serie).
-import { useMemo, useRef, useState } from "react";
+import { useMemo, useRef, useState, type CSSProperties } from "react";
 
 export type ChartSeries = { key: string; label: string; color: string; format?: (v: number) => string };
 export type ChartPoint = { label: string; tooltipLabel?: string; values: Record<string, number | null> };
@@ -44,8 +44,8 @@ function Legend({
             onClick={() => onToggle(s.key)}
             aria-pressed={!off}
             title={off ? "Mostrar serie" : "Ocultar serie"}
-            className={`flex items-center gap-1.5 rounded-md px-1.5 py-0.5 transition hover:bg-slate-100 ${
-              off ? "text-slate-400 line-through" : "text-slate-600"
+            className={`flex items-center gap-1.5 rounded-md px-1.5 py-0.5 transition hover:bg-white/70 ${
+              off ? "text-slate-500 line-through" : "text-slate-600"
             }`}
           >
             <i className="inline-block h-2.5 w-2.5 rounded-sm" style={{ background: off ? "#cbd5e1" : s.color }} />
@@ -83,7 +83,7 @@ function Tooltip({
   const flip = leftPct > 60;
   return (
     <div
-      className="pointer-events-none absolute top-2 z-10 min-w-[150px] rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs shadow-lg"
+      className="zs-glass-strong zs-menu-in pointer-events-none absolute top-2 z-10 min-w-[150px] rounded-xl px-3 py-2 text-xs"
       style={flip ? { right: `${100 - leftPct + 2}%` } : { left: `${leftPct + 2}%` }}
     >
       <p className="mb-1 font-semibold text-slate-800">{point.tooltipLabel ?? point.label}</p>
@@ -115,7 +115,7 @@ function Axes({ max, ticks = 4, format }: { max: number; ticks?: number; format?
         const y = H - PAD.b - ((H - PAD.t - PAD.b) * i) / ticks;
         return (
           <g key={i}>
-            <line x1={PAD.l} x2={W - PAD.r} y1={y} y2={y} stroke="#e2e8f0" strokeDasharray={i === 0 ? undefined : "3 3"} />
+            <line x1={PAD.l} x2={W - PAD.r} y1={y} y2={y} stroke="rgba(15,23,42,0.10)" strokeDasharray={i === 0 ? undefined : "3 3"} />
             <text x={PAD.l - 6} y={y + 4} textAnchor="end" fontSize="11" fill="#94a3b8">
               {format ? format(v) : compact(v)}
             </text>
@@ -176,11 +176,11 @@ export function LineChart({
             });
             return (
               <g key={s.key}>
-                <path d={segs.join(" ")} fill="none" stroke={s.color} strokeWidth={2.5} strokeLinejoin="round" strokeLinecap="round" />
+                <path d={segs.join(" ")} fill="none" stroke={s.color} strokeWidth={2.5} strokeLinejoin="round" strokeLinecap="round" className="zs-reveal" />
                 {points.map((p, i) => {
                   const v = p.values[s.key];
                   if (v === null || v === undefined) return null;
-                  return <circle key={i} cx={x(i)} cy={y(v)} r={hover === i ? 5 : 3} fill="#fff" stroke={s.color} strokeWidth={2} />;
+                  return <circle key={i} cx={x(i)} cy={y(v)} r={hover === i ? 5 : 3} fill="#fff" stroke={s.color} strokeWidth={2} className="zs-pop" style={{ "--d": `${200 + (i / Math.max(1, points.length - 1)) * 1400}ms` } as CSSProperties} />;
                 })}
               </g>
             );
@@ -245,6 +245,8 @@ export function BarChart({
                       height={h(v)}
                       rx={3}
                       fill={s.color}
+                      className="zs-grow-y"
+                      style={{ "--b": i } as CSSProperties}
                     />
                   );
                 })}
@@ -310,16 +312,19 @@ export function DonutChart({
   return (
     <div className="flex flex-col items-center gap-4 sm:flex-row">
       <svg viewBox="0 0 180 180" role="img" aria-label={ariaLabel} className="h-44 w-44 shrink-0">
-        {total === 0 && <circle cx={cx} cy={cy} r={r} fill="none" stroke="#e2e8f0" strokeWidth={22} />}
-        {arcs.map(({ s, d }) => (
+        {total === 0 && <circle cx={cx} cy={cy} r={r} fill="none" stroke="rgba(15,23,42,0.10)" strokeWidth={22} />}
+        {arcs.map(({ s, d }, i) => (
           <path
             key={s.key}
             d={d}
+            pathLength={100}
+            strokeDasharray="100 100"
+            style={{ "--b": i } as CSSProperties}
             fill="none"
             stroke={s.color}
             strokeWidth={hover === s.key || selectedKey === s.key ? 28 : 22}
             opacity={hover && hover !== s.key ? 0.45 : 1}
-            className={onSelect ? "cursor-pointer" : ""}
+            className={onSelect ? "zs-ring cursor-pointer" : "zs-ring"}
             onMouseEnter={() => setHover(s.key)}
             onMouseLeave={() => setHover(null)}
             onClick={() => onSelect?.(s.key)}
@@ -353,8 +358,8 @@ export function DonutChart({
                 }
                 onMouseEnter={() => setHover(s.key)}
                 onMouseLeave={() => setHover(null)}
-                className={`flex w-full items-center justify-between gap-3 rounded-md px-2 py-1 text-left transition hover:bg-slate-100 ${
-                  off ? "text-slate-400 line-through" : "text-slate-700"
+                className={`flex w-full items-center justify-between gap-3 rounded-md px-2 py-1 text-left transition hover:bg-white/70 ${
+                  off ? "text-slate-500 line-through" : "text-slate-700"
                 }`}
               >
                 <span className="flex items-center gap-2">

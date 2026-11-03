@@ -8,6 +8,7 @@ import Link from "next/link";
 import type { LucideIcon } from "lucide-react";
 import type { ReactNode } from "react";
 import ZensyaLogo from "@/presentation/portal/ZensyaLogo";
+import { CountText, SegPill } from "./motion";
 
 const cx = (...parts: Array<string | false | null | undefined>) => parts.filter(Boolean).join(" ");
 
@@ -16,26 +17,33 @@ const cx = (...parts: Array<string | false | null | undefined>) => parts.filter(
 // ---------------------------------------------------------------------------
 
 export const zs = {
-  card: "relative min-w-0 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm max-sm:p-[18px] max-sm:rounded-[20px]",
+  // Vidrio (tokens en globals.css: .zs-glass, --glass-*).
+  card: "zs-glass relative min-w-0 rounded-[var(--radius-card)] p-6 max-sm:p-[18px] max-sm:rounded-[20px]",
+  /** Bloque dentro de una tarjeta de vidrio: blanco translucido sin volver a desenfocar. */
+  inner: "zs-glass-inner rounded-[var(--radius-inner)]",
+  /** Panel flotante: modales, hojas, menus y popovers. */
+  float: "zs-glass-strong rounded-[var(--radius-card)]",
   label: "text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-500",
   small: "text-[13px] leading-normal text-slate-500",
   text: "text-[14.5px] leading-relaxed text-slate-600",
   input:
-    "min-h-12 w-full rounded-xl border border-slate-200 bg-white/60 px-4 py-[11px] text-[15px] text-slate-900 outline-none transition placeholder:text-slate-500/65 focus:border-[#50c9d5] focus:ring-[3px] focus:ring-[#50c9d5]/20",
-  link: "inline-flex items-center gap-1.5 font-display text-sm font-semibold text-[#1e737b] [&>svg]:transition-transform hover:[&>svg]:translate-x-1",
+    "min-h-12 w-full rounded-xl border border-white/80 bg-white/70 px-4 py-[11px] text-[15px] text-slate-900 shadow-[inset_0_1px_2px_rgba(13,27,42,.06)] outline-none transition duration-200 placeholder:text-slate-500 hover:bg-white/85 focus:border-[#50c9d5] focus:bg-white focus:ring-[3px] focus:ring-[#50c9d5]/25",
+  link: "inline-flex items-center gap-1.5 font-display text-sm font-semibold text-[#17656c] [&>svg]:transition-transform hover:[&>svg]:translate-x-1",
   btn: {
-    base: "relative inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-full border font-display font-medium transition-[transform,box-shadow,background-color,color,border-color] duration-300 [transition-timing-function:cubic-bezier(.22,1,.36,1)] disabled:pointer-events-none disabled:opacity-45",
+    base: "relative inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-full border font-display font-medium outline-none transition-[transform,box-shadow,background-color,color,border-color] duration-200 [transition-timing-function:cubic-bezier(.22,1,.36,1)] focus-visible:ring-[3px] focus-visible:ring-[#50c9d5]/40 active:scale-[0.98] disabled:pointer-events-none disabled:opacity-45",
     md: "h-12 px-[22px] text-[15px]",
     sm: "h-[38px] px-4 text-sm",
     primary:
       "border-[#50c9d5] bg-[#50c9d5] text-[#080b04] hover:-translate-y-0.5 hover:shadow-[0_14px_32px_rgba(80,201,213,.32)]",
-    quiet: "border-slate-200 bg-white text-slate-900 hover:border-[#50c9d5]",
-    ghost: "border-[#50c9d5] bg-transparent text-[#1e737b] hover:bg-[#50c9d5] hover:text-[#080b04]",
-    danger: "border-slate-200 bg-transparent text-[#c23434] hover:border-[#c23434]",
+    quiet: "border-white/80 bg-white/70 text-slate-900 shadow-[0_2px_8px_-4px_rgba(13,27,42,.18)] backdrop-blur-md hover:-translate-y-0.5 hover:border-[#50c9d5] hover:bg-white",
+    ghost: "border-[#50c9d5] bg-white/40 text-[#17656c] hover:bg-[#50c9d5] hover:text-[#080b04]",
+    /** Accion destacada oscura, en azul marino de Zensya. */
+    navy: "border-[#0d1b2a] bg-[#0d1b2a] text-white hover:-translate-y-0.5 hover:shadow-[0_14px_32px_rgba(13,27,42,.28)]",
+    danger: "border-white/80 bg-white/60 text-[#b91c1c] hover:border-[#b91c1c] hover:bg-white",
   },
 };
 
-export type BtnVariant = "primary" | "quiet" | "ghost" | "danger";
+export type BtnVariant = "primary" | "quiet" | "ghost" | "danger" | "navy";
 
 export function btnClass(variant: BtnVariant = "primary", size: "md" | "sm" = "md", extra?: string) {
   return cx(zs.btn.base, zs.btn[size], zs.btn[variant], extra);
@@ -85,7 +93,7 @@ export function PageHead({
 
 export function Tag({ children, icon: Icon }: { children: ReactNode; icon?: LucideIcon }) {
   return (
-    <span className="inline-flex items-center gap-2 self-start whitespace-nowrap rounded-full bg-[#50c9d5]/10 bg-gradient-to-r from-[#50c9d5]/30 to-[#50c9d5]/[0.08] px-3.5 py-1.5 font-display text-sm text-[#1e737b]">
+    <span className="inline-flex items-center gap-2 self-start whitespace-nowrap rounded-full bg-[#50c9d5]/10 bg-gradient-to-r from-[#50c9d5]/30 to-[#50c9d5]/[0.08] px-3.5 py-1.5 font-display text-sm text-[#17656c]">
       {Icon ? <Icon className="h-[15px] w-[15px]" strokeWidth={1.8} /> : null}
       {children}
     </span>
@@ -98,7 +106,7 @@ export function View({ children, label, wide }: { children: ReactNode; label?: s
     <section
       aria-label={label}
       className={cx(
-        "mx-auto flex w-full flex-col gap-6 max-sm:gap-[18px] [&>*]:animate-card-in",
+        "zs-stagger mx-auto flex w-full flex-col gap-6 max-sm:gap-[18px]",
         wide ? "max-w-none" : "max-w-[1400px]"
       )}
     >
@@ -158,11 +166,12 @@ export function CardLink({ href, children }: { href: string; children: ReactNode
 export type Tone = "ok" | "warn" | "off" | "err" | "info";
 
 const TONE: Record<Tone, string> = {
-  ok: "bg-[#50c9d5]/[0.08] text-[#1e737b]",
-  warn: "bg-[#e8a020]/[0.14] text-[#8a5a0b]",
-  off: "bg-slate-100 text-slate-500",
-  err: "bg-[#e5484d]/10 text-[#c23434]",
-  info: "bg-[#3b82f6]/10 text-[#1d4ed8]",
+  // Fondo y texto de los tokens --ok/--warn/--err/--info (AA sobre vidrio).
+  ok: "bg-[var(--ok-bg)] text-[var(--ok-text)]",
+  warn: "bg-[var(--warn-bg)] text-[var(--warn-text)]",
+  off: "bg-white/70 text-slate-600",
+  err: "bg-[var(--err-bg)] text-[var(--err-text)]",
+  info: "bg-[var(--info-bg)] text-[var(--info-text)]",
 };
 
 export function StatusPill({ tone = "ok", children }: { tone?: Tone; children: ReactNode }) {
@@ -180,7 +189,7 @@ export function StatusPill({ tone = "ok", children }: { tone?: Tone; children: R
 
 export function Count({ children }: { children: ReactNode }) {
   return (
-    <span className="ml-auto inline-flex h-[22px] min-w-[22px] items-center justify-center rounded-xl bg-[#e8a020]/[0.14] px-[7px] text-xs font-semibold text-[#8a5a0b]">
+    <span className="ml-auto inline-flex h-[22px] min-w-[22px] items-center justify-center rounded-xl bg-[var(--warn-bg)] px-[7px] text-xs font-semibold text-[var(--warn-text)]">
       {children}
     </span>
   );
@@ -192,9 +201,9 @@ export function Count({ children }: { children: ReactNode }) {
 
 export function IconBox({ icon: Icon, tone = "accent", size = 40 }: { icon: LucideIcon; tone?: "accent" | "warn" | "err"; size?: number }) {
   const tones = {
-    accent: "border-[#50c9d5]/30 bg-gradient-to-br from-[#50c9d5]/20 to-[#50c9d5]/[0.06] text-[#1e737b]",
+    accent: "border-white/80 bg-gradient-to-br from-[#50c9d5]/25 to-[#84d9e1]/25 text-[#17656c] shadow-[inset_0_1px_0_rgba(255,255,255,.9)]",
     warn: "border-[#e8a020]/35 bg-[#e8a020]/[0.14] text-[#8a5a0b]",
-    err: "border-[#e5484d]/30 bg-[#e5484d]/10 text-[#c23434]",
+    err: "border-[#e5484d]/30 bg-[#e5484d]/10 text-[#b91c1c]",
   };
   return (
     <span
@@ -225,8 +234,9 @@ export function Segmented<T extends string>({
     <div
       role="tablist"
       aria-label={label}
-      className="inline-flex max-w-full gap-1 self-start overflow-x-auto rounded-full border border-slate-200 bg-white/60 p-[5px]"
+      className="zs-glass relative inline-flex max-w-full gap-1 self-start overflow-x-auto rounded-full p-[5px]"
     >
+      <SegPill active={value} />
       {items.map(({ id, label: itemLabel, icon: Icon, count }) => {
         const active = id === value;
         return (
@@ -237,8 +247,8 @@ export function Segmented<T extends string>({
             aria-selected={active}
             onClick={() => onChange(id)}
             className={cx(
-              "inline-flex h-[38px] items-center gap-2 whitespace-nowrap rounded-full px-[18px] text-sm font-medium transition-colors",
-              active ? "bg-[#50c9d5] text-[#080b04]" : "text-slate-500 hover:text-slate-900"
+              "relative inline-flex h-[38px] items-center gap-2 whitespace-nowrap rounded-full px-[18px] text-sm font-medium transition-colors duration-300",
+              active ? "text-[#080b04]" : "text-slate-500 hover:text-slate-900"
             )}
           >
             {Icon ? <Icon className="h-4 w-4" strokeWidth={1.8} /> : null}
@@ -285,12 +295,12 @@ export function Notice({ children, tone = "info", icon: Icon }: { children: Reac
       className={cx(
         "flex items-start gap-3 rounded-[18px] border px-4 py-3.5 text-[13.5px] leading-relaxed",
         tone === "err"
-          ? "border-[#e5484d]/30 bg-[#e5484d]/10 text-[#c23434]"
-          : "border-[#50c9d5]/30 bg-[#50c9d5]/[0.08] text-slate-900"
+          ? "border-[#e5484d]/30 bg-[var(--err-bg)]/90 text-[var(--err-text)] backdrop-blur-md"
+          : "zs-glass text-slate-900"
       )}
       role={tone === "err" ? "alert" : undefined}
     >
-      {Icon ? <Icon className={cx("mt-px h-[18px] w-[18px] shrink-0", tone === "err" ? "" : "text-[#1e737b]")} strokeWidth={1.8} /> : null}
+      {Icon ? <Icon className={cx("mt-px h-[18px] w-[18px] shrink-0", tone === "err" ? "" : "text-[#17656c]")} strokeWidth={1.8} /> : null}
       <div className="min-w-0">{children}</div>
     </div>
   );
@@ -299,6 +309,20 @@ export function Notice({ children, tone = "info", icon: Icon }: { children: Reac
 // ---------------------------------------------------------------------------
 // Cifra (KPI)
 // ---------------------------------------------------------------------------
+
+/** Tonos de Zensya para el icono de cada cifra; cada etiqueta cae siempre en el mismo. */
+const STAT_TONES = [
+  { box: "bg-[#50c9d5] text-[#080b04]", glow: "rgba(80,201,213,.32)" },
+  { box: "bg-[#0d1b2a] text-white", glow: "rgba(13,27,42,.18)" },
+  { box: "bg-[#84d9e1] text-[#0d1b2a]", glow: "rgba(132,217,225,.45)" },
+  { box: "bg-[#1e737b] text-white", glow: "rgba(30,115,123,.28)" },
+];
+const toneOf = (label: ReactNode) => {
+  const text = typeof label === "string" ? label : "";
+  let h = 0;
+  for (const ch of text) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
+  return STAT_TONES[h % STAT_TONES.length];
+};
 
 export function Stat({
   label,
@@ -318,6 +342,9 @@ export function Stat({
   const Icon = icon;
   const body = (
     <>
+      {!highlight ? (
+        <span aria-hidden="true" className="pointer-events-none !absolute -right-8 -top-10 h-28 w-28 rounded-full blur-2xl" style={{ background: toneOf(label).glow }} />
+      ) : null}
       <div className="flex items-start justify-between gap-3">
         <span className={cx(zs.label, highlight && "text-[#080b04]/70")}>{label}</span>
         {Icon ? (
@@ -326,20 +353,22 @@ export function Stat({
               <Icon className="h-[18px] w-[18px]" strokeWidth={1.8} />
             </span>
           ) : (
-            <IconBox icon={Icon} />
+            <span className={cx("grid h-10 w-10 shrink-0 place-items-center rounded-2xl shadow-[inset_0_1px_0_rgba(255,255,255,.35)]", toneOf(label).box)}>
+              <Icon className="h-[18px] w-[18px]" strokeWidth={1.9} />
+            </span>
           )
         ) : null}
       </div>
-      <b className="mt-1 block font-display text-[32px] font-bold leading-none tracking-[-1px] tabular-nums">{value}</b>
+      <b className="mt-1 block font-display text-[32px] font-bold leading-none tracking-[-1px] tabular-nums">{typeof value === "string" || typeof value === "number" ? <CountText text={String(value)} /> : value}</b>
       {hint ? <span className={cx("mt-2 block text-[13px]", highlight ? "text-[#080b04]/70" : "text-slate-500")}>{hint}</span> : null}
     </>
   );
   const className = cx(
-    "block min-w-0 rounded-2xl border p-5 transition-[transform,box-shadow] duration-300",
+    "relative block min-w-0 overflow-hidden rounded-[var(--radius-card)] border p-5 [&>*]:relative transition-[transform,box-shadow,background-color] duration-200",
     highlight
       ? "border-[#50c9d5] bg-gradient-to-br from-[#50c9d5] to-[#84d9e1] text-[#080b04] shadow-[0_14px_32px_rgba(80,201,213,.28)]"
-      : "border-slate-200 bg-white text-slate-900 shadow-sm",
-    href && "hover:-translate-y-0.5 hover:shadow-md"
+      : "zs-glass text-slate-900",
+    href && "zs-lift zs-press"
   );
   return href ? (
     <Link href={href} className={className}>
