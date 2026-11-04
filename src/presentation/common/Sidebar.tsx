@@ -22,6 +22,7 @@ import {
   Settings,
   Sparkles,
   Receipt,
+  HeartPulse,
 } from "lucide-react";
 
 import { hasPermission, type UserPermission } from "@/lib/permissions";
@@ -66,6 +67,13 @@ const NAV_ITEMS: NavItem[] = [
     permission: "PATIENTS",
   },
   { href: "/seguimiento", label: "Seguimiento", icon: Activity, group: "paginas", permission: "SEGUIMIENTO" },
+  {
+    href: "/portal-paciente",
+    label: "Portal paciente",
+    icon: HeartPulse,
+    group: "paginas",
+    roles: ["ADMIN", "SECRETARY", "DOCTOR"],
+  },
   {
     href: "/clinical-visits",
     label: "Cita clinica",
