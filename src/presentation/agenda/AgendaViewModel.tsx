@@ -1131,9 +1131,39 @@ export function useAgendaViewModel() {
       return;
     }
 
+    // El paciente nuevo ya se creo arriba; esto queda como respaldo.
+    let resolvedPatientId = effectivePatientId;
+
+    if (!resolvedPatientId) {
+      const cleanRun = form.patientRun.trim();
+      if (!cleanRun) {
+        setErrorMessage("Ingresa el RUN del paciente.");
+        return;
+      }
+
+      try {
+        const result = await savePatientUseCase.execute(null, {
+          firstName: cleanPatientFirstName,
+          lastName: cleanPatientLastName,
+          secondLastName: null,
+          run: cleanRun,
+          email: form.patientEmail.trim() || null,
+          phone: form.patientPhone.trim() || null,
+        });
+        if (!result.patientId) {
+          setErrorMessage("No se pudo crear el paciente.");
+          return;
+        }
+        resolvedPatientId = result.patientId;
+      } catch (error) {
+        setErrorMessage(error instanceof Error ? error.message : "No se pudo crear el paciente.");
+        return;
+      }
+    }
+
     const hasOverlap = hasAppointmentOverlap(appointments, {
       appointmentId: editingId,
-      patientId: effectivePatientId,
+      patientId: resolvedPatientId,
       doctorId: form.doctorId,
       boxId: form.boxId,
       startAt,
@@ -1203,7 +1233,7 @@ export function useAgendaViewModel() {
     }
 
     const payload = {
-      patientId: effectivePatientId,
+      patientId: resolvedPatientId,
       doctorId: form.doctorId,
       boxId: form.boxId,
       startAt: startAt.toISOString(),
