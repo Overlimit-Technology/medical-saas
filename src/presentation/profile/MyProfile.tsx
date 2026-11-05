@@ -53,7 +53,7 @@ export default function MyProfile() {
     <View label="Mi perfil">
       <PageHead tag="Mi perfil" title="Tu cuenta," accent="en un solo lugar" lead="Tus datos, tus vacaciones y lo que tiene que ver con tus pagos." />
       {loading ? (
-        <Loading />
+        <Loading shape="form" />
       ) : (
         <>
           <Segmented label="Secciones de mi perfil" items={tabs} value={tab} onChange={setTab} />

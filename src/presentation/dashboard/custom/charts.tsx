@@ -6,12 +6,47 @@
  * 1px, valores en tinta de texto (nunca del color de la serie) y tooltip al pasar el mouse.
  * Todos ocupan el alto y el ancho que les da el widget.
  */
-import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
+import { useEffect, useId, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { ArrowDownRight, ArrowUpRight, CircleCheck, CircleX, Minus, TriangleAlert } from "lucide-react";
 import type { BreakdownItem, ListRow, MetricResult, SeriesPoint, Unit } from "@/lib/dashboard/catalog";
 import { EmptyState, StatusPill } from "@/presentation/ui/zs";
 import { CountUp } from "@/presentation/ui/motion";
-import { delta, formatCompact, formatValue, niceTicks } from "./format";
+import { gsap, reduced } from "@/presentation/ui/fx";
+
+/**
+ * Valores que se transforman: al llegar datos nuevos con la misma cantidad de tramos, cada punto va
+ * de su valor anterior al nuevo (como la referencia Solvik) en vez de redibujar todo desde cero.
+ */
+function useMorph(target: number[], duration: number) {
+  const [shown, setShown] = useState(target);
+  const cur = useRef(target);
+  const key = target.join(",");
+  useEffect(() => {
+    const from = cur.current;
+    if (from.length !== target.length || reduced()) {
+      cur.current = target;
+      setShown(target);
+      return;
+    }
+    const s = { t: 0 };
+    const tween = gsap.to(s, {
+      t: 1,
+      duration,
+      ease: "power3.inOut",
+      onUpdate: () => {
+        const v = target.map((x, i) => from[i] + (x - from[i]) * s.t);
+        cur.current = v;
+        setShown(v);
+      },
+    });
+    return () => {
+      tween.kill();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [key, duration]);
+  return shown;
+}
+import { delta, formatCompact, formatValue, niceTicks, smoothPath } from "./format";
 
 /**
  * Orden fijo de colores para categorias: los mismos de --chart-1..8 en globals.css. Solo la paleta
@@ -19,9 +54,10 @@ import { delta, formatCompact, formatValue, niceTicks } from "./format";
  */
 export const PALETTE = ["#1d9aa6", "#0d1b2a", "#50c9d5", "#1e737b", "#e8a020", "#84d9e1", "#e5484d", "#8c9aa8"];
 const ACCENT = PALETTE[0];
-// Lineas sobre vidrio: tinta al 8 % y 22 %, para que se vean sobre cualquier mancha del fondo.
-const GRID_LINE = "rgba(15, 23, 42, 0.08)";
-const BASELINE = "rgba(15, 23, 42, 0.22)";
+// Lineas de guia: variables de globals.css (oscuras en tema claro, claras en el tema Liquido).
+// Van en style: los atributos de SVG no aceptan var().
+const GRID_LINE = "var(--chart-grid)";
+const BASELINE = "var(--chart-base)";
 
 const cx = (...parts: Array<string | false | null | undefined>) => parts.filter(Boolean).join(" ");
 
@@ -166,7 +202,7 @@ export function SparkChart(props: FigureProps & { points: SeriesPoint[] }) {
   const min = Math.min(0, ...values);
   const max = Math.max(1, ...values);
   const coords = values.map((v, i) => [(i / Math.max(1, values.length - 1)) * 100, 30 - ((v - min) / (max - min || 1)) * 28 - 1]);
-  const line = coords.map(([x, y], i) => `${i ? "L" : "M"}${x},${y}`).join(" ");
+  const line = smoothPath(coords as Array<[number, number]>);
   return (
     <div className="flex h-full flex-col">
       <div className="flex flex-wrap items-end justify-between gap-x-3 gap-y-1.5">
@@ -221,6 +257,9 @@ export function RingChart({ result, unit, higherIsBetter, goal, compareLabel }: 
           transform={`rotate(-90 ${d / 2} ${d / 2})`}
           className="zs-ring transition-[stroke-dasharray] duration-700"
         />
+      <g className="zs-knob" style={{ transform: `rotate(${share * 360}deg)`, transformOrigin: "50% 50%", transformBox: "view-box" } as CSSProperties}>
+        <circle cx={d / 2} cy={d / 2 - r} r={stroke * 0.62} fill="#fff" stroke={ACCENT} strokeWidth={stroke * 0.28} className="drop-shadow-[0_2px_4px_rgba(13,27,42,.25)]" />
+      </g>
         <text x="50%" y="50%" dominantBaseline="central" textAnchor="middle" className="fill-slate-900 font-display font-bold" style={{ fontSize: d * 0.2 }}>
           <CountUp svg value={value} format={(n) => formatValue(n, unit).replace(" %", "%")} />
         </text>
@@ -239,11 +278,16 @@ export function RingChart({ result, unit, higherIsBetter, goal, compareLabel }: 
 // Evolucion y columnas
 // ---------------------------------------------------------------------------
 
-export function SeriesChart({ points, unit, type }: { points: SeriesPoint[]; unit: Unit; type: "line" | "area" | "bar" }) {
+export function SeriesChart({ points, previous, unit, type }: { points: SeriesPoint[]; previous?: SeriesPoint[]; unit: Unit; type: "line" | "area" | "bar" }) {
   const [ref, size] = useSize<HTMLDivElement>();
   const [hover, setHover] = useState<number | null>(null);
   const values = points.map((p) => p.value);
-  const ticks = niceTicks(Math.min(0, ...values), Math.max(0, ...values), 4, unit === "count" || unit === "money");
+  const shownValues = useMorph(values, type === "bar" ? 0.7 : 0.9);
+  const shownPrev = useMorph(previous?.map((p) => p.value) ?? [], 0.9);
+  // El periodo anterior solo va en lineas y areas, como una linea punteada debajo de la actual.
+  const prev = type !== "bar" && previous?.length === points.length && previous.some((p) => p.value) ? previous : null;
+  const all = prev ? [...values, ...prev.map((p) => p.value)] : values;
+  const ticks = niceTicks(Math.min(0, ...all), Math.max(0, ...all), 4, unit === "count" || unit === "money");
   const lo = ticks[0];
   const hi = ticks[ticks.length - 1];
   const tickLabels = ticks.map((t) => formatCompact(t, unit));
@@ -261,15 +305,28 @@ export function SeriesChart({ points, unit, type }: { points: SeriesPoint[]; uni
   const showCaps = type === "bar" && band >= 30 && n <= 12;
   const zeroY = y(0);
 
-  const linePath = points.map((p, i) => `${i ? "L" : "M"}${xc(i)},${y(p.value)}`).join(" ");
+  const linePath = smoothPath(points.map((p, i) => [xc(i), y(shownValues[i] ?? p.value)]));
+  const prevPath = prev ? smoothPath(prev.map((p, i) => [xc(i), y(shownPrev[i] ?? p.value)])) : null;
+  // Barras en el turquesa de las lineas y areas, con un degradado suave hacia la base.
+  const gid = useId().replace(/:/g, "");
 
   return (
     <div ref={ref} className="relative h-full min-h-[120px] w-full" onMouseLeave={() => setHover(null)}>
       {size.w > 0 ? (
         <svg width={size.w} height={size.h} role="img" aria-label={points.map((p) => `${p.label}: ${formatValue(p.value, unit)}`).join(", ")}>
+          <defs>
+            <linearGradient id={`bar${gid}`} x1="0" x2="0" y1="0" y2="1">
+              <stop offset="0%" stopColor="#50c9d5" />
+              <stop offset="100%" stopColor={ACCENT} />
+            </linearGradient>
+            <linearGradient id={`area${gid}`} x1="0" x2="0" y1="0" y2="1">
+              <stop offset="0%" stopColor={ACCENT} stopOpacity={0.24} />
+              <stop offset="100%" stopColor={ACCENT} stopOpacity={0} />
+            </linearGradient>
+          </defs>
           {ticks.map((t, i) => (
             <g key={t}>
-              <line x1={padL} x2={size.w - 4} y1={y(t)} y2={y(t)} stroke={t === 0 ? BASELINE : GRID_LINE} strokeWidth={1} />
+              <line x1={padL} x2={size.w - 4} y1={y(t)} y2={y(t)} style={{ stroke: t === 0 ? BASELINE : GRID_LINE }} strokeWidth={1} />
               <text x={padL - 8} y={y(t)} dominantBaseline="central" textAnchor="end" className="fill-slate-500 tabular-nums" style={{ fontSize: 11 }}>
                 {tickLabels[i]}
               </text>
@@ -285,10 +342,11 @@ export function SeriesChart({ points, unit, type }: { points: SeriesPoint[]; uni
 
           {type === "bar"
             ? points.map((p, i) => {
-                const top = y(Math.max(0, p.value));
-                const bottom = y(Math.min(0, p.value));
+                const v = shownValues[i] ?? p.value;
+                const top = y(Math.max(0, v));
+                const bottom = y(Math.min(0, v));
                 const h = Math.max(p.value === 0 ? 0 : 1, bottom - top);
-                const r = Math.min(4, barW / 2, h);
+                const r = Math.min(6, barW / 2, h);
                 const x0 = xc(i) - barW / 2;
                 // Punta redondeada, base recta sobre la linea del cero.
                 const d =
@@ -297,7 +355,13 @@ export function SeriesChart({ points, unit, type }: { points: SeriesPoint[]; uni
                     : `M${x0},${zeroY} V${zeroY + h - r} Q${x0},${zeroY + h} ${x0 + r},${zeroY + h} H${x0 + barW - r} Q${x0 + barW},${zeroY + h} ${x0 + barW},${zeroY + h - r} V${zeroY} Z`;
                 return (
                   <g key={`b${i}`}>
-                    <path d={d} fill={ACCENT} opacity={hover === null || hover === i ? 1 : 0.45} className={cx("zs-grow-y transition-[opacity,filter] duration-200", hover === i && "brightness-110", p.value < 0 && "zs-neg")} style={{ "--b": i } as CSSProperties} />
+                    <path
+                      d={d}
+                      fill={`url(#bar${gid})`}
+                      opacity={hover === null || hover === i ? 1 : 0.45}
+                      className={cx("zs-grow-y transition-[opacity,filter] duration-200", hover === i && "brightness-110", p.value < 0 && "zs-neg")}
+                      style={{ "--b": i } as CSSProperties}
+                    />
                     {showCaps && p.value !== 0 ? (
                       <text x={xc(i)} y={p.value >= 0 ? zeroY - h - 5 : zeroY + h + 12} textAnchor="middle" className="zs-pop fill-slate-900 font-semibold" style={{ fontSize: 11, "--d": `${900 + i * 70}ms` } as CSSProperties}>
                         {formatCompact(p.value, unit)}
@@ -310,15 +374,21 @@ export function SeriesChart({ points, unit, type }: { points: SeriesPoint[]; uni
 
           {type !== "bar" && points.length ? (
             <>
-              <g className="zs-reveal">
+              {/* Relleno: aparece cuando la linea ya va dibujada. */}
               {type === "area" ? (
-                <path d={`${linePath} L${xc(n - 1)},${zeroY} L${xc(0)},${zeroY} Z`} fill={ACCENT} fillOpacity={0.1} />
+                <path d={`${linePath} L${xc(n - 1)},${zeroY} L${xc(0)},${zeroY} Z`} fill={`url(#area${gid})`} className="zs-area-in" />
               ) : null}
-              <path d={linePath} fill="none" stroke={ACCENT} strokeWidth={2} strokeLinejoin="round" strokeLinecap="round" />
-              </g>
+              {/* Periodo anterior: punteada y tenue. */}
+              {prevPath ? (
+                <path d={prevPath} fill="none" strokeWidth={1.5} strokeDasharray="4 5" strokeLinecap="round" className="zs-reveal" style={{ stroke: "rgb(var(--slate-400))" }} />
+              ) : null}
+              {/* La linea se dibuja de izquierda a derecha. */}
+              <path d={linePath} pathLength={1} fill="none" stroke={ACCENT} strokeWidth={2.25} strokeLinejoin="round" strokeLinecap="round" className="zs-draw" />
               {hover !== null ? (
                 <>
-                  <line x1={xc(hover)} x2={xc(hover)} y1={padT} y2={padT + plotH} stroke={BASELINE} strokeWidth={1} />
+                  <line x1={xc(hover)} x2={xc(hover)} y1={padT} y2={padT + plotH} style={{ stroke: BASELINE }} strokeWidth={1} strokeDasharray="3 4" />
+                  {prev ? <circle cx={xc(hover)} cy={y(prev[hover].value)} r={3.5} fill="#fff" strokeWidth={1.5} style={{ stroke: "rgb(var(--slate-400))" }} /> : null}
+                  <circle cx={xc(hover)} cy={y(points[hover].value)} r={9} fill={ACCENT} opacity={0.18} />
                   <circle cx={xc(hover)} cy={y(points[hover].value)} r={5} fill={ACCENT} stroke="#fff" strokeWidth={2} />
                 </>
               ) : (
@@ -335,8 +405,9 @@ export function SeriesChart({ points, unit, type }: { points: SeriesPoint[]; uni
       ) : null}
       {hover !== null && points[hover] ? (
         <Tooltip x={xc(hover)} width={size.w}>
+          <b className="block font-semibold tabular-nums text-slate-900">{formatValue(points[hover].value, unit)}</b>
           <span className="block text-slate-500">{points[hover].label}</span>
-          <b className="font-semibold tabular-nums text-slate-900">{formatValue(points[hover].value, unit)}</b>
+          {prev ? <span className="mt-0.5 block text-slate-500">Periodo anterior: {formatValue(prev[hover].value, unit)}</span> : null}
         </Tooltip>
       ) : null}
     </div>
@@ -371,6 +442,45 @@ export function HBarChart({ items, unit }: { items: BreakdownItem[]; unit: Unit 
   );
 }
 
+/**
+ * Reparto en una sola barra: cada categoria es un tramo de la barra (se llenan en orden) y abajo la
+ * lista con su porcentaje y valor. Al pasar el puntero, el tramo y su fila se destacan juntos.
+ */
+export function StackChart({ items, total, unit }: { items: BreakdownItem[]; total: number; unit: Unit }) {
+  const [hover, setHover] = useState<number | null>(null);
+  const shown = items.filter((i) => i.value > 0);
+  const pctOf = (v: number) => (total ? Math.round((v / total) * 100) : 0);
+  return (
+    <div className="flex h-full min-h-0 flex-col gap-4" onMouseLeave={() => setHover(null)}>
+      <div className="flex h-3.5 shrink-0 gap-[3px]" role="img" aria-label={shown.map((i) => `${i.label} ${pctOf(i.value)} %`).join(", ")}>
+        {shown.map((item, i) => (
+          <span
+            key={item.label}
+            onMouseEnter={() => setHover(i)}
+            className={cx("zs-grow-x h-full rounded-full transition-[opacity,transform] duration-200", hover !== null && hover !== i && "opacity-40", hover === i && "scale-y-[1.35]")}
+            style={{ flexGrow: item.value, flexBasis: 0, minWidth: 6, background: colorOf(item, items.indexOf(item)), "--b": i } as CSSProperties}
+          />
+        ))}
+      </div>
+      <ul className="min-h-0 flex-1 space-y-0.5 overflow-y-auto pr-1 text-[13px]">
+        {items.map((item, i) => (
+          <li
+            key={item.label}
+            onMouseEnter={() => setHover(shown.indexOf(item))}
+            className={cx("zs-in flex items-center gap-2.5 rounded-lg px-1.5 py-1.5 text-slate-900 transition-colors duration-200", hover !== null && shown[hover] === item && "bg-slate-100")}
+            style={{ "--i": Math.min(i, 8) } as CSSProperties}
+          >
+            <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: colorOf(item, i) }} />
+            <span className="min-w-0 flex-1 truncate">{item.label}</span>
+            <span className="w-10 shrink-0 text-right tabular-nums text-slate-500">{pctOf(item.value)} %</span>
+            <span className="w-24 shrink-0 text-right font-semibold tabular-nums">{formatValue(item.value, unit)}</span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
 export function DonutChart({ items, total, unit }: { items: BreakdownItem[]; total: number; unit: Unit }) {
   const [ref, size] = useSize<HTMLDivElement>();
   const [hover, setHover] = useState<number | null>(null);
@@ -386,7 +496,7 @@ export function DonutChart({ items, total, unit }: { items: BreakdownItem[]; tot
   return (
     <div ref={ref} className={cx("flex h-full min-h-0 gap-5", wide ? "items-center" : "flex-col items-center")}>
       <svg width={d} height={d} viewBox={`0 0 ${d} ${d}`} className="shrink-0" role="img" aria-label={items.map((i) => `${i.label} ${formatValue(i.value, unit)}`).join(", ")}>
-        <circle cx={d / 2} cy={d / 2} r={r} fill="none" stroke={GRID_LINE} strokeWidth={stroke} />
+        <circle cx={d / 2} cy={d / 2} r={r} fill="none" style={{ stroke: GRID_LINE }} strokeWidth={stroke} />
         {items.map((item, i) => {
           const len = total ? (item.value / total) * c : 0;
           const offset = -acc;

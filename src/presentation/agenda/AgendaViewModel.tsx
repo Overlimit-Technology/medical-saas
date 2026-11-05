@@ -677,6 +677,7 @@ export function useAgendaViewModel() {
         start: formatTimeValue(startAt),
         end: formatTimeValue(endAt),
         notes: "",
+        attentionTypeKey: "",
       }));
       setEditingId(null);
       setSelection(null);
@@ -971,6 +972,7 @@ export function useAgendaViewModel() {
       start: formatTimeValue(startAt),
       end: formatTimeValue(endAt),
       notes: (item.notes ?? "").slice(0, NOTE_MAX_LENGTH),
+      attentionTypeKey: item.attentionTypeKey ?? "",
     });
     setContinuousPlanForm(createEmptyContinuousPlanForm());
     setIsModalOpen(true);
@@ -1207,6 +1209,7 @@ export function useAgendaViewModel() {
       startAt: startAt.toISOString(),
       endAt: endAt.toISOString(),
       notes: cleanNotes || null,
+      attentionTypeKey: form.attentionTypeKey || null,
       ...(editingId
         ? {}
         : {

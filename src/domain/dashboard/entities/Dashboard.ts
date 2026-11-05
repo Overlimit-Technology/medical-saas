@@ -94,6 +94,10 @@ export type DoctorDashboardData = {
     paymentStatus: string;
     patientName: string;
     boxName: string;
+    /** Motivo escrito al agendar. */
+    reason?: string | null;
+    arrivedAt?: string | null;
+    attentionType?: { name: string; color: string } | null;
   }>;
 };
 

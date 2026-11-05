@@ -1,4 +1,4 @@
-import { ChartArea, ChartBar, ChartColumn, ChartLine, ChartPie, FolderUp, Gauge, Hash, List, MousePointerClick, Table2, TrendingUp, type LucideIcon } from "lucide-react";
+import { ChartArea, ChartBar, ChartBarStacked, ChartColumn, ChartLine, ChartPie, FolderUp, Gauge, Hash, List, MousePointerClick, Table2, TrendingUp, type LucideIcon } from "lucide-react";
 import type { ChartType } from "@/lib/dashboard/catalog";
 
 export const CHART_ICON: Record<ChartType, LucideIcon> = {
@@ -10,6 +10,7 @@ export const CHART_ICON: Record<ChartType, LucideIcon> = {
   bar: ChartColumn,
   hbar: ChartBar,
   donut: ChartPie,
+  stack: ChartBarStacked,
   table: Table2,
   list: List,
   files: FolderUp,

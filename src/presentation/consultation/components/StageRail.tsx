@@ -2,10 +2,13 @@
 
 import { Check } from "lucide-react";
 import type { ConsultationDraft } from "@/domain/consultations/entities/Consultation";
-import { CONSULTATION_STAGES, type ConsultationStageKey } from "../consultation.constants";
+import type { AttentionTypeDef } from "@/lib/clinical/attentionTypes";
+import type { ConsultationStageKey, ConsultationStageMeta } from "../consultation.constants";
 import { stageProgress } from "../consultation.utils";
 
 type Props = {
+  stages: ConsultationStageMeta[];
+  type: AttentionTypeDef | null;
   current: ConsultationStageKey;
   currentIndex: number;
   draft: ConsultationDraft;
@@ -20,6 +23,8 @@ type Props = {
  * profesional decide el orden, la barra solo le muestra donde va.
  */
 export default function StageRail({
+  stages,
+  type,
   current,
   currentIndex,
   draft,
@@ -27,7 +32,7 @@ export default function StageRail({
   disabled,
   onSelect,
 }: Props) {
-  const total = CONSULTATION_STAGES.length;
+  const total = stages.length;
   const lineProgress = total > 1 ? (currentIndex / (total - 1)) * 100 : 0;
 
   return (
@@ -41,11 +46,11 @@ export default function StageRail({
       </div>
 
       <ol className="relative grid grid-cols-3 gap-y-4 md:flex md:items-start md:justify-between md:gap-2">
-        {CONSULTATION_STAGES.map((stage, index) => {
+        {stages.map((stage, index) => {
           const progress =
             stage.key === "records"
               ? { isCovered: recordsCount > 0 }
-              : stageProgress(stage.key, draft);
+              : stageProgress(stage.key, draft, type);
 
           const isCurrent = stage.key === current;
           const isPast = index < currentIndex;

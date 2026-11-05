@@ -9,20 +9,66 @@ import AgendaHeader from "./components/AgendaHeader";
 import CancelAppointmentModal from "./components/CancelAppointmentModal";
 import DailyCashPanel from "./components/DailyCashPanel";
 import InfoBanner from "./components/InfoBanner";
+import { Skel, SkeletonStats } from "@/presentation/ui/zs";
+
+/** Esqueleto de la agenda: la cabecera con sus cifras y el calendario con dias y citas. */
+const SKEL_EVENTS: Array<[number, number, number]> = [
+  [0, 18, 16], [0, 44, 14], [1, 26, 18], [2, 12, 14], [2, 52, 16], [3, 34, 20], [4, 8, 14], [4, 40, 14], [4, 62, 12],
+];
+function AgendaSkeleton() {
+  return (
+    <div className="zs-skel-wrap flex flex-col gap-6" role="status" aria-busy="true">
+      <span className="sr-only">Cargando agenda</span>
+      <div className="rounded-2xl border border-slate-100 bg-white px-6 py-5 shadow-sm">
+        <div className="mb-5 flex items-center gap-3">
+          <Skel className="h-11 w-11 rounded-full" />
+          <div className="flex flex-col gap-2">
+            <Skel className="h-4 w-56" />
+            <Skel className="h-3 w-36" />
+          </div>
+        </div>
+        <SkeletonStats />
+      </div>
+      <div className="rounded-2xl border border-slate-100 bg-white px-6 pb-6 pt-5 shadow-sm">
+        <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
+          <Skel className="h-6 w-32" />
+          <div className="flex gap-2">
+            <Skel className="h-10 w-44 rounded-full" />
+            <Skel className="h-10 w-16 rounded-full" />
+            <Skel className="h-10 w-48 rounded-full" />
+          </div>
+        </div>
+        <Skel className="mb-5 h-14 w-full rounded-2xl" />
+        <div className="grid grid-cols-[48px_repeat(7,minmax(0,1fr))] gap-2">
+          <span />
+          {Array.from({ length: 7 }, (_, d) => (
+            <div key={d} className="flex flex-col items-center gap-1.5 pb-2">
+              <Skel className="h-2.5 w-6" />
+              <Skel className="h-4 w-4 rounded-full" />
+            </div>
+          ))}
+          <div className="flex flex-col gap-[52px] pt-1">
+            {Array.from({ length: 6 }, (_, h) => (
+              <Skel key={h} className="h-2.5 w-9" />
+            ))}
+          </div>
+          {Array.from({ length: 7 }, (_, d) => (
+            <div key={d} className="relative h-[380px] rounded-lg bg-slate-50/60">
+              {SKEL_EVENTS.filter(([day]) => day === d).map(([, top, h], i) => (
+                <Skel key={i} className="absolute inset-x-1 rounded-md" style={{ top: `${top}%`, height: `${h}%`, animationDelay: `${(d + i) * 60}ms` }} />
+              ))}
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export default function Agenda() {
   const { state, actions, derived } = useAgendaViewModel();
 
-  if (state.roleLoading) {
-    return (
-      <div className="flex min-h-[420px] items-center justify-center rounded-2xl border border-slate-100 bg-white shadow-sm">
-        <div
-          className="h-12 w-12 animate-spin rounded-full border-4 border-[#50c9d5]/20 border-t-[#50c9d5]"
-          aria-label="Cargando agenda"
-        />
-      </div>
-    );
-  }
+  if (state.roleLoading) return <AgendaSkeleton />;
 
   return (
     <div className="flex flex-col gap-6">

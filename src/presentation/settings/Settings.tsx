@@ -45,7 +45,7 @@ export default function Settings() {
       .finally(() => setLoading(false));
   }, [getMyProfileUseCase]);
 
-  if (loading) return <Loading />;
+  if (loading) return <Loading shape="cards" />;
   if (role === "ADMIN") return <AdminSettings />;
   return <StaffSettings role={role} />;
 }

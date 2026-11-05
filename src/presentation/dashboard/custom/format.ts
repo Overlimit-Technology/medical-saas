@@ -3,6 +3,41 @@ import type { MetricResult, Unit } from "@/lib/dashboard/catalog";
 const nf = (max = 1) => new Intl.NumberFormat("es-CL", { maximumFractionDigits: max });
 
 /** Cifra completa para tarjetas y tablas ($1.234.567, 87,5 %, 12,5 h). */
+/**
+ * Curva suave que pasa por todos los puntos sin pasarse de los valores (cubica monotona,
+ * Fritsch-Carlson): no inventa picos ni valles entre dos tramos.
+ */
+export function smoothPath(pts: Array<[number, number]>): string {
+  const n = pts.length;
+  if (n < 2) return n ? `M${pts[0][0]},${pts[0][1]}` : "";
+  const dx = pts.slice(1).map((p, i) => p[0] - pts[i][0]);
+  const slope = pts.slice(1).map((p, i) => (p[1] - pts[i][1]) / (dx[i] || 1));
+  const m = pts.map((_, i) => (i === 0 ? slope[0] : i === n - 1 ? slope[n - 2] : slope[i - 1] * slope[i] <= 0 ? 0 : (slope[i - 1] + slope[i]) / 2));
+  for (let i = 0; i < n - 1; i++) {
+    if (slope[i] === 0) {
+      m[i] = 0;
+      m[i + 1] = 0;
+      continue;
+    }
+    const a = m[i] / slope[i];
+    const b = m[i + 1] / slope[i];
+    const h = a * a + b * b;
+    if (h > 9) {
+      const t = 3 / Math.sqrt(h);
+      m[i] = t * a * slope[i];
+      m[i + 1] = t * b * slope[i];
+    }
+  }
+  let d = `M${pts[0][0]},${pts[0][1]}`;
+  for (let i = 0; i < n - 1; i++) {
+    const [x0, y0] = pts[i];
+    const [x1, y1] = pts[i + 1];
+    const c = dx[i] / 3;
+    d += ` C${x0 + c},${y0 + m[i] * c} ${x1 - c},${y1 - m[i + 1] * c} ${x1},${y1}`;
+  }
+  return d;
+}
+
 export function formatValue(value: number, unit: Unit): string {
   switch (unit) {
     case "money":

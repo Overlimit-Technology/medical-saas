@@ -20,6 +20,7 @@ const appointmentUpdateSchema = z.object({
   paymentAmount: z.coerce.number().positive().optional(),
   paymentNotes: z.string().max(250).optional().nullable(),
   notes: z.string().optional().nullable(),
+  attentionTypeKey: z.string().max(80).optional().nullable(),
 });
 
 const appointmentCancelSchema = z.object({
@@ -116,7 +117,8 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
         parsed.data.paymentTreatmentId !== undefined ||
         parsed.data.paymentAmount !== undefined ||
         parsed.data.paymentNotes !== undefined ||
-        parsed.data.notes !== undefined;
+        parsed.data.notes !== undefined ||
+        parsed.data.attentionTypeKey !== undefined;
 
       if (hasNonStatusChanges || !parsed.data.status) {
         return NextResponse.json(
@@ -136,6 +138,7 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
       endAt: endAt ?? undefined,
       status: parsed.data.status,
       notes: parsed.data.notes,
+      attentionTypeKey: parsed.data.attentionTypeKey,
     };
 
     const hasAppointmentChanges =
@@ -145,7 +148,8 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
       data.startAt !== undefined ||
       data.endAt !== undefined ||
       data.status !== undefined ||
-      data.notes !== undefined;
+      data.notes !== undefined ||
+      data.attentionTypeKey !== undefined;
 
     const hasPaymentChanges =
       parsed.data.paymentStatus !== undefined ||

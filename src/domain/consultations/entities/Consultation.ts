@@ -12,6 +12,8 @@
  *   ClinicalRecord -> las fichas por plantilla, que conservan su flujo propio.
  */
 
+import type { AttentionTypeDef, SpecialtyKey } from "@/lib/clinical/attentionTypes";
+
 /** Secciones narrativas de la consulta. Se guardan como Observation STRING. */
 export type ConsultationSectionKey =
   | "chiefComplaint"
@@ -44,7 +46,38 @@ export type ConsultationVitalKey =
 export type ConsultationDraft = {
   sections: Partial<Record<ConsultationSectionKey, string>>;
   vitals: Partial<Record<ConsultationVitalKey, string>>;
+  /** Campos del tipo de atencion y de la nota (SOAP, DAP, BIRP o libre), por id de campo. */
+  blocks?: Record<string, string>;
 };
+
+/** Antecedentes generales del paciente: se arrastran a todas las fichas y se editan en cualquiera. */
+export type PatientBackgroundData = {
+  allergies: string;
+  diseases: string;
+  medications: string;
+  surgeries: string;
+  updatedAt: string | null;
+};
+
+export type ConsultationAttention = {
+  specialty: SpecialtyKey;
+  /** Tarjetas del profesional en su orden, con las ocultas marcadas. */
+  types: Array<AttentionTypeDef & { hidden: boolean; position: number; editable: boolean }>;
+  /** Tipo con que se abrio la consulta (si ya se inicio). */
+  selected: AttentionTypeDef | null;
+  /** Tarjeta sugerida: la que preselecciono recepcion o la mas probable. */
+  suggestedKey: string | null;
+  preselectedKey: string | null;
+};
+
+/** Ultimo valor de un campo en atenciones anteriores, para mostrar "antes" al lado. */
+export type PreviousFieldValue = { value: string; at: string };
+
+export type ConsultationConsent = {
+  id: string;
+  signerName: string;
+  grantedAt: string;
+} | null;
 
 export type ConsultationVisit = {
   id: string;
@@ -98,6 +131,7 @@ export type ConsultationAppointment = {
     treatment: { id: string; name: string; price: number };
   } | null;
 };
+
 
 /** Una medicion previa, para mostrar la variacion respecto de hoy. */
 export type ConsultationVitalReading = {
@@ -175,6 +209,16 @@ export type ConsultationBootstrap = {
   draft: ConsultationDraft;
   history: ConsultationHistory;
   catalog: ConsultationCatalog;
+  attention: ConsultationAttention;
+  background: PatientBackgroundData;
+  previousFields: Record<string, PreviousFieldValue>;
+  consent: ConsultationConsent;
+};
+
+export type ConsultationStartInput = {
+  attentionTypeKey: string;
+  /** Consentimiento informado de la atencion, cuando el paciente aun no tiene uno vigente. */
+  consent?: { signerName: string } | null;
 };
 
 /** Control unico: "vuelve en X". */
@@ -217,6 +261,7 @@ export type ConsultationClosureInput = {
 };
 
 export type ConsultationClosureResult = {
+  patientId?: string;
   appointmentStatus: ConsultationAppointment["status"];
   closedAt: string;
   followUpAppointmentId: string | null;

@@ -8,7 +8,7 @@ import { GRID, METRIC_BY_ID, clampSpan, type MetricDef, spanFits, spanLabel, typ
 import { PERIOD_LABEL, previousLabel, type PeriodKey } from "@/lib/dashboard/period";
 import { colsForWidth } from "@/lib/dashboard/pack";
 import { EmptyState } from "@/presentation/ui/zs";
-import { DonutChart, HBarChart, ListChart, SeriesChart, TableChart } from "./charts";
+import { DonutChart, HBarChart, ListChart, SeriesChart, StackChart, TableChart } from "./charts";
 import Figure from "./Figure";
 import { IconBadge, iconOf } from "./icons";
 import { FilesWidget, ShortcutWidget } from "./tools";
@@ -44,20 +44,80 @@ export function WidgetBody({
       <ShortcutWidget widget={widget} span={span} interactive={interactive} />
     );
   }
-  if (data === undefined) {
-    return (
-      <div className="flex h-full flex-col justify-end gap-3" aria-busy="true">
-        <span className="h-7 w-2/5 animate-pulse rounded-lg bg-slate-100" />
-        <span className="h-3 w-3/5 animate-pulse rounded-lg bg-slate-100" />
-      </div>
-    );
-  }
+  if (data === undefined) return <ChartSkeleton chart={widget.chart} />;
   if ("error" in data) return <p className="text-[13px] text-[#b91c1c]">{data.error}</p>;
 
   const higherIsBetter = def.higherIsBetter !== false;
   const chart = <ChartFor widget={widget} span={span} data={data} period={period} unit={def.unit} higherIsBetter={higherIsBetter} />;
   // Las cifras (KPI, tendencia, anillo) no se desmontan: cuentan del valor anterior al nuevo.
-  return widget.chart === "kpi" || widget.chart === "spark" || widget.chart === "ring" ? chart : <Redraw data={data}>{chart}</Redraw>;
+  // Lineas, areas y columnas tampoco: sus valores se transforman (useMorph en charts.tsx).
+  const morphs = widget.chart === "line" || widget.chart === "area" || widget.chart === "bar";
+  return widget.chart === "kpi" || widget.chart === "spark" || widget.chart === "ring" || morphs ? chart : <Redraw data={data}>{chart}</Redraw>;
+}
+
+/** Silueta del grafico mientras llegan los datos: el mismo tipo de grafico, en gris y con brillo. */
+const SKEL_BARS = [0.45, 0.7, 0.55, 0.85, 0.6, 0.95, 0.75, 0.5];
+function ChartSkeleton({ chart }: { chart: WidgetConfig["chart"] }) {
+  const bone = "zs-skel rounded-lg";
+  let body: React.ReactNode;
+  switch (chart) {
+    case "bar":
+      body = (
+        <div className="flex h-full items-end gap-2 pt-4">
+          {SKEL_BARS.map((h, i) => (
+            <span key={i} className={cx(bone, "flex-1 rounded-t-md rounded-b-none")} style={{ height: `${h * 100}%`, animationDelay: `${i * 60}ms` }} />
+          ))}
+        </div>
+      );
+      break;
+    case "line":
+    case "area":
+      body = (
+        <div className="relative h-full overflow-hidden rounded-lg">
+          <span className={cx(bone, "absolute inset-0 rounded-lg opacity-60")} style={{ clipPath: "polygon(0 70%, 12% 58%, 26% 64%, 40% 42%, 55% 50%, 70% 28%, 85% 36%, 100% 18%, 100% 100%, 0 100%)" }} />
+        </div>
+      );
+      break;
+    case "donut":
+    case "ring":
+      body = (
+        <div className="flex h-full items-center gap-5">
+          <span className={cx(bone, "aspect-square h-full max-h-[150px] rounded-full")} style={{ WebkitMask: "radial-gradient(circle, transparent 54%, #000 55%)", mask: "radial-gradient(circle, transparent 54%, #000 55%)" }} />
+          {chart === "donut" ? (
+            <span className="flex flex-1 flex-col gap-2.5">
+              {[0.9, 0.7, 0.8, 0.55].map((w, i) => (
+                <span key={i} className={cx(bone, "h-3")} style={{ width: `${w * 100}%`, animationDelay: `${i * 80}ms` }} />
+              ))}
+            </span>
+          ) : null}
+        </div>
+      );
+      break;
+    case "hbar":
+    case "stack":
+    case "table":
+    case "list":
+      body = (
+        <div className="flex h-full flex-col gap-3 pt-1">
+          {[0.95, 0.75, 0.85, 0.6, 0.7].map((w, i) => (
+            <span key={i} className={cx(bone, "h-3.5")} style={{ width: `${w * 100}%`, animationDelay: `${i * 80}ms` }} />
+          ))}
+        </div>
+      );
+      break;
+    default:
+      body = (
+        <div className="flex h-full flex-col justify-end gap-3">
+          <span className={cx(bone, "h-8 w-2/5")} />
+          <span className={cx(bone, "h-3 w-3/5")} style={{ animationDelay: "120ms" }} />
+        </div>
+      );
+  }
+  return (
+    <div className="zs-skel-wrap h-full" aria-busy="true" aria-label="Cargando">
+      {body}
+    </div>
+  );
 }
 
 /** Firma corta de los datos: si cambia (otro periodo, otra metrica), el grafico se vuelve a dibujar. */
@@ -114,12 +174,21 @@ function ChartFor({ widget, span, data, period, unit, higherIsBetter }: { widget
     case "area":
     case "bar":
       return (
-        <SeriesChart type={widget.chart} unit={def.unit} points={data.shape === "trend" ? data.series : data.shape === "breakdown" ? data.items : []} />
+        <SeriesChart
+          // Si cambia la cantidad de tramos (semana -> año) no hay como transformar punto a punto: se vuelve a dibujar.
+          key={data.shape === "trend" ? data.series.length : data.shape === "breakdown" ? data.items.length : 0}
+          type={widget.chart}
+          unit={def.unit}
+          points={data.shape === "trend" ? data.series : data.shape === "breakdown" ? data.items : []}
+          previous={data.shape === "trend" ? data.previousSeries : undefined}
+        />
       );
     case "hbar":
       return data.shape === "breakdown" ? <HBarChart items={data.items} unit={def.unit} /> : null;
     case "donut":
       return data.shape === "breakdown" ? <DonutChart items={data.items} total={data.total} unit={def.unit} /> : null;
+    case "stack":
+      return data.shape === "breakdown" ? <StackChart items={data.items} total={data.total} unit={def.unit} /> : null;
     case "table":
       return <TableChart rows={toRows(data)} unit={def.unit} header={data.shape === "trend" ? "Tramo" : "Categoría"} />;
     default:

@@ -206,6 +206,7 @@ export function createEmptyAppointmentForm(date = new Date()): AppointmentFormSt
     start: formatTimeValue(startAt),
     end: formatTimeValue(endAt),
     notes: "",
+    attentionTypeKey: "",
   };
 }
 

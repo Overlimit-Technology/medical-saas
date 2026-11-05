@@ -14,7 +14,7 @@ import type { ChartType, MetricResult, SeriesPoint, Span, Unit } from "@/lib/das
 import type { CSSProperties } from "react";
 import { CountUp } from "@/presentation/ui/motion";
 import { Delta, GoalBar } from "./charts";
-import { formatCompact, formatValue } from "./format";
+import { formatCompact, formatValue, smoothPath } from "./format";
 
 const ACCENT = "#1d9aa6";
 const cx = (...parts: Array<string | false | null | undefined>) => parts.filter(Boolean).join(" ");
@@ -54,7 +54,7 @@ function Spark({ points, className, label }: { points: SeriesPoint[]; className?
   const min = Math.min(...values);
   const max = Math.max(...values);
   const coords = values.map((v, i) => [(i / (values.length - 1)) * 100, 37 - ((v - min) / (max - min || 1)) * 34]);
-  const line = coords.map(([x, y], i) => `${i ? "L" : "M"}${x.toFixed(2)},${y.toFixed(2)}`).join(" ");
+  const line = smoothPath(coords as Array<[number, number]>);
   const [lx, ly] = coords[coords.length - 1];
   return (
     <svg className={className} viewBox="0 0 100 40" preserveAspectRatio="none" role="img" aria-label={label}>
@@ -109,6 +109,9 @@ function Ring({ value, unit, diameter }: { value: number; unit: Unit; diameter: 
         transform="rotate(-90 50 50)"
         className="zs-ring transition-[stroke-dasharray] duration-700"
       />
+      <g className="zs-knob" style={{ transform: `rotate(${share * 360}deg)`, transformOrigin: "50% 50%", transformBox: "view-box" } as CSSProperties}>
+        <circle cx={50} cy={50 - r} r={11 * 0.62} fill="#fff" stroke={ACCENT} strokeWidth={11 * 0.28} className="drop-shadow-[0_2px_4px_rgba(13,27,42,.25)]" />
+      </g>
       <text x="50" y="50" dominantBaseline="central" textAnchor="middle" className="fill-slate-900 font-display font-bold" style={{ fontSize: 21 }}>
         <CountUp svg value={value} format={(n) => formatValue(n, unit).replace(" %", "%")} />
       </text>

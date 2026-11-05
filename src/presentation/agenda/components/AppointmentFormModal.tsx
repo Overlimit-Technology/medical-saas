@@ -1,5 +1,6 @@
 "use client";
 
+import AttentionTypeSelect from "./AttentionTypeSelect";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { END_HOUR, NOTE_MAX_LENGTH, SLOT_MINUTES, START_HOUR } from "../agenda.constants";
 import { normalizeId } from "@/lib/normalize";
@@ -670,6 +671,12 @@ export default function AppointmentFormModal({
               {form.notes.length}/{NOTE_MAX_LENGTH}
             </span>
           </div>
+
+          <AttentionTypeSelect
+            doctorId={form.doctorId}
+            value={form.attentionTypeKey}
+            onChange={(key) => onFieldChange("attentionTypeKey", key)}
+          />
 
           {!editingId && (
             <div className="rounded-2xl border border-[#50c9d5]/20 bg-[#50c9d5]/[0.04] p-4">

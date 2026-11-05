@@ -4,7 +4,7 @@
  * metricas que comparten fuente reutilizan el resultado. Todo filtra por la sede de la sesion.
  */
 import { prisma } from "@/lib/prisma";
-import { chileDateString, chileLocalToDate, formatChileTime, weekdayOf } from "@/lib/chileTime";
+import { addDaysToDateString, chileDateString, chileLocalToDate, formatChileTime, weekdayOf } from "@/lib/chileTime";
 import { METRIC_BY_ID, isTool, type BreakdownItem, type ListRow, type MetricResult, type SeriesPoint } from "@/lib/dashboard/catalog";
 import { bucketIndex, type PeriodRange } from "@/lib/dashboard/period";
 import { VacationsService } from "@/server/vacations/VacationsService";
@@ -68,6 +68,18 @@ function bucketSeries<T>(range: PeriodRange, items: T[], date: (x: T) => Date, v
     if (i >= 0) values[i] += value(item);
   }
   return range.buckets.map((b, i) => ({ label: b.label, value: round1(values[i]) }));
+}
+
+/**
+ * Los tramos del periodo anterior, corridos los mismos dias que separan ambos periodos: el tramo i
+ * de la comparacion queda bajo el tramo i del actual (en años y semestres puede correrse un dia).
+ */
+function previousRange(range: PeriodRange): PeriodRange {
+  const days = Math.round((Date.parse(range.start) - Date.parse(range.prevStart)) / 86_400_000);
+  return {
+    ...range,
+    buckets: range.buckets.map((b) => ({ label: b.label, start: addDaysToDateString(b.start, -days), end: addDaysToDateString(b.end, -days) })),
+  };
 }
 
 /** Porcentaje por tramo: num/den de los items de cada tramo. */
@@ -309,7 +321,13 @@ export class DashboardMetrics {
   private async countTrend<T>(src: (w: Which) => Promise<T[]>, date: (x: T) => Date, keep: (x: T) => boolean = () => true, value: (x: T) => number = () => 1): Promise<MetricResult> {
     const [cur, prev] = await Promise.all([src.call(this, "cur"), src.call(this, "prev")]);
     const sum = (rows: T[]) => round1(rows.filter(keep).reduce((acc, x) => acc + value(x), 0));
-    return { shape: "trend", value: sum(cur), previous: sum(prev), series: bucketSeries(this.range, cur.filter(keep), date, value) };
+    return {
+      shape: "trend",
+      value: sum(cur),
+      previous: sum(prev),
+      series: bucketSeries(this.range, cur.filter(keep), date, value),
+      previousSeries: bucketSeries(previousRange(this.range), prev.filter(keep), date, value),
+    };
   }
 
   private async rateTrend<T>(src: (w: Which) => Promise<T[]>, date: (x: T) => Date, isNum: (x: T) => boolean, isDen: (x: T) => boolean): Promise<MetricResult> {
@@ -319,7 +337,13 @@ export class DashboardMetrics {
       return den.length ? pct(den.filter(isNum).length, den.length) : 0;
     };
     const prevDen = prev.filter(isDen).length;
-    return { shape: "trend", value: rate(cur), previous: prevDen ? rate(prev) : null, series: rateSeries(this.range, cur, date, isNum, isDen) };
+    return {
+      shape: "trend",
+      value: rate(cur),
+      previous: prevDen ? rate(prev) : null,
+      series: rateSeries(this.range, cur, date, isNum, isDen),
+      previousSeries: prevDen ? rateSeries(previousRange(this.range), prev, date, isNum, isDen) : undefined,
+    };
   }
 
   /** Promedio por tramo (ticket promedio, atraso de llegada). */

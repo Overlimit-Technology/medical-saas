@@ -545,7 +545,7 @@ export default function CustomDashboard() {
 
       {loadError ? <Notice tone="err">{loadError} Te mostramos el panel por defecto.</Notice> : null}
       {fetchError ? <Notice tone="err">{fetchError}</Notice> : null}
-      {!layout ? <Loading label="Cargando tu panel…" /> : null}
+      {!layout ? <Loading label="Cargando tu panel…" shape="cards" /> : null}
 
       {layout && !layout.widgets.length && !editing ? (
         <Card>

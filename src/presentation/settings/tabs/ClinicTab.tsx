@@ -8,6 +8,7 @@ import {
   UpdateClinicInfoUseCase,
 } from "@/domain/clinic-settings/usecases/ClinicSettingsUseCases";
 import type { ClinicInfo } from "@/domain/clinic-settings/entities/ClinicInfo";
+import { Loading } from "@/presentation/ui/zs";
 
 type TeamCategory = { id: string; name: string };
 
@@ -111,8 +112,8 @@ export default function ClinicTab() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center rounded-2xl border border-slate-200 bg-white p-12">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-[#50c9d5]/20 border-t-[#50c9d5]" />
+      <div className="rounded-2xl border border-slate-200 bg-white p-6">
+        <Loading shape="form" />
       </div>
     );
   }

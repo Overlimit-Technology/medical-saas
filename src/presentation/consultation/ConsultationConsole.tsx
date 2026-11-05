@@ -3,7 +3,6 @@
 import { useCallback, useState } from "react";
 import Link from "next/link";
 import { AlertCircle, ArrowLeft, ArrowRight, Loader2, X } from "lucide-react";
-import { CONSULTATION_STAGES } from "./consultation.constants";
 import { useConsultationViewModel } from "./ConsultationViewModel";
 import ClosedSummary from "./components/ClosedSummary";
 import ConsultationHeader from "./components/ConsultationHeader";
@@ -12,6 +11,8 @@ import StageAssessment from "./components/StageAssessment";
 import StageClosure from "./components/StageClosure";
 import StageDiagnosis from "./components/StageDiagnosis";
 import StageIntake from "./components/StageIntake";
+import StageModule from "./components/StageModule";
+import StageNote from "./components/StageNote";
 import StageRail from "./components/StageRail";
 import StageRecords from "./components/StageRecords";
 import StageVitals from "./components/StageVitals";
@@ -92,7 +93,8 @@ export default function ConsultationConsole({ appointmentId }: Props) {
           bootstrap={bootstrap}
           canWrite={state.canWrite}
           starting={state.starting}
-          onStart={() => void actions.startConsultation()}
+          isAdmin={state.role === "ADMIN"}
+          onStart={(key, signer) => void actions.startConsultation(key, signer)}
         />
       </div>
     );
@@ -100,7 +102,8 @@ export default function ConsultationConsole({ appointmentId }: Props) {
 
   const readOnly = !state.canWrite;
   const isFirstStage = state.stageIndex === 0;
-  const isLastStage = state.stageIndex === CONSULTATION_STAGES.length - 1;
+  const isLastStage = state.stageIndex === state.stages.length - 1;
+  const currentStage = state.stages[state.stageIndex];
   const recordsCount =
     observedRecords ??
     bootstrap.history.records.filter((record) => record.belongsToThisAppointment).length;
@@ -117,6 +120,8 @@ export default function ConsultationConsole({ appointmentId }: Props) {
 
       <div className="mb-6 rounded-2xl border border-slate-100 bg-white px-5 py-5 shadow-sm">
         <StageRail
+          stages={state.stages}
+          type={state.attention}
           current={state.stage}
           currentIndex={state.stageIndex}
           draft={state.draft}
@@ -154,7 +159,31 @@ export default function ConsultationConsole({ appointmentId }: Props) {
               bootstrap={bootstrap}
               draft={state.draft}
               readOnly={readOnly}
+              background={state.background}
+              backgroundState={state.backgroundState}
               onSectionChange={actions.setSection}
+              onBackgroundChange={actions.setBackgroundField}
+            />
+          )}
+
+          {state.stage === "module" && state.attention && currentStage && (
+            <StageModule
+              stage={currentStage}
+              type={state.attention}
+              bootstrap={bootstrap}
+              draft={state.draft}
+              readOnly={readOnly}
+              onBlockChange={actions.setBlock}
+            />
+          )}
+
+          {state.stage === "note" && state.attention && currentStage && (
+            <StageNote
+              stage={currentStage}
+              type={state.attention}
+              draft={state.draft}
+              readOnly={readOnly}
+              onBlockChange={actions.setBlock}
             />
           )}
 
@@ -223,7 +252,7 @@ export default function ConsultationConsole({ appointmentId }: Props) {
             </button>
 
             <span className="text-xs tabular-nums text-slate-400">
-              Etapa {state.stageIndex + 1} de {CONSULTATION_STAGES.length}
+              Etapa {state.stageIndex + 1} de {state.stages.length}
             </span>
 
             <button

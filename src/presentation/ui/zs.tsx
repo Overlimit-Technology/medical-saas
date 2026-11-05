@@ -6,9 +6,9 @@
  */
 import Link from "next/link";
 import type { LucideIcon } from "lucide-react";
-import type { ReactNode } from "react";
+import type { CSSProperties, ReactNode } from "react";
 import ZensyaLogo from "@/presentation/portal/ZensyaLogo";
-import { CountText, SegPill } from "./motion";
+import { CountText, SegPill, SplitText } from "./motion";
 
 const cx = (...parts: Array<string | false | null | undefined>) => parts.filter(Boolean).join(" ");
 
@@ -34,7 +34,7 @@ export const zs = {
     md: "h-12 px-[22px] text-[15px]",
     sm: "h-[38px] px-4 text-sm",
     primary:
-      "border-[#50c9d5] bg-[#50c9d5] text-[#080b04] hover:-translate-y-0.5 hover:shadow-[0_14px_32px_rgba(80,201,213,.32)]",
+      "zs-magnetic border-[#50c9d5] bg-[#50c9d5] text-[#080b04] hover:-translate-y-0.5 hover:shadow-[0_14px_32px_rgba(80,201,213,.32)]",
     quiet: "border-white/80 bg-white/70 text-slate-900 shadow-[0_2px_8px_-4px_rgba(13,27,42,.18)] backdrop-blur-md hover:-translate-y-0.5 hover:border-[#50c9d5] hover:bg-white",
     ghost: "border-[#50c9d5] bg-white/40 text-[#17656c] hover:bg-[#50c9d5] hover:text-[#080b04]",
     /** Accion destacada oscura, en azul marino de Zensya. */
@@ -76,8 +76,8 @@ export function PageHead({
         <div className="flex min-w-0 flex-col gap-3">
           {tag ? <Tag>{tag}</Tag> : null}
           <h1 className="font-display text-[40px] font-bold leading-[1.12] tracking-[-1.5px] text-slate-900 max-sm:text-[30px] max-sm:tracking-[-1px]">
-            {title}
-            {accent ? <> <span className="text-[#50c9d5]">{accent}</span></> : null}
+            {typeof title === "string" ? <SplitText text={title} /> : title}
+            {accent ? <> <span className="text-[#50c9d5]">{typeof accent === "string" ? <SplitText text={accent} delay={0.12} /> : accent}</span></> : null}
           </h1>
           {lead ? (
             <p className="max-w-[640px] font-display text-[17px] font-medium leading-relaxed text-slate-600 max-sm:text-[15.5px]">
@@ -280,11 +280,106 @@ export function EmptyState({ title, children, action }: { title: ReactNode; chil
   );
 }
 
-export function Loading({ label = "Cargando…" }: { label?: string }) {
+// ---------------------------------------------------------------------------
+// Esqueletos: la silueta de lo que viene mientras carga (nunca un circulo girando).
+// El brillo es .zs-skel (globals.css) y solo aparecen si la carga pasa de 180 ms (.zs-skel-wrap).
+// ---------------------------------------------------------------------------
+
+/** Un hueso del esqueleto: bloque gris con brillo. */
+export function Skel({ className, style }: { className?: string; style?: CSSProperties }) {
+  // Si piden su propio redondeo (por ejemplo un avatar redondo), no se pisa con el de por defecto.
+  return <span aria-hidden="true" className={cx("zs-skel block", !className?.includes("rounded") && "rounded-lg", className)} style={style} />;
+}
+
+const ROW_WIDTHS = [0.92, 0.78, 0.86, 0.64, 0.72, 0.58];
+
+/** Filas: avatar o icono, dos lineas de texto y un dato a la derecha. */
+export function SkeletonRows({ rows = 5 }: { rows?: number }) {
   return (
-    <div className="flex items-center justify-center gap-3 p-12 text-sm text-slate-500" role="status">
-      <span className="h-6 w-6 animate-spin rounded-full border-[3px] border-[#50c9d5]/20 border-t-[#50c9d5]" />
-      {label}
+    <div className="flex flex-col gap-4">
+      {Array.from({ length: rows }, (_, i) => (
+        <div key={i} className="flex items-center gap-3" style={{ animationDelay: `${i * 70}ms` }}>
+          <Skel className="h-10 w-10 shrink-0 rounded-full" />
+          <div className="flex min-w-0 flex-1 flex-col gap-2">
+            <Skel className="h-3.5" style={{ width: `${ROW_WIDTHS[i % ROW_WIDTHS.length] * 60}%` }} />
+            <Skel className="h-3" style={{ width: `${ROW_WIDTHS[(i + 2) % ROW_WIDTHS.length] * 40}%` }} />
+          </div>
+          <Skel className="h-7 w-20 shrink-0 rounded-full" />
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/** Cifras arriba (tarjetas con icono y numero). */
+export function SkeletonStats({ count = 4 }: { count?: number }) {
+  return (
+    <div className="grid grid-cols-4 gap-4 max-lg:grid-cols-2 max-sm:grid-cols-1">
+      {Array.from({ length: count }, (_, i) => (
+        <div key={i} className={cx(zs.card, "flex flex-col gap-4 !p-5")}>
+          <div className="flex items-center gap-3">
+            <Skel className="h-10 w-10 rounded-2xl" />
+            <Skel className="h-3 w-24" />
+          </div>
+          <Skel className="h-8 w-20" />
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/** Formulario: etiquetas y campos. */
+export function SkeletonForm({ fields = 4 }: { fields?: number }) {
+  return (
+    <div className="flex flex-col gap-5">
+      {Array.from({ length: fields }, (_, i) => (
+        <div key={i} className="flex flex-col gap-2">
+          <Skel className="h-3 w-28" />
+          <Skel className="h-12 w-full rounded-xl" />
+        </div>
+      ))}
+      <Skel className="h-11 w-40 rounded-full" />
+    </div>
+  );
+}
+
+export type LoadingShape = "list" | "form" | "cards" | "page";
+
+/**
+ * Mientras carga una seccion: su esqueleto (filas, formulario, tarjetas o una pagina completa).
+ * El texto queda para lectores de pantalla.
+ */
+export function Loading({ label = "Cargando…", shape = "list" }: { label?: string; shape?: LoadingShape }) {
+  return (
+    <div className="zs-skel-wrap flex flex-col gap-6" role="status" aria-busy="true">
+      <span className="sr-only">{label}</span>
+      {shape === "page" ? (
+        <>
+          <div className="flex flex-col gap-3">
+            <Skel className="h-6 w-28 rounded-full" />
+            <Skel className="h-10 w-80 max-w-full" />
+            <Skel className="h-4 w-[28rem] max-w-full" />
+          </div>
+          <SkeletonStats />
+          <div className={zs.card}>
+            <SkeletonRows />
+          </div>
+        </>
+      ) : shape === "cards" ? (
+        <div className="grid grid-cols-3 gap-4 max-lg:grid-cols-2 max-sm:grid-cols-1">
+          {Array.from({ length: 6 }, (_, i) => (
+            <div key={i} className={cx(zs.card, "flex flex-col gap-3")}>
+              <Skel className="h-10 w-10 rounded-2xl" />
+              <Skel className="h-4 w-3/4" />
+              <Skel className="h-3 w-1/2" />
+            </div>
+          ))}
+        </div>
+      ) : shape === "form" ? (
+        <SkeletonForm />
+      ) : (
+        <SkeletonRows />
+      )}
     </div>
   );
 }

@@ -4,6 +4,7 @@ import type {
 } from "@/domain/consultations/entities/Consultation";
 import { CONSULTATION_VITALS } from "@/domain/consultations/entities/ConsultationCodes";
 import { CONSULTATION_STAGES, type ConsultationStageKey } from "./consultation.constants";
+import { NOTE_FORMATS, type AttentionTypeDef } from "@/lib/clinical/attentionTypes";
 
 const dateFormatter = new Intl.DateTimeFormat("es-CL", { dateStyle: "medium" });
 const dateTimeFormatter = new Intl.DateTimeFormat("es-CL", {
@@ -124,7 +125,18 @@ export function hasText(value: string | undefined) {
 }
 
 /** Cuantas secciones de la etapa tienen contenido, y si ya esta cubierta. */
-export function stageProgress(stageKey: ConsultationStageKey, draft: ConsultationDraft) {
+export function stageProgress(stageKey: ConsultationStageKey, draft: ConsultationDraft, type?: AttentionTypeDef | null) {
+  if (stageKey === "module" || stageKey === "note") {
+    const ids =
+      stageKey === "module"
+        ? (type?.blocks ?? []).flatMap((block) => block.fields.map((field) => field.id))
+        : type
+          ? NOTE_FORMATS[type.noteFormat].fields.map((field) => field.id)
+          : [];
+    const filled = ids.filter((id) => hasText(draft.blocks?.[id])).length;
+    return { filled, total: ids.length, isCovered: filled > 0 };
+  }
+
   const stage = CONSULTATION_STAGES.find((item) => item.key === stageKey);
   if (!stage) return { filled: 0, total: 0, isCovered: false };
 

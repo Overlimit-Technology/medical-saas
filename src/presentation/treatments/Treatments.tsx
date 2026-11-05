@@ -11,7 +11,7 @@ const FONASA_GROUPS = Array.from(new Set(FONASA_CODES.map((c) => c.group)));
 export default function Treatments() {
   const { state, actions } = useTreatmentsViewModel();
 
-  if (state.roleLoading) return <Loading label="Cargando servicios…" />;
+  if (state.roleLoading) return <Loading label="Cargando servicios…" shape="page" />;
 
   if (!state.hasAccess) {
     return (

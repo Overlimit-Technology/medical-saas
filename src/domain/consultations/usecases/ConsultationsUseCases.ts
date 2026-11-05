@@ -3,6 +3,7 @@ import type {
   ConsultationClosureInput,
   ConsultationClosureResult,
   ConsultationDraft,
+  ConsultationStartInput,
   ConsultationVisit,
 } from "../entities/Consultation";
 import type { ConsultationsRepository } from "../repositories/ConsultationsRepository";
@@ -18,8 +19,8 @@ export class GetConsultationUseCase {
 export class StartConsultationUseCase {
   constructor(private readonly repo: ConsultationsRepository) {}
 
-  async execute(appointmentId: string): Promise<ConsultationVisit> {
-    return this.repo.startConsultation(appointmentId);
+  async execute(appointmentId: string, input: ConsultationStartInput): Promise<ConsultationVisit> {
+    return this.repo.startConsultation(appointmentId, input);
   }
 }
 

@@ -29,6 +29,9 @@ import { hasPermission, type UserPermission } from "@/lib/permissions";
 import ZensyaLogo from "@/presentation/portal/ZensyaLogo";
 import { useSidebarViewModel } from "./SidebarViewModel";
 import SharedSessionSwitcher from "./SharedSessionSwitcher";
+import { AppearanceButton } from "./appearance";
+import { useLiquidBox } from "@/presentation/ui/motion";
+import { Skel } from "@/presentation/ui/zs";
 
 const cx = (...parts: Array<string | false | null | undefined>) => parts.filter(Boolean).join(" ");
 
@@ -143,7 +146,7 @@ export default function Sidebar({ mobileOpen = false, onMobileClose }: { mobileO
   /** Seccion recien clickeada: se marca al instante, aunque la pagina tarde en cargar. */
   const [pending, setPending] = useState<string | null>(null);
   const hoverTimer = useRef<number | undefined>(undefined);
-  const [pill, setPill] = useState<Box | null>(null);
+  const [measuredPill, setPill] = useState<Box | null>(null);
   const [tip, setTip] = useState<{ label: string; top: number; left: number } | null>(null);
   const navRef = useRef<HTMLElement>(null);
   const searchRef = useRef<HTMLInputElement>(null);
@@ -259,6 +262,9 @@ export default function Sidebar({ mobileOpen = false, onMobileClose }: { mobileO
     const r = el.getBoundingClientRect();
     setPill({ top: r.top - n.top + nav.scrollTop, left: r.left - n.left, width: r.width, height: r.height });
   }, [target, rail, needle, visibleItems.length, mobileOpen]);
+
+  // Al cambiar de seccion la pastilla se estira y se recoge; al pasar el puntero solo se desliza.
+  const pill = useLiquidBox(measuredPill, hovered === null);
 
   const showTip = (label: string) => (e: ReactMouseEvent<HTMLElement> | ReactFocusEvent<HTMLElement>) => {
     if (!rail) return;
@@ -464,6 +470,17 @@ export default function Sidebar({ mobileOpen = false, onMobileClose }: { mobileO
               </div>
             ))}
             {!groups.length && needle ? <p className="px-3 py-4 text-[13px] text-slate-500">Ninguna sección se llama así.</p> : null}
+            {/* Mientras se sabe el rol (y por lo tanto las secciones), su esqueleto en vez de un menu vacio. */}
+            {state.role === null ? (
+              <div className="zs-skel-wrap flex flex-col gap-1" aria-hidden="true">
+                {Array.from({ length: 8 }, (_, i) => (
+                  <div key={i} className={cx("flex h-11 items-center gap-3", rail ? "mx-auto" : "pl-1.5")}>
+                    <Skel className="h-8 w-8 shrink-0 rounded-full" />
+                    {!rail ? <Skel className="h-3" style={{ width: `${[60, 45, 70, 55, 65, 50, 40, 58][i]}%` }} /> : null}
+                  </div>
+                ))}
+              </div>
+            ) : null}
           </nav>
 
           {/* Perfil y sesion */}
@@ -476,6 +493,8 @@ export default function Sidebar({ mobileOpen = false, onMobileClose }: { mobileO
                 {!rail && <span className="zs-label-in min-w-0 flex-1 text-left">Cambiar sede</span>}
               </button>
             )}
+
+            <AppearanceButton rail={rail} className={footerBtn} onHover={showTip("Apariencia")} onLeave={hideTip} />
 
             <SharedSessionSwitcher collapsed={rail} />
 

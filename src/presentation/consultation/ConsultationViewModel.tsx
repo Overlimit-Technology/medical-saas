@@ -12,7 +12,11 @@ import type {
   ConsultationSectionKey,
   ConsultationVisit,
   ConsultationVitalKey,
+  PatientBackgroundData,
 } from "@/domain/consultations/entities/Consultation";
+import { ClinicalLockedClientError } from "@/data/consultations/ConsultationsRepository";
+import { CLINICAL_UNLOCKED_EVENT } from "@/presentation/clinical/ClinicalLock";
+import type { AttentionTypeDef } from "@/lib/clinical/attentionTypes";
 import {
   CloseConsultationUseCase,
   GetConsultationUseCase,
@@ -21,7 +25,7 @@ import {
 } from "@/domain/consultations/usecases/ConsultationsUseCases";
 import {
   AUTOSAVE_DELAY_MS,
-  CONSULTATION_STAGES,
+  stagesFor,
   type ConsultationStageKey,
 } from "./consultation.constants";
 import {
@@ -54,7 +58,7 @@ export type ClosureForm = {
   outcome: "COMPLETED" | "NO_SHOW";
 };
 
-const EMPTY_DRAFT: ConsultationDraft = { sections: {}, vitals: {} };
+const EMPTY_DRAFT: ConsultationDraft = { sections: {}, vitals: {}, blocks: {} };
 
 function buildInitialClosure(bootstrap: ConsultationBootstrap): ClosureForm {
   const start = new Date(bootstrap.appointment.startAt);
@@ -89,6 +93,11 @@ export function useConsultationViewModel(appointmentId: string) {
   const [draft, setDraft] = useState<ConsultationDraft>(EMPTY_DRAFT);
   const [stage, setStage] = useState<ConsultationStageKey>("intake");
   const [role, setRole] = useState<string | null>(null);
+  const [attention, setAttention] = useState<AttentionTypeDef | null>(null);
+  const [background, setBackground] = useState<PatientBackgroundData | null>(null);
+  const [backgroundState, setBackgroundState] = useState<SaveState>("idle");
+  const [backgroundRevision, setBackgroundRevision] = useState(0);
+  const [reloadKey, setReloadKey] = useState(0);
 
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -107,10 +116,13 @@ export function useConsultationViewModel(appointmentId: string) {
   const [revision, setRevision] = useState(0);
   const draftRef = useRef<ConsultationDraft>(EMPTY_DRAFT);
   draftRef.current = draft;
+  const backgroundRef = useRef<PatientBackgroundData | null>(null);
+  backgroundRef.current = background;
 
   const useCases = useMemo(() => {
     const repo = new ConsultationsRepositoryHttp();
     return {
+      repo,
       get: new GetConsultationUseCase(repo),
       start: new StartConsultationUseCase(repo),
       save: new SaveConsultationDraftUseCase(repo),
@@ -144,10 +156,14 @@ export function useConsultationViewModel(appointmentId: string) {
         if (cancelled) return;
 
         setBootstrap(data);
-        setDraft(data.draft);
+        setDraft({ ...data.draft, blocks: data.draft.blocks ?? {} });
         setVisit(data.visit);
+        setAttention(data.attention.selected);
+        setBackground(data.background);
         setClosure(buildInitialClosure(data));
       } catch (error) {
+        // Con la ficha bloqueada no es un error: el candado la muestra y al desbloquear se recarga.
+        if (error instanceof ClinicalLockedClientError) return;
         if (!cancelled) {
           setLoadError(
             error instanceof Error ? error.message : "No se pudo cargar la consulta."
@@ -162,7 +178,7 @@ export function useConsultationViewModel(appointmentId: string) {
     return () => {
       cancelled = true;
     };
-  }, [appointmentId, useCases]);
+  }, [appointmentId, useCases, reloadKey]);
 
   // ---------------------------------------------------------- autoguardado
 
@@ -176,9 +192,51 @@ export function useConsultationViewModel(appointmentId: string) {
       setSaveState("saved");
     } catch (error) {
       setSaveState("error");
+      if (error instanceof ClinicalLockedClientError) return;
       setActionError(error instanceof Error ? error.message : "No se pudo guardar el avance.");
     }
   }, [appointmentId, canWrite, useCases, visit]);
+
+  const flushBackground = useCallback(async () => {
+    const data = backgroundRef.current;
+    if (!data || !canWrite) return;
+    setBackgroundState("saving");
+    try {
+      const { updatedAt } = await useCases.repo.saveBackground(appointmentId, {
+        allergies: data.allergies,
+        diseases: data.diseases,
+        medications: data.medications,
+        surgeries: data.surgeries,
+      });
+      setBackground((current) => (current ? { ...current, updatedAt } : current));
+      setBackgroundState("saved");
+    } catch (error) {
+      setBackgroundState("error");
+      if (!(error instanceof ClinicalLockedClientError)) {
+        setActionError(error instanceof Error ? error.message : "No se pudieron guardar los antecedentes.");
+      }
+    }
+  }, [appointmentId, canWrite, useCases]);
+
+  useEffect(() => {
+    if (backgroundRevision === 0 || !canWrite) return;
+    setBackgroundState("pending");
+    const timer = window.setTimeout(() => void flushBackground(), AUTOSAVE_DELAY_MS);
+    return () => window.clearTimeout(timer);
+  }, [backgroundRevision, canWrite, flushBackground]);
+
+  // Al desbloquear con el PIN: si la ficha no alcanzo a cargar, se carga; si quedo algo sin guardar, se guarda.
+  useEffect(() => {
+    const onUnlocked = () => {
+      if (!bootstrap) setReloadKey((k) => k + 1);
+      else {
+        if (saveState === "error" || saveState === "pending") void flushDraft();
+        if (backgroundState === "error") void flushBackground();
+      }
+    };
+    window.addEventListener(CLINICAL_UNLOCKED_EVENT, onUnlocked);
+    return () => window.removeEventListener(CLINICAL_UNLOCKED_EVENT, onUnlocked);
+  }, [bootstrap, saveState, backgroundState, flushDraft, flushBackground]);
 
   useEffect(() => {
     if (revision === 0 || !visit || !canWrite || isClosed) return;
@@ -203,19 +261,45 @@ export function useConsultationViewModel(appointmentId: string) {
 
   // ---------------------------------------------------------------- acciones
 
-  const startConsultation = useCallback(async () => {
+  const startConsultation = useCallback(async (attentionTypeKey: string, consentSigner: string | null) => {
     setStarting(true);
     setActionError(null);
 
     try {
-      const started = await useCases.start.execute(appointmentId);
+      const started = await useCases.start.execute(appointmentId, {
+        attentionTypeKey,
+        consent: consentSigner ? { signerName: consentSigner } : null,
+      });
       setVisit(started);
+      setAttention(bootstrap?.attention.types.find((type) => type.key === attentionTypeKey) ?? null);
+      setStage("intake");
     } catch (error) {
-      setActionError(error instanceof Error ? error.message : "No se pudo iniciar la consulta.");
+      if (!(error instanceof ClinicalLockedClientError)) {
+        setActionError(error instanceof Error ? error.message : "No se pudo iniciar la consulta.");
+      }
     } finally {
       setStarting(false);
     }
-  }, [appointmentId, useCases]);
+  }, [appointmentId, bootstrap, useCases]);
+
+  const setBlock = useCallback((fieldId: string, value: string) => {
+    setDraft((previous) => ({ ...previous, blocks: { ...(previous.blocks ?? {}), [fieldId]: value } }));
+    setRevision((current) => current + 1);
+  }, []);
+
+  /** Antecedentes generales: alergias y farmacos tambien quedan en la atencion de hoy. */
+  const setBackgroundField = useCallback(
+    (key: keyof Omit<PatientBackgroundData, "updatedAt">, value: string) => {
+      setBackground((current) => (current ? { ...current, [key]: value } : current));
+      setBackgroundRevision((current) => current + 1);
+      if (key === "allergies" || key === "medications") {
+        const section = key === "allergies" ? "allergies" : "currentMedication";
+        setDraft((previous) => ({ ...previous, sections: { ...previous.sections, [section]: value } }));
+        setRevision((current) => current + 1);
+      }
+    },
+    []
+  );
 
   const setSection = useCallback((key: ConsultationSectionKey, value: string) => {
     setDraft((previous) => ({
@@ -375,7 +459,8 @@ export function useConsultationViewModel(appointmentId: string) {
 
   // ------------------------------------------------------------- navegacion
 
-  const stageIndex = CONSULTATION_STAGES.findIndex((item) => item.key === stage);
+  const stages = useMemo(() => stagesFor(attention), [attention]);
+  const stageIndex = Math.max(0, stages.findIndex((item) => item.key === stage));
 
   const goToStage = useCallback((next: ConsultationStageKey) => {
     setStage(next);
@@ -383,14 +468,14 @@ export function useConsultationViewModel(appointmentId: string) {
   }, []);
 
   const goNext = useCallback(() => {
-    const next = CONSULTATION_STAGES[stageIndex + 1];
+    const next = stages[stageIndex + 1];
     if (next) goToStage(next.key);
-  }, [goToStage, stageIndex]);
+  }, [goToStage, stageIndex, stages]);
 
   const goPrevious = useCallback(() => {
-    const previous = CONSULTATION_STAGES[stageIndex - 1];
+    const previous = stages[stageIndex - 1];
     if (previous) goToStage(previous.key);
-  }, [goToStage, stageIndex]);
+  }, [goToStage, stageIndex, stages]);
 
   return {
     state: {
@@ -399,6 +484,10 @@ export function useConsultationViewModel(appointmentId: string) {
       draft,
       stage,
       stageIndex,
+      stages,
+      attention,
+      background,
+      backgroundState,
       role,
       canWrite,
       isStarted,
@@ -417,6 +506,8 @@ export function useConsultationViewModel(appointmentId: string) {
       startConsultation,
       setSection,
       setVital,
+      setBlock,
+      setBackgroundField,
       copyPreviousVitals,
       updateClosure,
       togglePlanTreatment,

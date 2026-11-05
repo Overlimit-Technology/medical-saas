@@ -23,6 +23,7 @@ const appointmentCreateSchema = z.object({
   status: z.string().optional(),
   paymentStatus: z.string().optional(),
   notes: z.string().optional().nullable(),
+  attentionTypeKey: z.string().max(80).optional().nullable(),
 });
 
 function parseDate(value: string | null) {
@@ -131,6 +132,7 @@ export async function POST(req: Request) {
         status: parsed.data.status,
         paymentStatus: parsed.data.paymentStatus,
         notes: parsed.data.notes,
+        attentionTypeKey: parsed.data.attentionTypeKey ?? null,
         createdBy: session.userId,
       });
     } catch (error) {

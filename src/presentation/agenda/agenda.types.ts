@@ -47,6 +47,8 @@ export type AppointmentFormState = {
   start: string;
   end: string;
   notes: string;
+  /** Tipo de atencion preseleccionado ("" = que lo elija el profesional). */
+  attentionTypeKey: string;
 };
 
 export type ContinuousPlanFormState = {

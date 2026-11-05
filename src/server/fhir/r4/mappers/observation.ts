@@ -1,3 +1,5 @@
+import { decryptField } from "@/server/security/fieldCrypto";
+
 export type FhirObservationStatus =
   | "registered"
   | "preliminary"
@@ -245,7 +247,8 @@ export function mapInternalObservationToFhir(input: InternalObservation): FhirOb
   }
 
   if (input.valueType === "STRING") {
-    resource.valueString = clean(input.valueString) ?? undefined;
+    // Los textos clinicos se guardan cifrados: el recurso FHIR sale en claro solo a quien ya tiene acceso.
+    resource.valueString = clean(input.valueString ? decryptField(input.valueString) : input.valueString) ?? undefined;
   } else if (input.valueType === "BOOLEAN") {
     resource.valueBoolean =
       typeof input.valueBoolean === "boolean" ? input.valueBoolean : undefined;

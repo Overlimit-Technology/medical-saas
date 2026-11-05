@@ -188,7 +188,7 @@ function ClinicalVisitPageContent() {
 
 export default function ClinicalVisits() {
   return (
-    <Suspense fallback={<Loading label="Cargando cita clínica…" />}>
+    <Suspense fallback={<Loading label="Cargando cita clínica…" shape="page" />}>
       <ClinicalVisitPageContent />
     </Suspense>
   );

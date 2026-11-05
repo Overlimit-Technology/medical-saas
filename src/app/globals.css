@@ -478,7 +478,7 @@ body::-webkit-scrollbar-thumb:hover,
 
 /* Pastilla activa de pestañas que se desliza entre opciones. */
 .zs-seg-pill {
-  transition: left 520ms var(--zs-ease), width 520ms var(--zs-ease);
+  transition: left 260ms var(--zs-ease), width 260ms var(--zs-ease);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -728,3 +728,178 @@ body::-webkit-scrollbar-thumb:hover,
   -webkit-backdrop-filter: none;
   backdrop-filter: none;
 }
+
+/* ------------------------------------------------------------------ */
+/* Grises de la app como variables (tailwind.config: slate).           */
+/* ------------------------------------------------------------------ */
+:root {
+  --slate-50: 244 247 249;
+  --slate-100: 232 237 241;
+  --slate-200: 220 227 232;
+  --slate-300: 195 206 214;
+  --slate-400: 140 154 168;
+  --slate-500: 91 101 119;
+  --slate-600: 74 92 109;
+  --slate-700: 52 70 90;
+  --slate-800: 31 49 66;
+  --slate-900: 13 27 42;
+  --slate-950: 7 15 24;
+  --chart-grid: rgba(15, 23, 42, 0.08);
+  --chart-base: rgba(15, 23, 42, 0.22);
+}
+
+/* ------------------------------------------------------------------ */
+/* Tema "Liquido" (claro): liquid glass blanco sobre fondo blanco.     */
+/* El vidrio se distingue por su canto: brillo especular arriba y a la */
+/* izquierda, linea fina exterior, resplandor interior y sombra suave, */
+/* con un leve reflejo turquesa en el borde (luz de la marca).         */
+/* El texto sigue en los grises oscuros del portal (AA sobre blanco).  */
+/* ------------------------------------------------------------------ */
+.zs-liquid {
+  --zs-canvas: #ffffff;
+  --glass-bg: rgba(255, 255, 255, 0.62);
+  --glass-bg-hover: rgba(255, 255, 255, 0.8);
+  --glass-bg-strong: rgba(255, 255, 255, 0.82);
+  --glass-bg-inner: rgba(255, 255, 255, 0.55);
+  --glass-border: rgba(255, 255, 255, 0.95);
+  --glass-border-inner: rgba(255, 255, 255, 0.9);
+  --glass-blur: 22px;
+  --glass-blur-strong: 30px;
+  /* Linea exterior que separa el vidrio del blanco de fondo. */
+  --glass-rim: 0 0 0 1px rgba(13, 27, 42, 0.07);
+  /* Brillo especular (arriba e izquierda), sombra interior abajo y resplandor dentro del vidrio. */
+  --glass-highlight: inset 0 1.5px 0 rgba(255, 255, 255, 1), inset 1px 0 0 rgba(255, 255, 255, 0.7), inset 0 -1px 0 rgba(13, 27, 42, 0.05), inset 0 0 24px rgba(255, 255, 255, 0.55);
+  --glass-sheen:
+    radial-gradient(120% 70% at 0% 0%, rgba(255, 255, 255, 0.95) 0%, rgba(255, 255, 255, 0) 55%),
+    radial-gradient(90% 60% at 100% 100%, rgba(80, 201, 213, 0.1) 0%, rgba(80, 201, 213, 0) 60%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.35), rgba(255, 255, 255, 0.05));
+  --glass-shadow: var(--glass-highlight), var(--glass-rim), 0 2px 6px -2px rgba(13, 27, 42, 0.06), 0 16px 40px -20px rgba(13, 27, 42, 0.22);
+  --glass-shadow-hover: var(--glass-highlight), var(--glass-rim), 0 4px 10px -4px rgba(13, 27, 42, 0.08), 0 24px 54px -22px rgba(13, 27, 42, 0.3);
+  --glass-shadow-float: var(--glass-highlight), var(--glass-rim), 0 32px 80px -28px rgba(13, 27, 42, 0.38);
+}
+
+/* Fondo blanco con apenas un brillo turquesa muy suave en las esquinas, para que el vidrio refleje algo. */
+.zs-scene {
+  position: fixed;
+  inset: 0;
+  z-index: -10;
+  pointer-events: none;
+  background:
+    radial-gradient(40% 34% at 100% 0%, rgba(132, 217, 225, 0.12), transparent 70%),
+    radial-gradient(36% 30% at 0% 100%, rgba(80, 201, 213, 0.08), transparent 70%),
+    #ffffff;
+}
+
+/* Las tarjetas internas (vidrio dentro de vidrio) quedan blancas lechosas con su canto. */
+.zs-liquid .zs-glass-inner {
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 1), 0 0 0 1px rgba(13, 27, 42, 0.05);
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .zs-liquid {
+    --glass-bg: rgba(255, 255, 255, 0.96);
+    --glass-bg-strong: rgba(255, 255, 255, 0.98);
+  }
+}
+
+/* Linea que se dibuja de izquierda a derecha (path con pathLength=1). */
+.zs-draw {
+  stroke-dasharray: 1;
+  --zs-chart: calc(var(--zs-chart-base, 360ms) + var(--i, 0) * 90ms);
+  animation: zs-draw 1400ms var(--zs-ease) backwards;
+  animation-delay: var(--zs-chart);
+}
+@keyframes zs-draw {
+  from { stroke-dashoffset: 1; }
+}
+/* Relleno de un area: aparece cuando la linea ya va por la mitad. */
+.zs-area-in {
+  --zs-chart: calc(var(--zs-chart-base, 360ms) + var(--i, 0) * 90ms);
+  animation: zs-area-in 900ms ease-out backwards;
+  animation-delay: calc(var(--zs-chart) + 500ms);
+}
+@keyframes zs-area-in {
+  from { opacity: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .zs-draw, .zs-area-in { animation: none !important; }
+}
+
+/* Perilla del anillo: gira desde arriba hasta el valor, al mismo ritmo que el trazo (zs-ring). */
+.zs-knob {
+  --zs-chart: calc(var(--zs-chart-base, 360ms) + var(--i, 0) * 90ms);
+  animation: zs-knob 1600ms var(--zs-ease) backwards;
+  animation-delay: var(--zs-chart);
+}
+@keyframes zs-knob {
+  from { transform: rotate(0deg); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .zs-knob { animation: none !important; }
+}
+
+/* Esqueletos: la silueta del grafico que viene, con un brillo que la recorre (si la carga demora). */
+.zs-skel {
+  background-color: rgb(var(--slate-100));
+  background-image: linear-gradient(100deg, transparent 20%, rgba(255, 255, 255, 0.75) 50%, transparent 80%);
+  background-size: 220% 100%;
+  animation: zs-skel 1500ms ease-in-out infinite;
+}
+@keyframes zs-skel {
+  from { background-position: 160% 0; }
+  to { background-position: -60% 0; }
+}
+/* Aparece solo si la carga pasa de un instante: asi no parpadea cuando los datos llegan rapido. */
+.zs-skel-wrap {
+  animation: zs-skel-wrap 220ms ease-out 180ms backwards;
+}
+@keyframes zs-skel-wrap {
+  from { opacity: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .zs-skel { animation: none; background-image: none; }
+  .zs-skel-wrap { animation: none; }
+}
+
+/* ---- Efectos estilo Solvik (src/presentation/ui/fx.ts) ---- */
+/* Titulo partido en letras: cada palabra recorta a sus letras mientras suben. */
+.zs-word { display: inline-block; overflow: hidden; vertical-align: top; padding-bottom: 0.08em; margin-bottom: -0.08em; }
+.zs-ch { display: inline-block; will-change: transform; }
+/* Cifra que cambia: destello del acento y vuelta al color normal. */
+.zs-flash { animation: zs-flash 0.9s var(--zs-ease); }
+@keyframes zs-flash { 0% { color: #e8a020; } 100% { color: inherit; } }
+/* Texto que sube sobre un elemento ("+$120.000"). */
+.zs-float-up {
+  position: fixed; z-index: 90; pointer-events: none; white-space: nowrap;
+  font-family: var(--zs-font-display), sans-serif; font-weight: 700; font-size: 14px;
+  color: #0d3b40; background: #c9f2f5; border: 1px solid rgba(80, 201, 213, 0.6);
+  border-radius: 999px; padding: 4px 10px; box-shadow: 0 8px 20px -10px rgba(13, 27, 42, 0.35);
+}
+@media (prefers-reduced-motion: reduce) { .zs-flash { animation: none; } }
+
+/* ---- Tablero del CRM: arrastre estilo Solvik (KanbanBoard.tsx) ---- */
+/* Columna o zona de cierre bajo la tarjeta: se tiñe con su color y marca el borde. */
+.zs-col::before, .zs-end::before {
+  content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none; opacity: 0;
+  background: color-mix(in srgb, var(--t, #16a34a) 13%, transparent);
+  box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--t, #16a34a) 70%, transparent);
+  transition: opacity 0.2s var(--zs-ease);
+}
+.zs-col.is-over::before, .zs-end.is-over::before, .zs-end.is-hit::before { opacity: 1; }
+.zs-end { border-color: rgb(var(--slate-300)); background: rgba(255, 255, 255, 0.55); }
+/* Hueco que deja la tarjeta tomada. */
+.zs-card.is-hole { background: rgb(var(--slate-100)); box-shadow: inset 0 0 0 1.5px rgb(var(--slate-300)); }
+.zs-card.is-hole > * { visibility: hidden; }
+.zs-card > * { transition: opacity 0.2s var(--zs-ease); }
+.zs-card.is-pressing > * { opacity: 0.82; }
+/* La tarjeta en vuelo: va sobre todo, con una sombra profunda que aparece al levantarla. */
+.zs-fly { position: fixed; top: 0; left: 0; z-index: 85; pointer-events: none; }
+.zs-fly > * { position: absolute; inset: 0; }
+.zs-fly::before {
+  content: ""; position: absolute; inset: 10px 8px -6px; border-radius: 14px; opacity: 0;
+  box-shadow: 0 34px 50px -18px rgba(30, 20, 10, 0.5), 0 10px 20px -10px rgba(30, 20, 10, 0.3);
+  transition: opacity 0.25s var(--zs-ease);
+}
+.zs-fly.is-lifted::before { opacity: 1; }
+.zs-fly.is-settling::before { opacity: 0; }
+html.zs-dragging, html.zs-dragging * { cursor: grabbing !important; user-select: none !important; }

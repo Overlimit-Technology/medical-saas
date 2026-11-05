@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { AttentionTypesService } from "@/server/clinical/AttentionTypesService";
 import { requireClinicSession, requireRole } from "@/server/auth/requireSession";
 import { prisma } from "@/lib/prisma";
 
@@ -96,6 +97,9 @@ export async function GET() {
           endAt: true,
           status: true,
           paymentStatus: true,
+          notes: true,
+          arrivedAt: true,
+          attentionTypeKey: true,
           patient: { select: { firstName: true, lastName: true } },
           box: { select: { name: true } },
         },
@@ -168,6 +172,9 @@ export async function GET() {
       ? `${doctorProfile.profile.firstName} ${doctorProfile.profile.lastName}`
       : "Doctor";
 
+    const { types: doctorTypes } = await AttentionTypesService.listFor({ clinicId, userId: doctorId });
+    const typeNames = new Map(doctorTypes.map((t) => [t.key, { name: t.name, color: t.color }]));
+
     return NextResponse.json({
       ok: true,
       data: {
@@ -199,15 +206,21 @@ export async function GET() {
           status: s.status,
           count: s._count.id,
         })),
-        todaySchedule: todayAppointmentsList.map((a) => ({
-          id: a.id,
-          startAt: a.startAt,
-          endAt: a.endAt,
-          status: a.status,
-          paymentStatus: a.paymentStatus,
-          patientName: `${a.patient.firstName} ${a.patient.lastName}`,
-          boxName: a.box.name,
-        })),
+        todaySchedule: todayAppointmentsList.map((a) => {
+          const type = a.attentionTypeKey ? typeNames.get(a.attentionTypeKey) : undefined;
+          return {
+            id: a.id,
+            startAt: a.startAt,
+            endAt: a.endAt,
+            status: a.status,
+            paymentStatus: a.paymentStatus,
+            patientName: `${a.patient.firstName} ${a.patient.lastName}`,
+            boxName: a.box.name,
+            reason: a.notes && a.notes !== "[demo]" ? a.notes.slice(0, 140) : null,
+            arrivedAt: a.arrivedAt,
+            attentionType: type ?? null,
+          };
+        }),
       },
     });
   } catch (err: unknown) {

@@ -7,6 +7,7 @@ import {
   deriveProfessionalPayoutAmounts,
 } from "@/lib/professional-payouts/calculations";
 import type { ProfessionalPayoutRow } from "@/domain/professional-payouts/entities/ProfessionalPayout";
+import { Loading } from "@/presentation/ui/zs";
 
 type MyPayoutData = {
   settings: { clinicPercentage: number; siiPercentage: number };
@@ -99,8 +100,8 @@ export default function MyLiquidacionesTab() {
       )}
 
       {loading && !data && (
-        <div className="flex items-center justify-center rounded-2xl border border-slate-200 bg-white p-12">
-          <div className="h-8 w-8 animate-spin rounded-full border-4 border-[#50c9d5]/20 border-t-[#50c9d5]" />
+        <div className="rounded-2xl border border-slate-200 bg-white p-6">
+          <Loading shape="list" />
         </div>
       )}
 

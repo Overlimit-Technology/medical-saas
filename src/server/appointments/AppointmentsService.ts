@@ -127,6 +127,7 @@ export type AppointmentInput = {
   status?: string;
   paymentStatus?: string;
   notes?: string | null;
+  attentionTypeKey?: string | null;
   createdBy?: string | null;
 };
 
@@ -223,6 +224,7 @@ export class AppointmentsService {
         status: toAppointmentStatus(input.status) ?? "SCHEDULED",
         paymentStatus: toPaymentStatus(input.paymentStatus) ?? "PENDING",
         notes: input.notes ?? null,
+        attentionTypeKey: input.attentionTypeKey ?? null,
         createdBy: input.createdBy ?? null,
       },
       include: appointmentInclude,
@@ -273,6 +275,7 @@ export class AppointmentsService {
         status: toAppointmentStatus(input.status),
         paymentStatus: toPaymentStatus(input.paymentStatus),
         notes: input.notes ?? undefined,
+        attentionTypeKey: input.attentionTypeKey === undefined ? undefined : input.attentionTypeKey || null,
       },
       include: appointmentInclude,
     });

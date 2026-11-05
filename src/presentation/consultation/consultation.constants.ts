@@ -3,6 +3,8 @@ import {
   ClipboardCheck,
   ClipboardList,
   FileText,
+  LayoutGrid,
+  NotebookPen,
   Stethoscope,
   UserRoundCheck,
   type LucideIcon,
@@ -11,6 +13,7 @@ import type {
   ConsultationSectionKey,
   ConsultationVitalKey,
 } from "@/domain/consultations/entities/Consultation";
+import { NOTE_FORMATS, type AttentionTypeDef } from "@/lib/clinical/attentionTypes";
 
 /** Paleta corporativa. Se centraliza aca para no repetir el hex por toda la UI. */
 export const BRAND = {
@@ -26,6 +29,8 @@ export type ConsultationStageKey =
   | "assessment"
   | "records"
   | "diagnosis"
+  | "module"
+  | "note"
   | "closure";
 
 export type ConsultationStageMeta = {
@@ -106,6 +111,39 @@ export const CONSULTATION_STAGES: ConsultationStageMeta[] = [
 ];
 
 export const CONSULTATION_STAGE_KEYS = CONSULTATION_STAGES.map((stage) => stage.key);
+
+const stageMeta = (key: ConsultationStageKey) => CONSULTATION_STAGES.find((stage) => stage.key === key)!;
+
+/**
+ * Etapas segun el tipo de atencion. Medicina usa las clasicas (y suma la de examenes si el tipo trae
+ * bloques); las demas especialidades van: recepcion, modulo de la especialidad, nota y cierre.
+ */
+export function stagesFor(type: AttentionTypeDef | null): ConsultationStageMeta[] {
+  const module: ConsultationStageMeta = {
+    key: "module",
+    label: type?.name ?? "Atencion",
+    caption: type?.description || "Los datos de este tipo de atencion.",
+    icon: LayoutGrid,
+    sections: [],
+    keySection: null,
+  };
+  const note: ConsultationStageMeta = {
+    key: "note",
+    label: type ? `Nota ${NOTE_FORMATS[type.noteFormat].label}` : "Nota",
+    caption: "La evolucion de la sesion en el formato de tu especialidad.",
+    icon: NotebookPen,
+    sections: [],
+    keySection: null,
+  };
+  if (!type || type.classicStages) {
+    if (!type?.blocks.length) return CONSULTATION_STAGES;
+    const list = [...CONSULTATION_STAGES];
+    list.splice(list.findIndex((stage) => stage.key === "assessment") + 1, 0, module);
+    return list;
+  }
+  const intake = { ...stageMeta("intake"), caption: "Motivo de consulta y antecedentes generales." };
+  return [intake, ...(type.blocks.length ? [module] : []), note, stageMeta("closure")];
+}
 
 /** Signos vitales en el orden en que se toman en box. */
 export const VITALS_LAYOUT: Array<{ title: string; keys: ConsultationVitalKey[] }> = [

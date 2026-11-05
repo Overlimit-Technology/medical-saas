@@ -8,8 +8,6 @@ type Props = {
   lead: Lead;
   columnColor: string;
   onClick: () => void;
-  onDragStart: () => void;
-  onDragEnd: () => void;
   onArchive: () => void;
   onDelete: () => void;
 };
@@ -40,7 +38,8 @@ const CHANNEL_ICONS: Record<string, string> = {
   email: "@", phone: "TEL", website: "WEB", referral: "REF", other: "...",
 };
 
-export default function KanbanCard({ lead, columnColor, onClick, onDragStart, onDragEnd, onArchive, onDelete }: Props) {
+/** Tarjeta del tablero. El arrastre lo maneja KanbanBoard (puntero + GSAP), no el arrastre nativo. */
+export default function KanbanCard({ lead, columnColor, onClick, onArchive, onDelete }: Props) {
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const budget = lead.estimatedBudget;
@@ -57,14 +56,11 @@ export default function KanbanCard({ lead, columnColor, onClick, onDragStart, on
 
   return (
     <div
-      draggable
-      onDragStart={(e) => { e.dataTransfer.effectAllowed = "move"; e.dataTransfer.setData("text/plain", lead.id); onDragStart(); }}
-      onDragEnd={onDragEnd}
       onClick={onClick}
-      className="group relative cursor-pointer overflow-hidden rounded-xl border border-slate-200/80 bg-white p-4 shadow-sm transition hover:shadow-md active:opacity-80"
+      className="group relative cursor-grab select-none overflow-hidden rounded-xl border border-slate-200/80 bg-white p-4 shadow-sm transition-[box-shadow,transform] duration-200 hover:-translate-y-0.5 hover:shadow-md active:cursor-grabbing"
     >
-      {/* Left color accent */}
-      <div className="absolute left-0 top-0 h-full w-1 rounded-l-xl" style={{ backgroundColor: columnColor }} />
+      {/* Franja de color de la etapa (al arrastrar toma el color de la columna destino). */}
+      <div data-accent className="absolute left-0 top-0 h-full w-1 rounded-l-xl transition-colors duration-300" style={{ backgroundColor: columnColor }} />
 
       <div className="pl-2">
         {/* Top: name + priority + menu */}

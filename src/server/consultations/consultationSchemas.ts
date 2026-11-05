@@ -11,6 +11,19 @@ import { z } from "zod";
 export const consultationDraftSchema = z.object({
   sections: z.record(z.string(), z.string()).default({}),
   vitals: z.record(z.string(), z.string()).default({}),
+  blocks: z.record(z.string().max(80), z.string().max(8000)).default({}),
+});
+
+export const consultationStartSchema = z.object({
+  attentionTypeKey: z.string().min(1).max(80),
+  consent: z.object({ signerName: z.string().trim().min(2).max(120) }).nullable().optional(),
+});
+
+export const patientBackgroundSchema = z.object({
+  allergies: z.string().max(4000).default(""),
+  diseases: z.string().max(4000).default(""),
+  medications: z.string().max(4000).default(""),
+  surgeries: z.string().max(4000).default(""),
 });
 
 const followUpNotes = z.string().trim().max(250).nullable().optional();

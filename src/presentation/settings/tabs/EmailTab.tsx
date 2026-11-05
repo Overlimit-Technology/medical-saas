@@ -27,7 +27,7 @@ import {
   type EmailTemplate,
 } from "@/domain/clinic-settings/entities/EmailTemplate";
 import WysiwygEditor from "@/presentation/common/WysiwygEditor";
-import { Card, Notice, StatusPill, btnClass, zs } from "@/presentation/ui/zs";
+import { Card, Notice, StatusPill, btnClass, zs, Loading } from "@/presentation/ui/zs";
 
 type TemplateMap = Partial<Record<EmailTemplateType, EmailTemplate>>;
 
@@ -235,8 +235,8 @@ export default function EmailTab() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center rounded-2xl border border-slate-200 bg-white p-12">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-[#50c9d5]/20 border-t-[#50c9d5]" />
+      <div className="rounded-2xl border border-slate-200 bg-white p-6">
+        <Loading shape="form" />
       </div>
     );
   }

@@ -52,6 +52,7 @@ export class AppointmentsRepositoryHttp implements AppointmentsRepository {
       startAt: string;
       endAt: string;
       notes: string | null;
+      attentionTypeKey?: string | null;
       patientFirstName?: string;
       patientLastName?: string;
       patientEmail?: string | null;

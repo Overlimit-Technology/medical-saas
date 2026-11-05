@@ -4,6 +4,9 @@ import { useState } from "react";
 import { Menu } from "lucide-react";
 import Sidebar from "@/presentation/common/Sidebar";
 import PresenceTracker from "@/presentation/common/PresenceTracker";
+import { SceneBackground, useAppearance } from "@/presentation/common/appearance";
+import { Toaster } from "@/presentation/ui/toast";
+import { MagneticButtons } from "@/presentation/ui/motion";
 import NotificationsSidebar from "@/presentation/common/NotificationsSidebar";
 import ZensyaLogo from "@/presentation/portal/ZensyaLogo";
 import { usePathname } from "next/navigation";
@@ -12,6 +15,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const [navOpen, setNavOpen] = useState(false);
   const isSuperAdminDashboard = pathname.startsWith("/dashboard/admin");
+  const [{ theme }] = useAppearance();
 
   if (isSuperAdminDashboard) {
     return (
@@ -23,7 +27,10 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <div className="zs-mesh flex h-screen overflow-hidden text-slate-900">
+    <div className={`${theme === "liquido" ? "bg-white" : "zs-mesh"} relative isolate flex h-screen overflow-hidden text-slate-900`}>
+      <SceneBackground />
+      <Toaster />
+      <MagneticButtons />
       <PresenceTracker />
       <Sidebar mobileOpen={navOpen} onMobileClose={() => setNavOpen(false)} />
       <div className="flex min-h-0 min-w-0 flex-1 flex-col">

@@ -225,7 +225,7 @@ export default function Seguimiento() {
     return map;
   }, [state.items]);
 
-  if (state.roleLoading) return <Loading label="Cargando seguimiento…" />;
+  if (state.roleLoading) return <Loading label="Cargando seguimiento…" shape="page" />;
 
   if (!state.hasAccess) {
     return (

@@ -128,6 +128,9 @@ model User {
   // - podrías tener usuarios creados por OAuth sin contraseña
   // - o flujos futuros como magic links
   passwordHash String?
+  // PIN clinico (4 a 6 digitos, hash) para abrir fichas en equipos compartidos. Ley 20.584.
+  clinicalPinHash  String?
+  clinicalPinSetAt DateTime?
 
   // Fuerza cambio de contraseÃ±a al primer inicio de sesiÃ³n
   mustChangePassword Boolean @default(false)
@@ -497,6 +500,8 @@ model Appointment {
   status        AppointmentStatus @default(SCHEDULED)
   paymentStatus PaymentStatus     @default(PENDING)
   notes         String?
+  // Tipo de atencion que dejo elegido recepcion (clave del catalogo o "custom:<id>").
+  attentionTypeKey String?
   createdBy     String?
 
   // Sala de espera (recepcion). El estado se deriva de estos campos:
@@ -725,6 +730,11 @@ model ClinicalVisit {
   patientId     String
   doctorId      String
   appointmentId String?
+  // Tipo de atencion elegido al iniciar y copia de su estructura en ese momento: si despues se
+  // edita el tipo, esta sesion conserva los bloques y campos con que se registro.
+  attentionTypeKey  String?
+  attentionSnapshot Json?
+  noteFormat        String?
   startedAt     DateTime @default(now())
   createdAt     DateTime @default(now())
 
@@ -1056,4 +1066,95 @@ model PatientPortalCode {
   clinic Clinic @relation(fields: [clinicId], references: [id], onDelete: Cascade)
 
   @@index([clinicId, runNormalized, createdAt])
+}
+
+// ---------------------------------------------------------------------------
+// Ficha por especialidad (ver docs/FICHA-ESPECIALIDADES.md)
+// ---------------------------------------------------------------------------
+
+// Tipo de atencion personalizado ("+"). Los tipos por defecto viven en el codigo
+// (src/lib/clinical/attentionTypes.ts); aqui solo los que crea cada profesional.
+model AttentionType {
+  id              String    @id @default(cuid())
+  clinicId        String
+  ownerUserId     String
+  profession      String
+  name            String
+  description     String?
+  kind            String    @default("other")
+  // [{ block, label?, config? }]
+  blocks          Json
+  // [{ id, label, type: text|number|checkbox|select|scale, options?, min?, max?, unit? }]
+  fields          Json
+  noteFormat      String    @default("free")
+  durationMinutes Int       @default(45)
+  color           String    @default("#50c9d5")
+  // Compartido por un admin con todo el equipo de esa profesion en la sede.
+  shared          Boolean   @default(false)
+  version         Int       @default(1)
+  archivedAt      DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@index([clinicId, profession])
+  @@index([ownerUserId])
+}
+
+// Orden y visibilidad de las tarjetas de cada profesional (de defecto o propias).
+model AttentionTypePref {
+  id       String  @id @default(cuid())
+  userId   String
+  typeKey  String
+  hidden   Boolean @default(false)
+  position Int     @default(0)
+
+  @@unique([userId, typeKey])
+}
+
+// Registro de cada acceso a la ficha clinica (Ley 20.584, art. 13): quien, que y cuando.
+// Solo se agrega: nunca se edita ni se borra.
+model ClinicalAccessLog {
+  id         String   @id @default(cuid())
+  clinicId   String
+  patientId  String
+  userId     String
+  // OPEN, VIEW, EDIT, CLOSE, EXPORT, PIN_OK, PIN_FAIL, LOCK
+  action     String
+  resource   String
+  resourceId String?
+  ip         String?
+  userAgent  String?
+  occurredAt DateTime @default(now())
+
+  @@index([clinicId, patientId, occurredAt])
+  @@index([userId, occurredAt])
+}
+
+// Consentimiento informado guardado en el sistema, por alcance.
+model PatientConsent {
+  id           String    @id @default(cuid())
+  clinicId     String
+  patientId    String
+  // ATTENTION, RECORDING (grabacion de sesion), PHOTOS (fotos clinicas), AI (procesamiento con IA)
+  scope        String
+  textSnapshot String
+  signerName   String
+  // Firma (data URL), cifrada.
+  signature    String?
+  recordedById String
+  grantedAt    DateTime  @default(now())
+  revokedAt    DateTime?
+
+  @@index([clinicId, patientId, scope])
+}
+
+// Anamnesis general del paciente (alergias, enfermedades, medicamentos, cirugias): se escribe una
+// vez y se trae sola a cada ficha. Va cifrada (JSON).
+model PatientBackground {
+  id          String   @id @default(cuid())
+  clinicId    String
+  patientId   String   @unique
+  data        String
+  updatedById String
+  updatedAt   DateTime @updatedAt
 }

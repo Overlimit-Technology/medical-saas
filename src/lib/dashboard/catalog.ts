@@ -13,7 +13,7 @@ import { PERIODS, type PeriodKey } from "@/lib/dashboard/period";
 // Graficos
 // ---------------------------------------------------------------------------
 
-export const CHARTS = ["kpi", "spark", "ring", "line", "area", "bar", "hbar", "donut", "table", "list", "files", "shortcut"] as const;
+export const CHARTS = ["kpi", "spark", "ring", "line", "area", "bar", "hbar", "donut", "stack", "table", "list", "files", "shortcut"] as const;
 export type ChartType = (typeof CHARTS)[number];
 
 export const CHART_LABEL: Record<ChartType, string> = {
@@ -25,6 +25,7 @@ export const CHART_LABEL: Record<ChartType, string> = {
   bar: "Columnas",
   hbar: "Barras",
   donut: "Dona",
+  stack: "Barra apilada",
   table: "Tabla",
   list: "Lista",
   files: "Archivos",
@@ -68,7 +69,7 @@ export function clampSpan(chart: ChartType, span: Span): Span {
   const h = Math.min(GRID.maxRows, Math.max(1, Math.round(span.h)));
   if (spanFits(chart, { w, h })) return { w, h };
   // 1x1 en un grafico: crece hacia donde tenga mas sentido.
-  return chart === "list" || chart === "table" || chart === "donut" || chart === "hbar" || chart === "files" ? { w: 2, h: 2 } : { w: 2, h: 1 };
+  return chart === "list" || chart === "table" || chart === "donut" || chart === "stack" || chart === "hbar" || chart === "files" ? { w: 2, h: 2 } : { w: 2, h: 1 };
 }
 
 // ---------------------------------------------------------------------------
@@ -211,7 +212,7 @@ export function chartsFor(def: MetricDef): ChartType[] {
     case "snapshot":
       return ["kpi"];
     case "breakdown":
-      return ["donut", "hbar", "bar", "table", "kpi"];
+      return ["donut", "stack", "hbar", "bar", "table", "kpi"];
     case "list":
       return ["list"];
     case "tool":
@@ -231,7 +232,7 @@ export type BreakdownItem = { label: string; value: number; color?: string };
 export type ListRow = { id: string; primary: string; secondary?: string; meta?: string; status?: { label: string; tone: "ok" | "warn" | "off" | "err" | "info" } };
 
 export type MetricResult =
-  | { shape: "trend"; value: number; previous: number | null; series: SeriesPoint[] }
+  | { shape: "trend"; value: number; previous: number | null; series: SeriesPoint[]; previousSeries?: SeriesPoint[] }
   | { shape: "snapshot"; value: number }
   | { shape: "breakdown"; total: number; items: BreakdownItem[] }
   | { shape: "list"; total: number; rows: ListRow[] };
@@ -402,6 +403,7 @@ export const DEFAULT_SPAN: Record<ChartType, Span> = {
   bar: { w: 2, h: 2 },
   hbar: { w: 2, h: 2 },
   donut: { w: 2, h: 2 },
+  stack: { w: 2, h: 2 },
   table: { w: 2, h: 2 },
   list: { w: 2, h: 2 },
   files: { w: 2, h: 2 },

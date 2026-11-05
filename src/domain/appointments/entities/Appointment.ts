@@ -10,6 +10,8 @@ export type Appointment = {
   status: "SCHEDULED" | "CONFIRMED" | "CANCELLED" | "COMPLETED" | "NO_SHOW";
   paymentStatus: "PENDING" | "PAID" | "WAIVED";
   notes?: string | null;
+  /** Tipo de atencion que dejo elegido recepcion al agendar. */
+  attentionTypeKey?: string | null;
   treatmentPlan?: {
     id: string;
     name: string;

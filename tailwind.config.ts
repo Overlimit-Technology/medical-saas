@@ -16,18 +16,20 @@ const config: Config = {
         background: "var(--background)",
         foreground: "var(--foreground)",
         // Grises azulados del portal en lugar del slate de Tailwind.
+        // Grises como variables (rgb sin alfa en globals.css): el tema "Liquido" los invierte para
+        // que el texto quede claro sobre el vidrio ahumado. Los valores claros son los del portal.
         slate: {
-          50: "#f4f7f9",
-          100: "#e8edf1",
-          200: "#dce3e8",
-          300: "#c3ced6",
-          400: "#8c9aa8",
-          500: "#5b6577", // 5,3:1 sobre vidrio (antes #61717f, 4,5:1)
-          600: "#4a5c6d",
-          700: "#34465a",
-          800: "#1f3142",
-          900: "#0d1b2a",
-          950: "#070f18",
+          50: "rgb(var(--slate-50) / <alpha-value>)",
+          100: "rgb(var(--slate-100) / <alpha-value>)",
+          200: "rgb(var(--slate-200) / <alpha-value>)",
+          300: "rgb(var(--slate-300) / <alpha-value>)",
+          400: "rgb(var(--slate-400) / <alpha-value>)",
+          500: "rgb(var(--slate-500) / <alpha-value>)",
+          600: "rgb(var(--slate-600) / <alpha-value>)",
+          700: "rgb(var(--slate-700) / <alpha-value>)",
+          800: "rgb(var(--slate-800) / <alpha-value>)",
+          900: "rgb(var(--slate-900) / <alpha-value>)",
+          950: "rgb(var(--slate-950) / <alpha-value>)",
         },
         zs: {
           accent: "#50c9d5",

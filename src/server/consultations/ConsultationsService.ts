@@ -3,6 +3,9 @@ import { prisma } from "@/lib/prisma";
 import { AuditService } from "@/server/audit/AuditService";
 import { AppointmentsService } from "@/server/appointments/AppointmentsService";
 import { TreatmentPlansService } from "@/server/treatment-plans/TreatmentPlansService";
+import { AttentionTypesService } from "@/server/clinical/AttentionTypesService";
+import { decryptField, encryptField } from "@/server/security/fieldCrypto";
+import { fieldIdsOf, suggestType, type AttentionTypeDef } from "@/lib/clinical/attentionTypes";
 import type {
   ConsultationBootstrap,
   ConsultationClosureInput,
@@ -10,7 +13,10 @@ import type {
   ConsultationDraft,
   ConsultationHistory,
   ConsultationSectionKey,
+  ConsultationStartInput,
   ConsultationVitalKey,
+  PatientBackgroundData,
+  PreviousFieldValue,
   ConsultationVitalReading,
   ConsultationVisit,
 } from "@/domain/consultations/entities/Consultation";
@@ -30,6 +36,22 @@ import {
 } from "@/domain/consultations/entities/ConsultationCodes";
 
 const SECTION_TEXT_MAX = 8000;
+
+/** Campos del tipo de atencion y de la nota. code = id del campo, valueString cifrado. */
+export const BLOCK_SYSTEM = "urn:zensya:block";
+
+/** Filas a revisar para el "antes" de cada campo de los tipos de atencion. */
+const FIELDS_LOOKBACK_ROWS = 400;
+
+const EMPTY_BACKGROUND: PatientBackgroundData = { allergies: "", diseases: "", medications: "", surgeries: "", updatedAt: null };
+
+/** Texto que queda guardado junto a cada consentimiento de atencion. */
+export const ATTENTION_CONSENT_TEXT =
+  "El paciente fue informado sobre su estado de salud, la atencion que se le realizara, sus objetivos, " +
+  "alternativas y riesgos, y acepta recibirla. Sus datos clinicos se guardan cifrados y solo los ve el " +
+  "equipo que lo atiende (Ley 20.584).";
+
+const readSnapshot = (value: unknown) => (value && typeof value === "object" ? (value as AttentionTypeDef) : null);
 
 /** Cuantas consultas previas se traen para la linea de tiempo lateral. */
 const TIMELINE_SIZE = 8;
@@ -134,7 +156,7 @@ export class ConsultationsService {
     const patientId = appointment.patientId;
     const visit = await this.findOpenVisit(scope.clinicId, appointment.id);
 
-    const [draft, history, treatments, boxes] = await Promise.all([
+    const [draft, history, treatments, boxes, attentionList, backgroundRow, consentRow, lastTyped] = await Promise.all([
       visit
         ? this.readDraft(visit.id)
         : Promise.resolve<ConsultationDraft>({ sections: {}, vitals: {} }),
@@ -150,16 +172,40 @@ export class ConsultationsService {
         orderBy: { name: "asc" },
         select: { id: true, name: true },
       }),
+      AttentionTypesService.listFor({ clinicId: scope.clinicId, userId: appointment.doctorId }),
+      prisma.patientBackground.findUnique({ where: { patientId } }),
+      prisma.patientConsent.findFirst({
+        where: { clinicId: scope.clinicId, patientId, scope: "ATTENTION", revokedAt: null },
+        orderBy: { grantedAt: "desc" },
+        select: { id: true, signerName: true, grantedAt: true },
+      }),
+      prisma.clinicalVisit.findFirst({
+        where: { clinicId: scope.clinicId, patientId, attentionTypeKey: { not: null }, ...(visit ? { id: { not: visit.id } } : {}) },
+        orderBy: { startedAt: "desc" },
+        select: { attentionTypeKey: true },
+      }),
     ]);
+    const previousFields = await this.previousFieldValues(scope.clinicId, patientId, visit?.id ?? null);
+
+    const background = this.readBackground(backgroundRow?.data, backgroundRow?.updatedAt ?? null, history);
+
+    // El motivo que se escribio al agendar llega precargado.
+    const bookedReason = appointment.notes?.trim();
+    if (!draft.sections.chiefComplaint && bookedReason && bookedReason !== "[demo]") {
+      draft.sections.chiefComplaint = bookedReason;
+    }
 
     // Alergias y farmacos se arrastran solo si hoy todavia no se escribio nada:
     // el profesional siempre puede sobrescribirlos.
-    if (!draft.sections.allergies && history.carriedAllergies) {
-      draft.sections.allergies = history.carriedAllergies;
+    if (!draft.sections.allergies && (background.allergies || history.carriedAllergies)) {
+      draft.sections.allergies = background.allergies || history.carriedAllergies || "";
     }
-    if (!draft.sections.currentMedication && history.carriedMedication) {
-      draft.sections.currentMedication = history.carriedMedication;
+    if (!draft.sections.currentMedication && (background.medications || history.carriedMedication)) {
+      draft.sections.currentMedication = background.medications || history.carriedMedication || "";
     }
+
+    const visibleTypes = attentionList.types.filter((type) => !type.hidden);
+    const selected = visit ? readSnapshot(visit.attentionSnapshot) : null;
 
     return {
       appointment: this.serializeAppointment(appointment),
@@ -197,15 +243,63 @@ export class ConsultationsService {
         })),
         boxes,
       },
+      attention: {
+        specialty: attentionList.specialty,
+        types: attentionList.types,
+        selected,
+        preselectedKey: appointment.attentionTypeKey ?? null,
+        suggestedKey: suggestType(visibleTypes, {
+          preselected: appointment.attentionTypeKey,
+          previousVisits: history.totalVisits - (visit ? 1 : 0),
+          lastTypeKey: lastTyped?.attentionTypeKey ?? null,
+        }),
+      },
+      background,
+      previousFields,
+      consent: consentRow
+        ? { id: consentRow.id, signerName: consentRow.signerName, grantedAt: consentRow.grantedAt.toISOString() }
+        : null,
     };
+  }
+
+  /** Guarda los antecedentes generales del paciente (cifrados). Se ven en todas sus fichas. */
+  static async saveBackground(
+    scope: ServiceScope & { appointmentId: string; authorId: string; data: Omit<PatientBackgroundData, "updatedAt"> }
+  ): Promise<{ patientId: string; updatedAt: string }> {
+    const appointment = await this.resolveAppointment(scope);
+    const clean = (value: string) => value.trim().slice(0, 4000);
+    const payload = encryptField(
+      JSON.stringify({
+        allergies: clean(scope.data.allergies),
+        diseases: clean(scope.data.diseases),
+        medications: clean(scope.data.medications),
+        surgeries: clean(scope.data.surgeries),
+      })
+    );
+    const row = await prisma.patientBackground.upsert({
+      where: { patientId: appointment.patientId },
+      update: { data: payload, updatedById: scope.authorId },
+      create: { clinicId: scope.clinicId, patientId: appointment.patientId, data: payload, updatedById: scope.authorId },
+    });
+    return { patientId: appointment.patientId, updatedAt: row.updatedAt.toISOString() };
+  }
+
+  /** Paciente de una cita, para el registro de accesos. */
+  static async patientIdOf(scope: ServiceScope & { appointmentId: string }) {
+    const row = await prisma.appointment.findFirst({
+      where: { id: scope.appointmentId, clinicId: scope.clinicId, doctorId: scope.doctorId ?? undefined },
+      select: { patientId: true },
+    });
+    if (!row) throw new Error("Cita no encontrada.");
+    return row.patientId;
   }
 
   // --------------------------------------------------------------- escritura
 
   /** Abre el encuentro, o devuelve el ya abierto si el profesional vuelve a entrar. */
   static async start(
-    scope: ServiceScope & { appointmentId: string; doctorId: string; authorId: string }
-  ): Promise<ConsultationVisit> {
+    scope: ServiceScope & { appointmentId: string; doctorId: string; authorId: string; input: ConsultationStartInput }
+  ): Promise<ConsultationVisit & { patientId: string }> {
     const appointment = await this.resolveAppointment(scope);
 
     if (appointment.status === "CANCELLED") {
@@ -214,7 +308,34 @@ export class ConsultationsService {
 
     const existing = await this.findOpenVisit(scope.clinicId, appointment.id);
     if (existing) {
-      return { id: existing.id, startedAt: existing.startedAt.toISOString(), isClosed: false };
+      return { id: existing.id, startedAt: existing.startedAt.toISOString(), isClosed: false, patientId: appointment.patientId };
+    }
+
+    const type = await AttentionTypesService.resolve({
+      clinicId: scope.clinicId,
+      userId: appointment.doctorId,
+      key: scope.input.attentionTypeKey,
+    });
+    if (!type) throw new Error("Elige un tipo de atencion valido.");
+
+    // Ley 20.584: la atencion queda respaldada por un consentimiento informado guardado en el sistema.
+    const consent = await prisma.patientConsent.findFirst({
+      where: { clinicId: scope.clinicId, patientId: appointment.patientId, scope: "ATTENTION", revokedAt: null },
+      select: { id: true },
+    });
+    if (!consent) {
+      const signerName = scope.input.consent?.signerName?.trim();
+      if (!signerName) throw new Error("Falta registrar el consentimiento informado del paciente.");
+      await prisma.patientConsent.create({
+        data: {
+          clinicId: scope.clinicId,
+          patientId: appointment.patientId,
+          scope: "ATTENTION",
+          textSnapshot: ATTENTION_CONSENT_TEXT,
+          signerName: signerName.slice(0, 120),
+          recordedById: scope.authorId,
+        },
+      });
     }
 
     const visit = await prisma.clinicalVisit.create({
@@ -223,6 +344,9 @@ export class ConsultationsService {
         patientId: appointment.patientId,
         doctorId: scope.doctorId,
         appointmentId: appointment.id,
+        attentionTypeKey: type.key,
+        attentionSnapshot: type as never,
+        noteFormat: type.noteFormat,
       },
       select: { id: true, startedAt: true },
     });
@@ -239,16 +363,16 @@ export class ConsultationsService {
     await AuditService.log(
       "consultation.start",
       scope.authorId,
-      `appointment=${appointment.id}; visit=${visit.id}; patient=${appointment.patientId}`
+      `appointment=${appointment.id}; visit=${visit.id}; patient=${appointment.patientId}; type=${type.key}`
     );
 
-    return { id: visit.id, startedAt: visit.startedAt.toISOString(), isClosed: false };
+    return { id: visit.id, startedAt: visit.startedAt.toISOString(), isClosed: false, patientId: appointment.patientId };
   }
 
   /** Guarda el borrador. Idempotente: reemplaza el valor de cada clave enviada. */
   static async saveDraft(
     scope: ServiceScope & { appointmentId: string; doctorId: string; draft: ConsultationDraft }
-  ): Promise<{ savedAt: string }> {
+  ): Promise<{ savedAt: string; patientId: string }> {
     const appointment = await this.resolveAppointment(scope);
     const visit = await this.findOpenVisit(scope.clinicId, appointment.id);
 
@@ -262,9 +386,10 @@ export class ConsultationsService {
       doctorId: visit.doctorId,
       visitId: visit.id,
       draft: scope.draft,
+      type: readSnapshot(visit.attentionSnapshot),
     });
 
-    return { savedAt: new Date().toISOString() };
+    return { savedAt: new Date().toISOString(), patientId: appointment.patientId };
   }
 
   /** Cierra la consulta y ejecuta lo acordado: control, plan y cobro. */
@@ -300,6 +425,7 @@ export class ConsultationsService {
       doctorId: visit.doctorId,
       visitId: visit.id,
       draft: input.draft,
+      type: readSnapshot(visit.attentionSnapshot),
     });
 
     // El control y el cobro van antes del cierre porque son los que pueden
@@ -372,7 +498,10 @@ export class ConsultationsService {
     const nextStatus = input.outcome === "NO_SHOW" ? "NO_SHOW" : "COMPLETED";
 
     if (nextStatus === "COMPLETED") {
-      if (!input.draft.sections?.diagnosis?.trim()) {
+      const snapshot = readSnapshot(visit.attentionSnapshot);
+      // Solo medicina (etapas clasicas, o consultas anteriores sin tipo) registra diagnostico.
+      const usesDiagnosis = snapshot ? Boolean(snapshot.classicStages) : true;
+      if (usesDiagnosis && !input.draft.sections?.diagnosis?.trim()) {
         warnings.push("La atencion quedo cerrada sin diagnostico registrado.");
       }
       if (chargeRequest?.status === "PENDING") {
@@ -428,6 +557,7 @@ export class ConsultationsService {
     );
 
     return {
+      patientId: appointment.patientId,
       appointmentStatus: nextStatus,
       closedAt: closedAt.toISOString(),
       followUpAppointmentId,
@@ -467,7 +597,7 @@ export class ConsultationsService {
     const visits = await prisma.clinicalVisit.findMany({
       where: { clinicId, appointmentId },
       orderBy: { startedAt: "desc" },
-      select: { id: true, doctorId: true, startedAt: true },
+      select: { id: true, doctorId: true, startedAt: true, attentionTypeKey: true, attentionSnapshot: true },
     });
 
     if (visits.length === 0) return null;
@@ -491,12 +621,16 @@ export class ConsultationsService {
       select: { code: true, codeSystem: true, valueString: true, valueQuantity: true },
     });
 
-    const draft: ConsultationDraft = { sections: {}, vitals: {} };
+    const draft: ConsultationDraft = { sections: {}, vitals: {}, blocks: {} };
 
     for (const row of rows) {
       if (row.codeSystem === CONSULTATION_SECTION_SYSTEM) {
         const key = sectionKeyFromCode(row.code);
-        if (key && row.valueString) draft.sections[key] = row.valueString;
+        if (key && row.valueString) draft.sections[key] = decryptField(row.valueString);
+        continue;
+      }
+      if (row.codeSystem === BLOCK_SYSTEM) {
+        if (row.valueString) draft.blocks![row.code] = decryptField(row.valueString);
         continue;
       }
 
@@ -519,6 +653,7 @@ export class ConsultationsService {
     doctorId: string;
     visitId: string;
     draft: ConsultationDraft;
+    type?: AttentionTypeDef | null;
   }) {
     const now = new Date();
     const touchedCodes: string[] = [];
@@ -545,7 +680,34 @@ export class ConsultationsService {
         categorySystem: OBSERVATION_CATEGORY_SYSTEM,
         categoryDisplay: "Exam",
         valueType: "STRING",
-        valueString: value,
+        valueString: encryptField(value),
+        effectiveAt: now,
+        issuedAt: now,
+      });
+    }
+
+    // Campos del tipo de atencion: solo se aceptan los ids que trae la estructura con que se abrio.
+    const allowed = params.type ? fieldIdsOf(params.type) : new Set<string>();
+    const touchedBlocks: string[] = [];
+    for (const [fieldId, rawValue] of Object.entries(params.draft.blocks ?? {})) {
+      if (!allowed.has(fieldId)) continue;
+      touchedBlocks.push(fieldId);
+      const value = normalizeSectionValue(rawValue ?? "");
+      if (!value) continue;
+      rows.push({
+        clinicId: params.clinicId,
+        patientId: params.patientId,
+        doctorId: params.doctorId,
+        clinicalVisitId: params.visitId,
+        status: "PRELIMINARY",
+        code: fieldId,
+        codeSystem: BLOCK_SYSTEM,
+        codeDisplay: fieldId,
+        categoryCode: "exam",
+        categorySystem: OBSERVATION_CATEGORY_SYSTEM,
+        categoryDisplay: "Exam",
+        valueType: "STRING",
+        valueString: encryptField(value),
         effectiveAt: now,
         issuedAt: now,
       });
@@ -579,18 +741,63 @@ export class ConsultationsService {
       });
     }
 
-    if (touchedCodes.length === 0) return;
+    if (touchedCodes.length === 0 && touchedBlocks.length === 0) return;
 
     await prisma.$transaction([
       prisma.observation.deleteMany({
         where: {
           clinicalVisitId: params.visitId,
           status: "PRELIMINARY",
-          code: { in: touchedCodes },
+          OR: [
+            { codeSystem: { not: BLOCK_SYSTEM }, code: { in: touchedCodes } },
+            { codeSystem: BLOCK_SYSTEM, code: { in: touchedBlocks } },
+          ],
         },
       }),
       ...(rows.length > 0 ? [prisma.observation.createMany({ data: rows })] : []),
     ]);
+  }
+
+  /** Ultimo valor registrado de cada campo en atenciones cerradas anteriores. */
+  private static async previousFieldValues(clinicId: string, patientId: string, currentVisitId: string | null) {
+    const rows = await prisma.observation.findMany({
+      where: {
+        clinicId,
+        patientId,
+        codeSystem: BLOCK_SYSTEM,
+        status: "FINAL",
+        ...(currentVisitId ? { clinicalVisitId: { not: currentVisitId } } : {}),
+      },
+      orderBy: { effectiveAt: "desc" },
+      take: FIELDS_LOOKBACK_ROWS,
+      select: { code: true, valueString: true, effectiveAt: true },
+    });
+    const out: Record<string, PreviousFieldValue> = {};
+    for (const row of rows) {
+      // La nota de la sesion no se muestra como "antes": cada sesion escribe la suya.
+      if (out[row.code] || !row.valueString || row.code.startsWith("note.")) continue;
+      out[row.code] = { value: decryptField(row.valueString), at: row.effectiveAt.toISOString() };
+    }
+    return out;
+  }
+
+  /** Antecedentes guardados; si aun no hay, parte con lo que arrastraban las consultas anteriores. */
+  private static readBackground(data: string | undefined, updatedAt: Date | null, history: ConsultationHistory): PatientBackgroundData {
+    if (!data) {
+      return { ...EMPTY_BACKGROUND, allergies: history.carriedAllergies ?? "", medications: history.carriedMedication ?? "" };
+    }
+    try {
+      const parsed = JSON.parse(decryptField(data)) as Partial<PatientBackgroundData>;
+      return {
+        allergies: parsed.allergies ?? "",
+        diseases: parsed.diseases ?? "",
+        medications: parsed.medications ?? "",
+        surgeries: parsed.surgeries ?? "",
+        updatedAt: updatedAt?.toISOString() ?? null,
+      };
+    } catch {
+      return { ...EMPTY_BACKGROUND };
+    }
   }
 
   private static serializeAppointment(appointment: ResolvedAppointment) {
@@ -777,13 +984,16 @@ export class ConsultationsService {
     for (const row of carriedRows) {
       const key = sectionKeyFromCode(row.code);
       if (!key || carried[key] || !row.valueString) continue;
-      carried[key] = row.valueString;
+      carried[key] = decryptField(row.valueString);
     }
 
     const sectionOf = (
       observations: Array<{ code: string; valueString: string | null }>,
       key: ConsultationSectionKey
-    ) => observations.find((item) => item.code === CONSULTATION_SECTIONS[key].code)?.valueString ?? null;
+    ) => {
+      const raw = observations.find((item) => item.code === CONSULTATION_SECTIONS[key].code)?.valueString;
+      return raw ? decryptField(raw) : null;
+    };
 
     return {
       timeline: previousVisits.map((visit) => ({

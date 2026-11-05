@@ -131,9 +131,10 @@ export default function Leads() {
       <div className="relative min-h-0 flex-1 px-3 pt-1">
         {state.viewMode === "kanban" ? (
           <KanbanBoard
-            columns={state.columns} leads={state.leads} dragState={state.dragState}
+            columns={state.columns} leads={state.leads}
             onLeadClick={(id) => actions.setSelectedLeadId(id)}
-            onStartDrag={actions.startDrag} onEndDrag={actions.endDrag} onDropOnColumn={actions.dropOnColumn}
+            onMove={actions.moveLead}
+            onShowTable={() => actions.setViewMode("table")}
             onArchive={actions.archiveLead} onDelete={actions.deleteLead}
           />
         ) : (

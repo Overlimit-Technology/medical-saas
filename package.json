@@ -20,7 +20,8 @@
     "test:billing:api": "node --test tests/billingApi.test.mjs",
     "test:dashboard": "tsx --test tests/dashboardCalc.test.ts",
     "test:dashboard:api": "node --test tests/dashboardApi.test.mjs",
-    "test:dashboard:period": "tsx --test tests/dashboardPeriod.test.ts"
+    "test:dashboard:period": "tsx --test tests/dashboardPeriod.test.ts",
+    "test:clinical": "tsx --test tests/clinicalRecord.test.ts"
   },
   "dependencies": {
     "@prisma/adapter-pg": "^7.1.0",
@@ -45,6 +46,7 @@
     "grapesjs": "^0.22.16",
     "grapesjs-blocks-basic": "^1.0.2",
     "grapesjs-preset-newsletter": "^1.0.2",
+    "gsap": "3.12.5",
     "jspdf": "^4.2.1",
     "lucide-react": "^0.577.0",
     "mongodb": "^7.1.0",

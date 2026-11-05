@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { Tag } from "@/presentation/ui/zs";
 import { useDoctorDashboardViewModel } from "./DoctorDashboardViewModel";
 import {
@@ -253,6 +254,7 @@ export default function DoctorDashboard() {
                   <th className="px-6 py-3 font-medium">Box</th>
                   <th className="px-6 py-3 font-medium">Estado</th>
                   <th className="px-6 py-3 font-medium">Pago</th>
+                  <th className="px-6 py-3 font-medium"><span className="sr-only">Abrir</span></th>
                 </tr>
               </thead>
               <tbody>
@@ -265,7 +267,21 @@ export default function DoctorDashboard() {
                     <td className="px-6 py-3 tabular-nums text-slate-600 whitespace-nowrap">
                       {formatTime(appt.startAt)} – {formatTime(appt.endAt)}
                     </td>
-                    <td className="px-6 py-3 font-medium text-slate-900 whitespace-nowrap">{appt.patientName}</td>
+                    <td className="px-6 py-3">
+                      <span className="flex flex-wrap items-center gap-1.5 font-medium text-slate-900">
+                        {appt.patientName}
+                        {appt.arrivedAt && appt.status !== "COMPLETED" && (
+                          <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold text-emerald-700">En sala</span>
+                        )}
+                        {appt.attentionType && (
+                          <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-slate-600">
+                            <span className="h-1.5 w-1.5 rounded-full" style={{ background: appt.attentionType.color }} />
+                            {appt.attentionType.name}
+                          </span>
+                        )}
+                      </span>
+                      {appt.reason && <span className="mt-0.5 block max-w-xs truncate text-xs text-slate-500">{appt.reason}</span>}
+                    </td>
                     <td className="px-6 py-3 text-slate-600 whitespace-nowrap">{appt.boxName}</td>
                     <td className="px-6 py-3 whitespace-nowrap">
                       <span className={`inline-flex rounded-full px-2 py-0.5 text-[11px] font-medium ${STATUS_COLORS[appt.status] ?? "bg-slate-100 text-slate-600"}`}>
@@ -274,6 +290,16 @@ export default function DoctorDashboard() {
                     </td>
                     <td className={`px-6 py-3 text-xs font-medium whitespace-nowrap ${PAYMENT_COLORS[appt.paymentStatus] ?? "text-slate-500"}`}>
                       {appt.paymentStatus === "PAID" ? "Pagado" : appt.paymentStatus === "PENDING" ? "Pendiente" : "Exento"}
+                    </td>
+                    <td className="px-6 py-3 text-right whitespace-nowrap">
+                      {appt.status !== "CANCELLED" && (
+                        <Link
+                          href={`/consultation/${appt.id}`}
+                          className="inline-flex items-center rounded-full bg-[#50c9d5] px-3.5 py-1.5 text-xs font-semibold text-[#080b04] transition-all hover:-translate-y-px hover:bg-[#45bcc8]"
+                        >
+                          {appt.status === "COMPLETED" ? "Ver ficha" : "Atender"}
+                        </Link>
+                      )}
                     </td>
                   </tr>
                 ))}
